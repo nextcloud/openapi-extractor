@@ -132,7 +132,7 @@ $routes = parseRoutes(join("/", $appIsCore ? [$dir, "routes.php"] : [$dir, "appi
 foreach ($routes as $key => $value) {
 	foreach ($value as $route) {
 		$name = $route["name"];
-		if (str_starts_with($name, "page#") || str_starts_with($name, "admin#")) {
+		if (str_starts_with(strtolower($name), "page#") || str_starts_with(strtolower($name), "admin#")) {
 			continue;
 		}
 		$verb = array_key_exists("verb", $route) ? $route["verb"] : "GET";
