@@ -1,0 +1,9 @@
+{
+  "require": {
+    "nikic/php-parser": "4.15.1",
+    "adhocore/cli": "v1.2.0",
+    "ext-simplexml": "*",
+    "phpstan/phpdoc-parser": "1.13",
+    "cebe/php-openapi": "1.7"
+  }
+}

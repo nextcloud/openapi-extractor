@@ -1,0 +1,559 @@
+#!/usr/bin/env php
+<?php
+
+require_once __DIR__ . "/vendor/autoload.php";
+
+use Ahc\Cli\Input\Command;
+use cebe\openapi\spec\Info;
+use cebe\openapi\spec\MediaType;
+use cebe\openapi\spec\OpenApi;
+use cebe\openapi\spec\Operation;
+use cebe\openapi\spec\Parameter;
+use cebe\openapi\spec\PathItem;
+use cebe\openapi\spec\Response;
+use cebe\openapi\spec\Schema;
+use cebe\openapi\spec\SecurityRequirement;
+use cebe\openapi\Writer;
+use PhpParser\Node\ComplexType;
+use PhpParser\Node\Expr;
+use PhpParser\Node\Expr\Array_;
+use PhpParser\Node\Expr\ArrayItem;
+use PhpParser\Node\Expr\ConstFetch;
+use PhpParser\Node\Expr\UnaryMinus;
+use PhpParser\Node\Identifier;
+use PhpParser\Node\Name;
+use PhpParser\Node\NullableType;
+use PhpParser\Node\Param;
+use PhpParser\Node\Scalar\LNumber;
+use PhpParser\Node\Scalar\String_;
+use PhpParser\Node\Stmt\Class_;
+use PhpParser\Node\Stmt\ClassMethod;
+use PhpParser\Node\Stmt\Namespace_;
+use PhpParser\Node\UnionType;
+use PhpParser\ParserFactory;
+use PHPStan\PhpDocParser\Ast\PhpDoc\ParamTagValueNode;
+use PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocTagNode;
+use PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocTagValueNode;
+use PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocTextNode;
+use PHPStan\PhpDocParser\Ast\Type\ArrayTypeNode;
+use PHPStan\PhpDocParser\Ast\Type\IdentifierTypeNode;
+use PHPStan\PhpDocParser\Ast\Type\IntersectionTypeNode;
+use PHPStan\PhpDocParser\Ast\Type\NullableTypeNode;
+use PHPStan\PhpDocParser\Ast\Type\TypeNode;
+use PHPStan\PhpDocParser\Ast\Type\UnionTypeNode;
+use PHPStan\PhpDocParser\Lexer\Lexer;
+use PHPStan\PhpDocParser\Parser\ConstExprParser;
+use PHPStan\PhpDocParser\Parser\PhpDocParser;
+use PHPStan\PhpDocParser\Parser\TokenIterator;
+use PHPStan\PhpDocParser\Parser\TypeParser;
+
+$command = new Command("openapi-extractor", "Extract OpenAPI specs from the Nextcloud source code");
+$command
+	->arguments("dir out")
+	->parse($_SERVER["argv"]);
+
+$dir = $command->dir;
+$out = $command->out;
+
+$astParser = (new ParserFactory)->create(ParserFactory::PREFER_PHP7);
+
+$lexer = new Lexer();
+$constExprParser = new ConstExprParser();
+$typeParser = new TypeParser($constExprParser);
+$phpDocParser = new PhpDocParser($typeParser, $constExprParser);
+
+$infoXMLPath = join("/", [$dir, "appinfo", "info.xml"]);
+
+if (file_exists($infoXMLPath)) {
+	$xml = simplexml_load_file($infoXMLPath) or die("Unable to read or parse " . $infoXMLPath . "\n");
+
+	$appIsCore = false;
+	$appID = (string)$xml->id;
+	$appName = (string)$xml->name;
+	$appSummary = (string)$xml->summary;
+	$appVersion = (string)$xml->version;
+	$appLicence = (string)$xml->licence;
+} else {
+	$versionPHPPath = join("/", [$dir, "..", "version.php"]);
+
+	if (!file_exists($versionPHPPath)) {
+		die("Neither " . $infoXMLPath . " nor " . $versionPHPPath . " exists\n");
+	}
+
+	// Includes https://github.com/nextcloud/server/blob/master/version.php when running inside https://github.com/nextcloud/server/tree/master/core
+	include(join("/", [$dir, "..", "version.php"]));
+	if (!isset($OC_VersionString)) {
+		die("Unable to figure out core version\n");
+	}
+
+	$appIsCore = true;
+	$appID = "core";
+	$appName = "Core";
+	$appSummary = "Core functionality of Nextcloud";
+	$appVersion = $OC_VersionString;
+	$appLicence = "agpl";
+}
+
+$openapi = new OpenApi([
+	"openapi" => "3.0.3",
+	"info" => new Info([
+		"title" => $appName,
+		"version" => $appVersion,
+		"description" => $appSummary,
+		"license" => [
+			"name" => $appLicence,
+		],
+	]),
+	"security" => [
+		new SecurityRequirement([
+			"basic_auth" => [],
+		]),
+	],
+	"components" => [
+		"securitySchemes" => [
+			"basic_auth" => [
+				"type" => "http",
+				"scheme" => "basic",
+			]
+		],
+	],
+	"tags" => [
+		[
+			"name" => $appID,
+		]
+	],
+	"paths" => [],
+]);
+
+print_r("Extracting OpenAPI spec for " . $appName . " " . $appVersion . "\n");
+
+$routes = parseRoutes(join("/", $appIsCore ? [$dir, "routes.php"] : [$dir, "appinfo", "routes.php"]));
+
+foreach ($routes as $key => $value) {
+	foreach ($value as $route) {
+		$name = $route["name"];
+		if (str_starts_with($name, "page#") || str_starts_with($name, "admin#")) {
+			continue;
+		}
+		$verb = array_key_exists("verb", $route) ? $route["verb"] : "GET";
+		$requirements = array_key_exists("requirements", $route) ? $route["requirements"] : [];
+		$root = array_key_exists("root", $route) ? $route["root"] : ($appIsCore ? "" : "/apps") . "/" . $appID;
+		$url = $route["url"];
+		if (!str_starts_with($url, "/")) {
+			$url = "/" . $url;
+		}
+		if (str_ends_with($url, "/")) {
+			$url = substr($url, 0, -1);
+		}
+		if ($key == "routes") {
+			$url = "/index.php" . $root . $url;
+		}
+		if ($key == "ocs") {
+			$url = "/ocs/v2.php" . $root . $url;
+		}
+
+		$methodName = lcfirst(str_replace("_", "", ucwords(explode("#", $name)[1], "_")));
+		if ($methodName == "preflightedCors") {
+			continue;
+		}
+
+		$controllerName = ucfirst(str_replace("_", "", ucwords(explode("#", $name)[0], "_")) . "Controller");
+
+		$controllerContent = file_get_contents(join("/", $appIsCore ? [$dir, "Controller", $controllerName . ".php"] : [$dir, "lib", "Controller", $controllerName . ".php"]));
+		$ast = $astParser->parse($controllerContent);
+
+		$methodFunction = findMethod($ast, $controllerName, $methodName);
+		if ($methodFunction == null) {
+			continue;
+		}
+
+		$methodDescription = [];
+		$methodParameters = $methodFunction->getParams();
+		$urlParameters = [];
+		$docParameters = [];
+
+		preg_match_all("/{[^}]*}/", $url, $urlParameters);
+		$urlParameters = array_map(function (string $name) {
+			return substr($name, 1, -1);
+		}, $urlParameters[0]);
+
+		$doc = $methodFunction->getDocComment()?->getText();
+		if ($doc != null) {
+			$docNodes = $phpDocParser->parse(new TokenIterator($lexer->tokenize($doc)))->children;
+			foreach ($docNodes as $docNode) {
+				if ($docNode instanceof PhpDocTextNode) {
+					$line = cleanDocComment($docNode->text);
+					if ($line == "") {
+						continue;
+					}
+					$methodDescription[] = $line;
+				}
+
+				if ($docNode instanceof PhpDocTagNode) {
+					if ($docNode->value instanceof ParamTagValueNode) {
+						$docParameters[] = $docNode->value;
+					}
+				}
+			}
+		}
+
+		$parameters = [];
+		foreach ($methodParameters as $methodParameter) {
+			$parameters[$methodParameter->var->name] = new RequestParameter($methodParameter->var->name, $methodParameter, null);
+		}
+		foreach ($docParameters as $docParameter) {
+			$name = substr($docParameter->parameterName, 1);
+			if (!array_key_exists($name, $parameters)) {
+				$parameters[$name] = new RequestParameter($name, null, $docParameter);
+			} else {
+				$parameters[$name] = new RequestParameter($name, $parameters[$name]->methodParameter, $docParameter);
+			}
+		}
+
+		$pathParameters = [];
+		if (!$openapi->paths->hasPath($url)) {
+			foreach ($urlParameters as $urlParameter) {
+				if (!array_key_exists($urlParameter, $parameters)) {
+					continue;
+				}
+				$parameter = $parameters[$urlParameter];
+				if ($parameter?->methodParameter == null && ($requirements == null || !array_key_exists($urlParameter, $requirements))) {
+					die("Unable to find parameter for " . $urlParameter . " in " . $url . "\n");
+				}
+
+				$pathParameters[] = new Parameter(array_merge(
+					[
+						"name" => $urlParameter,
+						"in" => "path",
+						"required" => true,
+						"schema" => $parameter->OpenApiType->toSchema(),
+					],
+					$parameter?->docParameter != null && $parameter->docParameter->description != "" ? ["description" => cleanDocComment($parameter->docParameter->description)] : [],
+				));
+			}
+
+			$openapi->paths->addPath(
+				$url,
+				new PathItem([
+					"parameters" => $pathParameters,
+				]),
+			);
+		} else {
+			$pathParameters = $openapi->paths->getPath($url)->parameters;
+		}
+
+		$queryParameters = [];
+		foreach ($parameters as $parameter) {
+			$alreadyInPath = false;
+			foreach ($pathParameters as $pathParameter) {
+				if ($pathParameter->name == $parameter->name) {
+					$alreadyInPath = true;
+					break;
+				}
+			}
+			if (!$alreadyInPath) {
+				$queryParameters[] = $parameter;
+			}
+		}
+
+		$operation = new Operation([
+			"operationId" => $methodName,
+			"tags" => [$appID],
+			"responses" => [
+				"200" => new Response([
+					"description" => "",
+					"content" => [
+						"application/json" => new MediaType([
+							"schema" => new Schema([
+								"type" => "string",
+							]),
+						]),
+					],
+				]),
+			],
+			"parameters" => array_map(function (RequestParameter $parameter) {
+				return new Parameter(array_merge(
+					[
+						"name" => $parameter->name,
+						"in" => "query",
+						"schema" => $parameter->OpenApiType->toSchema(),
+					],
+					!$parameter->OpenApiType->nullable ? ["required" => true] : [],
+					$parameter->docParameter != null && $parameter->docParameter->description != "" ? ["description" => cleanDocComment($parameter->docParameter->description)] : [],
+				));
+			}, $queryParameters),
+		]);
+		switch ($verb) {
+			case "DELETE":
+				$openapi->paths->getPath($url)->delete = $operation;
+				break;
+			case "GET":
+				$openapi->paths->getPath($url)->get = $operation;
+				break;
+			case "POST":
+				$openapi->paths->getPath($url)->post = $operation;
+				break;
+			case "PUT":
+				$openapi->paths->getPath($url)->put = $operation;
+				break;
+			case "PATCH":
+				$openapi->paths->getPath($url)->patch = $operation;
+				break;
+			case "OPTIONS":
+				$openapi->paths->getPath($url)->options = $operation;
+				break;
+		}
+	}
+}
+
+file_put_contents($out, Writer::writeToJson($openapi, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+if (!$openapi->validate()) {
+	die("Invalid OpenAPI spec generated. Please review the output!\n");
+}
+
+
+class RequestParameter
+{
+	public string $name;
+
+	public ?Param $methodParameter;
+
+	public ?PhpDocTagValueNode $docParameter;
+
+	public OpenApiType $OpenApiType;
+
+	public function __construct(string $name, ?Param $methodParameter, ?PhpDocTagValueNode $docParameter)
+	{
+		$this->name = $name;
+		$this->methodParameter = $methodParameter;
+		$this->docParameter = $docParameter;
+
+		// The doc parameter can be a little more detailed, so we parse it first.
+		if ($docParameter != null) {
+			$this->OpenApiType = resolveOpenApiType($docParameter->type);
+
+			if ($methodParameter != null) {
+				$this->OpenApiType->defaultValue = exprToString($methodParameter->default);
+			}
+
+			return;
+		}
+
+		if ($methodParameter != null) {
+			global $typeParser, $lexer;
+			$this->OpenApiType = resolveOpenApiType($typeParser->parse(new TokenIterator($lexer->tokenize(methodNodeToTypeString($methodParameter)))));
+
+			$this->OpenApiType->defaultValue = exprToString($methodParameter->default);
+			return;
+		}
+
+		$this->OpenApiType = new OpenApiType("string", nullable: false);
+	}
+}
+
+function exprToString(null|Expr $expr): mixed
+{
+	if ($expr == null) {
+		return null;
+	}
+	if ($expr instanceof ConstFetch) {
+		$value = $expr->name->getLast();
+		switch ($value) {
+			case "null":
+				return null;
+			case "true":
+				return true;
+			case "false":
+				return false;
+			default:
+				die("Unable to convert ConstFetch " . $value . "\n");
+		}
+	}
+	if ($expr instanceof String_) {
+		return $expr->value;
+	}
+	if ($expr instanceof LNumber) {
+		return intval($expr->value);
+	}
+	if ($expr instanceof UnaryMinus) {
+		return exprToString($expr->expr);
+	}
+	if ($expr instanceof Array_) {
+		return array_map(function (ArrayItem $item) {
+			return exprToString($item);
+		}, $expr->items);
+	}
+
+	die("Unable to convert Expr " . get_class($expr) . "\n");
+}
+
+function methodNodeToTypeString(Identifier|Name|ComplexType|Param $node): string
+{
+	if ($node instanceof Identifier) {
+		return $node->name;
+	}
+
+	if ($node->type == null) {
+		return "null";
+	}
+
+	if ($node->type instanceof UnionType) {
+		return implode("|", array_map(function (Identifier|Name $node) {
+			return methodNodeToTypeString($node);
+		}, $node->type->types));
+	}
+
+	// IntersectionType same as above but with & instead of |
+
+	if ($node->type instanceof Identifier) {
+		return $node->type->name;
+	}
+	if ($node->type instanceof NullableType) {
+		return "?" . $node->type->type->name;
+	}
+
+	die("Unable to convert " . get_class($node) . "\n");
+}
+
+function resolveOpenApiType(TypeNode $node): OpenApiType
+{
+	if ($node instanceof IdentifierTypeNode) {
+		return match ($node->name) {
+			"string" => new OpenApiType("string", nullable: false),
+			"int", "integer" => new OpenApiType("integer", nullable: false),
+			"bool", "boolean" => new OpenApiType("boolean", nullable: false),
+			"double" => new OpenApiType("number", "double", nullable: false),
+			"float" => new OpenApiType("number", "float", nullable: false),
+			"array" => new OpenApiType("array", nullable: false),
+			"null" => new OpenApiType(nullable: true),
+			default => die("Unable to resolve OpenAPI type for " . $node->name . "\n"),
+		};
+	}
+
+	if ($node instanceof ArrayTypeNode) {
+		return new OpenApiType("array", nullable: false, items: resolveOpenApiType($node->type));
+	}
+
+	if ($node instanceof NullableTypeNode) {
+		$type = resolveOpenApiType($node->type);
+		$type->nullable = true;
+		return $type;
+	}
+
+	if ($node instanceof UnionTypeNode || $node instanceof IntersectionTypeNode) {
+		$nullable = false;
+		$types = [];
+		foreach ($node->types as $type) {
+			if ($type instanceof IdentifierTypeNode && $type->name == "null") {
+				$nullable = true;
+			} else {
+				$types[] = $type;
+			}
+		}
+
+		if (count($types) == 1) {
+			$type = resolveOpenApiType($types[0]);
+			$type->nullable = true;
+			return $type;
+		} else {
+			return new OpenApiType(
+				nullable: $nullable,
+				anyOf: $node instanceof UnionTypeNode ? $types : null,
+				allOf: $node instanceof IntersectionTypeNode ? $types : null,
+			);
+		}
+	}
+
+	die("Unable to resolve OpenAPI type for " . $node . "\n");
+}
+
+class OpenApiType
+{
+	public ?string $type;
+
+	public ?string $format;
+
+	public ?bool $nullable;
+
+	public mixed $defaultValue;
+
+	public ?OpenApiType $items;
+
+	public ?array $anyOf;
+
+	public ?array $allOf;
+
+	public function __construct(?string $type = null, ?string $format = null, ?bool $nullable = null, mixed $defaultValue = null, ?OpenApiType $items = null, ?array $anyOf = null, ?array $allOf = null)
+	{
+		$this->type = $type;
+		$this->format = $format;
+		$this->nullable = $nullable;
+		$this->defaultValue = $defaultValue;
+		$this->items = $items;
+		$this->anyOf = $anyOf;
+		$this->allOf = $allOf;
+	}
+
+	public function toSchema(): Schema
+	{
+		return new Schema(array_merge(
+			$this->type != null ? ["type" => $this->type] : [],
+			$this->format != null ? ["format" => $this->format] : [],
+			$this->defaultValue != null ? ["default" => $this->defaultValue] : [],
+			$this->items != null ? ["items" => $this->items->toSchema()] : [],
+			$this->anyOf != null ? ["anyOf" => array_map(function (TypeNode $node) {
+				return resolveOpenApiType($node)->toSchema();
+			}, $this->anyOf)] : [],
+			$this->allOf != null ? ["allOf" => array_map(function (TypeNode $node) {
+				return resolveOpenApiType($node)->toSchema();
+			}, $this->allOf)] : [],
+		));
+	}
+}
+
+function findMethod(array $ast, string $controllerName, string $methodName): ?ClassMethod
+{
+	foreach ($ast as $node1) {
+		if ($node1 instanceof Namespace_) {
+			foreach ($node1->stmts as $node2) {
+				// The normal "Controller" class is not used for OCS. Ideally we'd want to only match "OCSController",
+				// but there are some apps that uses wrappers around that class, so it's not an option.
+				if ($node2 instanceof Class_ && $node2->extends != "Controller" && $node2->name == $controllerName) {
+					foreach ($node2->stmts as $node3) {
+						if ($node3 instanceof ClassMethod) {
+							if ($node3->name == $methodName) {
+								return $node3;
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return null;
+}
+
+function parseRoutes(string $path): array
+{
+	$content = file_get_contents($path);
+	if (str_contains($content, "return ")) {
+		return include($path);
+	} elseif (str_contains($content, "registerRoutes")) {
+		preg_match("/registerRoutes\(\\\$this, (\[[^;]*)\);/", $content, $matches);
+
+		$tmpPath = tempnam(sys_get_temp_dir(), "routes-");
+		file_put_contents($tmpPath, "<?php\nreturn " . $matches[1] . ";");
+		$routes = include($tmpPath);
+		unlink($tmpPath);
+
+		return $routes;
+	} else {
+		die("Unknown routes.php format\n");
+	}
+}
+
+function cleanDocComment(string $comment): string
+{
+	return trim(preg_replace("/\s+/", " ", $comment));
+}
