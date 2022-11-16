@@ -213,23 +213,45 @@ foreach ($routes as $key => $value) {
 		$pathParameters = [];
 		if (!$openapi->paths->hasPath($url)) {
 			foreach ($urlParameters as $urlParameter) {
-				if (!array_key_exists($urlParameter, $parameters)) {
-					continue;
-				}
-				$parameter = $parameters[$urlParameter];
-				if ($parameter?->methodParameter == null && ($requirements == null || !array_key_exists($urlParameter, $requirements))) {
-					die("Unable to find parameter for " . $urlParameter . " in " . $url . "\n");
-				}
+				if (array_key_exists($urlParameter, $parameters)) {
+					$parameter = $parameters[$urlParameter];
+					if ($parameter?->methodParameter == null && ($requirements == null || !array_key_exists($urlParameter, $requirements))) {
+						die("Unable to find parameter for " . $urlParameter . " in " . $url . "\n");
+					}
 
-				$pathParameters[] = new Parameter(array_merge(
-					[
-						"name" => $urlParameter,
-						"in" => "path",
-						"required" => true,
-						"schema" => $parameter->OpenApiType->toSchema(),
-					],
-					$parameter?->docParameter != null && $parameter->docParameter->description != "" ? ["description" => cleanDocComment($parameter->docParameter->description)] : [],
-				));
+					$pathParameters[] = new Parameter(array_merge(
+						[
+							"name" => $urlParameter,
+							"in" => "path",
+							"required" => true,
+							"schema" => $parameter->OpenApiType->toSchema(),
+						],
+						$parameter?->docParameter != null && $parameter->docParameter->description != "" ? ["description" => cleanDocComment($parameter->docParameter->description)] : [],
+					));
+				} else {
+					$requirement = array_key_exists($urlParameter, $requirements) ? $requirements[$urlParameter] : null;
+					if ($requirement != null) {
+						if (!str_starts_with($requirement, "^")) {
+							$requirement = "^" . $requirement;
+						}
+						if (!str_ends_with($requirement, "$")) {
+							$requirement = $requirement . "$";
+						}
+					}
+					$pathParameters[] = new Parameter(array_merge(
+						[
+							"name" => $urlParameter,
+							"in" => "path",
+							"required" => true,
+							"schema" => array_merge(
+								$requirement != null ? [
+									"type" => "string",
+									"pattern" => $requirement,
+								] : [],
+							),
+						],
+					));
+				}
 			}
 
 			$openapi->paths->addPath(
