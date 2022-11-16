@@ -224,7 +224,7 @@ foreach ($routes as $key => $value) {
 							"name" => $urlParameter,
 							"in" => "path",
 							"required" => true,
-							"schema" => $parameter->OpenApiType->toSchema(),
+							"schema" => $parameter->OpenApiType->toSchema(false),
 						],
 						$parameter?->docParameter != null && $parameter->docParameter->description != "" ? ["description" => cleanDocComment($parameter->docParameter->description)] : [],
 					));
@@ -298,7 +298,7 @@ foreach ($routes as $key => $value) {
 					[
 						"name" => $parameter->name,
 						"in" => "query",
-						"schema" => $parameter->OpenApiType->toSchema(),
+						"schema" => $parameter->OpenApiType->toSchema(true),
 					],
 					!$parameter->OpenApiType->nullable ? ["required" => true] : [],
 					$parameter->docParameter != null && $parameter->docParameter->description != "" ? ["description" => cleanDocComment($parameter->docParameter->description)] : [],
@@ -516,18 +516,18 @@ class OpenApiType
 		$this->allOf = $allOf;
 	}
 
-	public function toSchema(): Schema
+	public function toSchema(bool $booleanQuirk): Schema
 	{
 		return new Schema(array_merge(
-			$this->type != null ? ["type" => $this->type] : [],
+			$this->type != null ? ["type" => $booleanQuirk && $this->type == "boolean" ? "integer" : $this->type] : [],
 			$this->format != null ? ["format" => $this->format] : [],
-			$this->defaultValue != null ? ["default" => $this->defaultValue] : [],
-			$this->items != null ? ["items" => $this->items->toSchema()] : [],
-			$this->anyOf != null ? ["anyOf" => array_map(function (TypeNode $node) {
-				return resolveOpenApiType($node)->toSchema();
+			$this->defaultValue != null ? ["default" => $booleanQuirk && $this->type == "boolean" ? $this->defaultValue == "true" ? 1 : 0 : $this->defaultValue] : [],
+			$this->items != null ? ["items" => $this->items->toSchema($booleanQuirk)] : [],
+			$this->anyOf != null ? ["anyOf" => array_map(function (TypeNode $node) use ($booleanQuirk) {
+				return resolveOpenApiType($node)->toSchema($booleanQuirk);
 			}, $this->anyOf)] : [],
-			$this->allOf != null ? ["allOf" => array_map(function (TypeNode $node) {
-				return resolveOpenApiType($node)->toSchema();
+			$this->allOf != null ? ["allOf" => array_map(function (TypeNode $node) use ($booleanQuirk) {
+				return resolveOpenApiType($node)->toSchema($booleanQuirk);
 			}, $this->allOf)] : [],
 		));
 	}
