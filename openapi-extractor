@@ -55,6 +55,13 @@ $command
 $dir = $command->dir;
 $out = $command->out;
 
+if ($dir == "") {
+	$dir = ".";
+}
+if ($out == "") {
+	$out = "openapi.json";
+}
+
 $astParser = (new ParserFactory)->create(ParserFactory::PREFER_PHP7);
 
 $lexer = new Lexer();
