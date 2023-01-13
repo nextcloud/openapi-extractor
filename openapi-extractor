@@ -136,12 +136,16 @@ print_r("Extracting OpenAPI spec for " . $appName . " " . $appVersion . "\n");
 
 $routes = parseRoutes(join("/", $appIsCore ? [$dir, "routes.php"] : [$dir, "appinfo", "routes.php"]));
 
+$seenRouteNames = [];
+
 foreach ($routes as $key => $value) {
 	foreach ($value as $route) {
 		$name = $route["name"];
-		if (str_starts_with(strtolower($name), "page#") || str_starts_with(strtolower($name), "admin#")) {
+		if (str_starts_with(strtolower($name), "page#") || str_starts_with(strtolower($name), "admin#") || in_array($name, $seenRouteNames)) {
 			continue;
 		}
+		$seenRouteNames[] = $name;
+
 		$verb = array_key_exists("verb", $route) ? $route["verb"] : "GET";
 		$requirements = array_key_exists("requirements", $route) ? $route["requirements"] : [];
 		$root = array_key_exists("root", $route) ? $route["root"] : ($appIsCore ? "" : "/apps") . "/" . $appID;
