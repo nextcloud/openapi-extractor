@@ -164,9 +164,9 @@ foreach ($routes as $key => $value) {
 			continue;
 		}
 
-		$controllerName = ucfirst(str_replace("_", "", ucwords(explode("#", $name)[0], "_")) . "Controller");
+		$controllerName = ucfirst(str_replace("_", "", ucwords(explode("#", $name)[0], "_")));
 
-		$controllerContent = file_get_contents(join("/", $appIsCore ? [$dir, "Controller", $controllerName . ".php"] : [$dir, "lib", "Controller", $controllerName . ".php"]));
+		$controllerContent = file_get_contents(join("/", $appIsCore ? [$dir, "Controller", $controllerName . "Controller.php"] : [$dir, "lib", "Controller", $controllerName . "Controller.php"]));
 		$ast = $astParser->parse($controllerContent);
 
 		$methodFunction = findMethod($ast, $controllerName, $methodName);
@@ -286,7 +286,7 @@ foreach ($routes as $key => $value) {
 		}
 
 		$operation = new Operation([
-			"operationId" => $methodName,
+			"operationId" => generateOperationID($methodName, $controllerName),
 			"tags" => [$appID],
 			"responses" => [
 				"200" => new Response([
@@ -547,7 +547,7 @@ function findMethod(array $ast, string $controllerName, string $methodName): ?Cl
 			foreach ($node1->stmts as $node2) {
 				// The normal "Controller" class is not used for OCS. Ideally we'd want to only match "OCSController",
 				// but there are some apps that uses wrappers around that class, so it's not an option.
-				if ($node2 instanceof Class_ && $node2->extends != "Controller" && $node2->name == $controllerName) {
+				if ($node2 instanceof Class_ && $node2->extends != "Controller" && $node2->name == $controllerName . "Controller") {
 					foreach ($node2->stmts as $node3) {
 						if ($node3 instanceof ClassMethod) {
 							if ($node3->name == $methodName) {
@@ -585,4 +585,50 @@ function parseRoutes(string $path): array
 function cleanDocComment(string $comment): string
 {
 	return trim(preg_replace("/\s+/", " ", $comment));
+}
+
+function splitOnUppercaseFollowedByNonUppercase(string $str): array
+{
+	return preg_split('/(?=[A-Z][^A-Z])/', $str, -1, PREG_SPLIT_NO_EMPTY);
+}
+
+function generateOperationID(string $methodName, string $controllerName): string
+{
+	$verbParts = array_map(function (string $verbPart) {
+		return strtolower($verbPart);
+	}, splitOnUppercaseFollowedByNonUppercase($methodName));
+	$verb = mapVerb(implode("-", $verbParts));
+
+	$objectParts = array_filter(array_map(function (string $objectPart) {
+		return strtolower($objectPart);
+	}, splitOnUppercaseFollowedByNonUppercase($controllerName)), function (string $objectPart) {
+		return !in_array($objectPart, ["api", "endpoint"]);
+	});
+	$object = implode("-", $objectParts);
+
+	if (array_intersect($objectParts, $verbParts) == $objectParts || $object == "") {
+		return $verb;
+	}
+	if (array_intersect($verbParts, $objectParts) == $verbParts) {
+		return $object;
+	}
+
+	if (count($verbParts) == 1) {
+		// Make it plural when listing
+		if ($verb == "list" && !str_ends_with($object, "s")) {
+			$object .= "s";
+		}
+
+		return "$verb-$object";
+	}
+
+	return "$object-$verb";
+}
+
+function mapVerb(string $verb): string
+{
+	return match ($verb) {
+		"index" => "list",
+		default => $verb,
+	};
 }
