@@ -562,13 +562,16 @@ function findMethod(array $ast, string $controllerName, string $methodName): ?Cl
 	foreach ($ast as $node1) {
 		if ($node1 instanceof Namespace_) {
 			foreach ($node1->stmts as $node2) {
-				// The normal "Controller" class is not used for OCS. Ideally we'd want to only match "OCSController",
-				// but there are some apps that uses wrappers around that class, so it's not an option.
-				if ($node2 instanceof Class_ && $node2->extends != "Controller" && $node2->name == $controllerName . "Controller") {
+				if ($node2 instanceof Class_ && $node2->name == $controllerName . "Controller") {
 					foreach ($node2->stmts as $node3) {
 						if ($node3 instanceof ClassMethod) {
 							if ($node3->name == $methodName) {
-								return $node3;
+								$doc = $node3->getDocComment()?->getText();
+								if ($node2->extends != "Controller" || ($doc != null && str_contains($doc, "@NoCSRFRequired"))) {
+									return $node3;
+								} else {
+									return null;
+								}
 							}
 						}
 					}
