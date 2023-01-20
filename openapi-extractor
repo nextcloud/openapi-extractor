@@ -136,11 +136,11 @@ $seenRouteNames = [];
 
 foreach ($routes as $key => $value) {
 	foreach ($value as $route) {
-		$name = $route["name"];
-		if (str_starts_with(strtolower($name), "page#") || str_starts_with(strtolower($name), "admin#") || in_array($name, $seenRouteNames)) {
+		$routeName = $route["name"];
+		if (str_starts_with(strtolower($routeName), "page#") || str_starts_with(strtolower($routeName), "admin#") || in_array($routeName, $seenRouteNames)) {
 			continue;
 		}
-		$seenRouteNames[] = $name;
+		$seenRouteNames[] = $routeName;
 
 		$verb = array_key_exists("verb", $route) ? $route["verb"] : "GET";
 		$requirements = array_key_exists("requirements", $route) ? $route["requirements"] : [];
@@ -159,12 +159,12 @@ foreach ($routes as $key => $value) {
 			$url = "/ocs/v2.php" . $root . $url;
 		}
 
-		$methodName = lcfirst(str_replace("_", "", ucwords(explode("#", $name)[1], "_")));
+		$methodName = lcfirst(str_replace("_", "", ucwords(explode("#", $routeName)[1], "_")));
 		if ($methodName == "preflightedCors") {
 			continue;
 		}
 
-		$controllerName = ucfirst(str_replace("_", "", ucwords(explode("#", $name)[0], "_")));
+		$controllerName = ucfirst(str_replace("_", "", ucwords(explode("#", $routeName)[0], "_")));
 
 		$controllerContent = file_get_contents(join("/", $appIsCore ? [$dir, "Controller", $controllerName . "Controller.php"] : [$dir, "lib", "Controller", $controllerName . "Controller.php"]));
 		$ast = $astParser->parse($controllerContent);
@@ -205,16 +205,16 @@ foreach ($routes as $key => $value) {
 		}
 
 		$parameters = [];
-		foreach ($methodParameters as $methodParameter) {
-			$parameters[$methodParameter->var->name] = new RequestParameter($methodParameter->var->name, $methodParameter, null);
-		}
 		foreach ($docParameters as $docParameter) {
 			$name = substr($docParameter->parameterName, 1);
+			$parameters[$name] = new RequestParameter($name, null, $docParameter);
+		}
+		foreach ($methodParameters as $methodParameter) {
+			$name = $methodParameter->var->name;
 			if (!array_key_exists($name, $parameters)) {
-				$parameters[$name] = new RequestParameter($name, null, $docParameter);
-			} else {
-				$parameters[$name] = new RequestParameter($name, $parameters[$name]->methodParameter, $docParameter);
+				die("Missing doc parameter '" . $name . "' for '" . $routeName . "'\n");
 			}
+			$parameters[$name] = new RequestParameter($name, $methodParameter, $parameters[$name]->docParameter);
 		}
 
 		$pathParameters = [];
@@ -231,8 +231,8 @@ foreach ($routes as $key => $value) {
 							"name" => $urlParameter,
 							"in" => "path",
 							"required" => true,
-							"schema" => $parameter->type->toSchema(false),
 						],
+						$parameter->type != null ? ["schema" => $parameter->type->toSchema(false),] : [],
 						$parameter?->docParameter != null && $parameter->docParameter->description != "" ? ["description" => cleanDocComment($parameter->docParameter->description)] : [],
 					));
 				} else {
@@ -354,7 +354,7 @@ class RequestParameter
 
 	public ?PhpDocTagValueNode $docParameter;
 
-	public ?OpenApiType $type;
+	public ?OpenApiType $type = null;
 
 	public function __construct(string $name, ?Param $methodParameter, ?PhpDocTagValueNode $docParameter)
 	{
