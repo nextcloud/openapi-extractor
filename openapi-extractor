@@ -512,19 +512,25 @@ class OpenApiType
 
 	public ?OpenApiType $items;
 
+	public ?array $properties;
+
 	public ?array $anyOf;
 
 	public ?array $allOf;
 
-	public function __construct(?string $type = null, ?string $format = null, ?bool $nullable = null, mixed $defaultValue = null, ?OpenApiType $items = null, ?array $anyOf = null, ?array $allOf = null)
+	public ?bool $additionalProperties;
+
+	public function __construct(?string $type = null, ?string $format = null, ?bool $nullable = null, mixed $defaultValue = null, ?OpenApiType $items = null, ?array $properties = null, ?array $anyOf = null, ?array $allOf = null, ?bool $additionalProperties = null)
 	{
 		$this->type = $type;
 		$this->format = $format;
 		$this->nullable = $nullable;
 		$this->defaultValue = $defaultValue;
 		$this->items = $items;
+		$this->properties = $properties;
 		$this->anyOf = $anyOf;
 		$this->allOf = $allOf;
+		$this->additionalProperties = $additionalProperties;
 	}
 
 	public function toSchema(bool $booleanQuirk): Schema
@@ -534,12 +540,19 @@ class OpenApiType
 			$this->format != null ? ["format" => $this->format] : [],
 			$this->defaultValue != null ? ["default" => $booleanQuirk && $this->type == "boolean" ? $this->defaultValue == "true" ? 1 : 0 : $this->defaultValue] : [],
 			$this->items != null ? ["items" => $this->items->toSchema($booleanQuirk)] : [],
+			$this->properties != null ? ["properties" =>
+				array_combine(array_keys($this->properties),
+					array_map(function (OpenApiType $property) use ($booleanQuirk) {
+						return $property->toSchema($booleanQuirk);
+					}, array_values($this->properties)),
+				)] : [],
 			$this->anyOf != null ? ["anyOf" => array_map(function (TypeNode $node) use ($booleanQuirk) {
 				return resolveOpenApiType($node)->toSchema($booleanQuirk);
 			}, $this->anyOf)] : [],
 			$this->allOf != null ? ["allOf" => array_map(function (TypeNode $node) use ($booleanQuirk) {
 				return resolveOpenApiType($node)->toSchema($booleanQuirk);
 			}, $this->allOf)] : [],
+			$this->additionalProperties != null ? ["additionalProperties" => $this->additionalProperties] : [],
 		));
 	}
 }
