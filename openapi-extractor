@@ -300,6 +300,9 @@ foreach ($routes as $key => $value) {
 					],
 				]),
 			],
+			"description" => implode("\n", array_map(function (string $line) {
+				return cleanDocComment($line);
+			}, $methodDescription)),
 			"parameters" => array_map(function (RequestParameter $parameter) {
 				return new Parameter(array_merge(
 					[
