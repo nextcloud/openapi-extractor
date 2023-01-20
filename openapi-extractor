@@ -14,27 +14,23 @@ use cebe\openapi\spec\Response;
 use cebe\openapi\spec\Schema;
 use cebe\openapi\spec\SecurityRequirement;
 use cebe\openapi\Writer;
-use PhpParser\Node\ComplexType;
 use PhpParser\Node\Expr;
 use PhpParser\Node\Expr\Array_;
 use PhpParser\Node\Expr\ArrayItem;
 use PhpParser\Node\Expr\ConstFetch;
 use PhpParser\Node\Expr\UnaryMinus;
-use PhpParser\Node\Identifier;
-use PhpParser\Node\Name;
-use PhpParser\Node\NullableType;
 use PhpParser\Node\Param;
 use PhpParser\Node\Scalar\LNumber;
 use PhpParser\Node\Scalar\String_;
 use PhpParser\Node\Stmt\Class_;
 use PhpParser\Node\Stmt\ClassMethod;
 use PhpParser\Node\Stmt\Namespace_;
-use PhpParser\Node\UnionType;
 use PhpParser\ParserFactory;
 use PHPStan\PhpDocParser\Ast\PhpDoc\ParamTagValueNode;
 use PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocTagNode;
 use PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocTagValueNode;
 use PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocTextNode;
+use PHPStan\PhpDocParser\Ast\Type\ArrayShapeNode;
 use PHPStan\PhpDocParser\Ast\Type\ArrayTypeNode;
 use PHPStan\PhpDocParser\Ast\Type\IdentifierTypeNode;
 use PHPStan\PhpDocParser\Ast\Type\IntersectionTypeNode;
@@ -235,7 +231,7 @@ foreach ($routes as $key => $value) {
 							"name" => $urlParameter,
 							"in" => "path",
 							"required" => true,
-							"schema" => $parameter->OpenApiType->toSchema(false),
+							"schema" => $parameter->type->toSchema(false),
 						],
 						$parameter?->docParameter != null && $parameter->docParameter->description != "" ? ["description" => cleanDocComment($parameter->docParameter->description)] : [],
 					));
@@ -309,9 +305,11 @@ foreach ($routes as $key => $value) {
 					[
 						"name" => $parameter->name,
 						"in" => "query",
-						"schema" => $parameter->OpenApiType->toSchema(true),
 					],
-					!$parameter->OpenApiType->nullable ? ["required" => true] : [],
+					$parameter->type != null ? array_merge(
+						["schema" => $parameter->type->toSchema(true)],
+						!$parameter->type->nullable ? ["required" => true] : [],
+					) : [],
 					$parameter->docParameter != null && $parameter->docParameter->description != "" ? ["description" => cleanDocComment($parameter->docParameter->description)] : [],
 				));
 			}, $queryParameters),
@@ -353,7 +351,7 @@ class RequestParameter
 
 	public ?PhpDocTagValueNode $docParameter;
 
-	public OpenApiType $OpenApiType;
+	public ?OpenApiType $type;
 
 	public function __construct(string $name, ?Param $methodParameter, ?PhpDocTagValueNode $docParameter)
 	{
@@ -361,26 +359,13 @@ class RequestParameter
 		$this->methodParameter = $methodParameter;
 		$this->docParameter = $docParameter;
 
-		// The doc parameter can be a little more detailed, so we parse it first.
 		if ($docParameter != null) {
-			$this->OpenApiType = resolveOpenApiType($docParameter->type);
+			$this->type = resolveOpenApiType($docParameter->type);
 
 			if ($methodParameter != null) {
-				$this->OpenApiType->defaultValue = exprToString($methodParameter->default);
+				$this->type->defaultValue = exprToString($methodParameter->default);
 			}
-
-			return;
 		}
-
-		if ($methodParameter != null) {
-			global $typeParser, $lexer;
-			$this->OpenApiType = resolveOpenApiType($typeParser->parse(new TokenIterator($lexer->tokenize(methodNodeToTypeString($methodParameter)))));
-
-			$this->OpenApiType->defaultValue = exprToString($methodParameter->default);
-			return;
-		}
-
-		$this->OpenApiType = new OpenApiType("string", nullable: false);
 	}
 }
 
@@ -420,34 +405,6 @@ function exprToString(null|Expr $expr): mixed
 	die("Unable to convert Expr " . get_class($expr) . "\n");
 }
 
-function methodNodeToTypeString(Identifier|Name|ComplexType|Param $node): string
-{
-	if ($node instanceof Identifier) {
-		return $node->name;
-	}
-
-	if ($node->type == null) {
-		return "null";
-	}
-
-	if ($node->type instanceof UnionType) {
-		return implode("|", array_map(function (Identifier|Name $node) {
-			return methodNodeToTypeString($node);
-		}, $node->type->types));
-	}
-
-	// IntersectionType same as above but with & instead of |
-
-	if ($node->type instanceof Identifier) {
-		return $node->type->name;
-	}
-	if ($node->type instanceof NullableType) {
-		return "?" . $node->type->type->name;
-	}
-
-	die("Unable to convert " . get_class($node) . "\n");
-}
-
 function resolveOpenApiType(TypeNode $node): OpenApiType
 {
 	if ($node instanceof IdentifierTypeNode) {
@@ -465,6 +422,14 @@ function resolveOpenApiType(TypeNode $node): OpenApiType
 
 	if ($node instanceof ArrayTypeNode) {
 		return new OpenApiType("array", nullable: false, items: resolveOpenApiType($node->type));
+	}
+
+	if ($node instanceof ArrayShapeNode) {
+		$properties = [];
+		foreach ($node->items as $item) {
+			$properties[$item->keyName->name] = resolveOpenApiType($item->valueType);
+		}
+		return new OpenApiType("object", nullable: false, properties: $properties, additionalProperties: count($properties) == 0 ? true : null);
 	}
 
 	if ($node instanceof NullableTypeNode) {
@@ -497,7 +462,7 @@ function resolveOpenApiType(TypeNode $node): OpenApiType
 		}
 	}
 
-	die("Unable to resolve OpenAPI type for " . $node . "\n");
+	die("Unable to resolve OpenAPI type for " . get_class($node) . "\n");
 }
 
 class OpenApiType
