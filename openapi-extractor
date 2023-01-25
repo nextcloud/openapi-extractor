@@ -811,7 +811,7 @@ function generateOperationID(string $methodName, string $controllerName): string
 	$objectParts = array_filter(array_map(function (string $objectPart) {
 		return strtolower($objectPart);
 	}, splitOnUppercaseFollowedByNonUppercase($controllerName)), function (string $objectPart) {
-		return !in_array($objectPart, ["api", "endpoint"]);
+		return !in_array($objectPart, ["api", "endpoint", "request", "handler"]);
 	});
 	$object = implode("-", $objectParts);
 
