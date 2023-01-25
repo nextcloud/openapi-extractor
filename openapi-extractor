@@ -30,6 +30,7 @@ use PhpParser\Node\Stmt\Namespace_;
 use PhpParser\Node\Stmt\Property;
 use PhpParser\NodeAbstract;
 use PhpParser\ParserFactory;
+use PHPStan\PhpDocParser\Ast\PhpDoc\GenericTagValueNode;
 use PHPStan\PhpDocParser\Ast\PhpDoc\ParamTagValueNode;
 use PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocTagNode;
 use PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocTagValueNode;
@@ -199,6 +200,7 @@ foreach ($routes as $key => $value) {
 		if ($doc == null) {
 			die("Unable to read docs for '" . $routeName . "'\n");
 		}
+		$bodyParamsName = null;
 
 		$docNodes = $phpDocParser->parse(new TokenIterator($lexer->tokenize($doc)))->children;
 		foreach ($docNodes as $docNode) {
@@ -225,6 +227,10 @@ foreach ($routes as $key => $value) {
 					$type = $docNode->value->type;
 
 					if ($type instanceof GenericTypeNode && $type->type->name == "JSONResponse") {
+						$contentType = match ($type->type->name) {
+							"JSONResponse" => "application/json",
+						};
+
 						$realType = resolveOpenApiType($ast, $type->genericTypes[0]);
 
 						if (array_key_exists($statusCode, $responses)) {
@@ -234,7 +240,7 @@ foreach ($routes as $key => $value) {
 						$responses[$statusCode] = new Response(
 							array_merge([
 								"content" => [
-									"application/json" => new MediaType([
+									$contentType => new MediaType([
 										"schema" => $realType->toSchema($ast),
 									]),
 								],
@@ -244,6 +250,10 @@ foreach ($routes as $key => $value) {
 					} else {
 						die("Unable to process return annotation '" . $docNode . "' in '" . $routeName . "'\n");
 					}
+				}
+
+				if ($docNode->value instanceof GenericTagValueNode && $docNode->name == "@BodyParams") {
+					$bodyParamsName = $docNode->value->value;
 				}
 			}
 		}
@@ -316,6 +326,7 @@ foreach ($routes as $key => $value) {
 		}
 
 		$queryParameters = [];
+		$bodySchema = $bodyParamsName != null ? new OpenApiType(type: "object", required: []) : null;
 		foreach ($parameters as $parameter) {
 			$alreadyInPath = false;
 			foreach ($pathParameters as $pathParameter) {
@@ -325,31 +336,60 @@ foreach ($routes as $key => $value) {
 				}
 			}
 			if (!$alreadyInPath) {
-				$queryParameters[] = $parameter;
+				if ($bodySchema != null) {
+					$bodySchema->properties[$parameter->name] = $parameter->type;
+					if (!$parameter->type->nullable) {
+						$bodySchema->required[] = $parameter->name;
+					}
+				} else {
+					$queryParameters[] = $parameter;
+				}
 			}
 		}
+		if (!array_key_exists($bodyParamsName, $schemas)) {
+			$schemas[$bodyParamsName] = $bodySchema->toSchema($ast);
+		}
+		$methodSummary = null;
+		if (count($methodDescription) > 1) {
+			$methodSummary = $methodDescription[0];
+			$methodDescription = array_slice($methodDescription, 1);
+		}
 
-		$operation = new Operation([
+		$operation = new Operation(array_merge([
 			"operationId" => generateOperationID($methodName, $controllerName),
 			"tags" => [$appID],
 			"responses" => $responses,
-			"description" => implode("\n", array_map(function (string $line) {
-				return cleanDocComment($line);
-			}, $methodDescription)),
-			"parameters" => array_map(function (RequestParameter $parameter) use ($ast) {
-				return new Parameter(array_merge(
-					[
-						"name" => $parameter->name,
-						"in" => "query",
+			"description" => implode("\n", $methodDescription),
+		],
+			$methodSummary != null ? ["summary" => $methodSummary] : [],
+			$bodySchema != null ? [
+				"requestBody" => [
+					"required" => count($bodySchema->required) > 0,
+					"content" => [
+						"application/json" => [
+							"schema" => [
+								"\$ref" => "#/components/schemas/" . $bodyParamsName,
+							],
+						],
 					],
-					$parameter->type != null ? array_merge(
-						["schema" => $parameter->type->toSchema($ast, true)],
-						!$parameter->type->nullable ? ["required" => true] : [],
-					) : [],
-					$parameter->docParameter != null && $parameter->docParameter->description != "" ? ["description" => cleanDocComment($parameter->docParameter->description)] : [],
-				));
-			}, $queryParameters),
-		]);
+				],
+			] : [],
+			count($parameters) > 0 ? [
+				"parameters" => array_map(function (RequestParameter $parameter) use ($ast) {
+					return new Parameter(array_merge(
+						[
+							"name" => $parameter->name,
+							"in" => "query",
+						],
+						$parameter->type != null ? array_merge(
+							["schema" => $parameter->type->toSchema($ast, true)],
+							!$parameter->type->nullable ? ["required" => true] : [],
+						) : [],
+						$parameter->docParameter != null && $parameter->docParameter->description != "" ? ["description" => cleanDocComment($parameter->docParameter->description)] : [],
+					));
+				}, $queryParameters),
+			] : []),
+		);
 		switch ($verb) {
 			case "DELETE":
 				$openapi->paths->getPath($url)->delete = $operation;
@@ -391,18 +431,14 @@ class RequestParameter
 
 	public ?OpenApiType $type = null;
 
-	public function __construct(array $ast, string $name, ?Param $methodParameter, ?PhpDocTagValueNode $docParameter)
+	public function __construct(array $ast, string $name, ?Param $methodParameter, PhpDocTagValueNode $docParameter)
 	{
 		$this->name = $name;
 		$this->methodParameter = $methodParameter;
 		$this->docParameter = $docParameter;
-
-		if ($docParameter != null) {
-			$this->type = resolveOpenApiType($ast, $docParameter->type);
-
-			if ($methodParameter != null) {
-				$this->type->defaultValue = exprToString($methodParameter->default);
-			}
+		$this->type = resolveOpenApiType($ast, $docParameter);
+		if ($methodParameter != null) {
+			$this->type->defaultValue = exprToString($methodParameter->default);
 		}
 	}
 }
@@ -457,8 +493,13 @@ function resolveIdentifier(array $ast, string $name): OpenApiType
 		default => (function () use (&$schemas, $openapi, $ast, $name) {
 			$class = findClass($ast, $name);
 			if ($class != null) {
+				$type = resolveOpenApiType($ast, $class);
+				if ($type->isInlined) {
+					return $type;
+				}
+
 				if (!array_key_exists($name, $schemas)) {
-					$schemas[$name] = resolveOpenApiType($ast, $class)->toSchema($ast);
+					$schemas[$name] = $type->toSchema($ast);
 				}
 				return new OpenApiType(
 					ref: "#/components/schemas/" . $name,
@@ -469,9 +510,14 @@ function resolveIdentifier(array $ast, string $name): OpenApiType
 	};
 }
 
-function resolveOpenApiType(array $ast, Class_|NodeAbstract|TypeNode $node): OpenApiType
+function resolveOpenApiType(array $ast, PhpDocTagValueNode|Class_|NodeAbstract|TypeNode $node): OpenApiType
 {
 	global $phpDocParser, $lexer;
+	if ($node instanceof PhpDocTagValueNode) {
+		$type = resolveOpenApiType($ast, $node->type);
+		$type->description = $node->description;
+		return $type;
+	}
 	if ($node instanceof PhpParser\Node\Name) {
 		return resolveIdentifier($ast, $node->getLast());
 	}
@@ -485,10 +531,15 @@ function resolveOpenApiType(array $ast, Class_|NodeAbstract|TypeNode $node): Ope
 
 	if ($node instanceof ArrayShapeNode) {
 		$properties = [];
+		$required = [];
 		foreach ($node->items as $item) {
-			$properties[$item->keyName->name] = resolveOpenApiType($ast, $item->valueType);
+			$type = resolveOpenApiType($ast, $item->valueType);
+			$properties[$item->keyName->name] = $type;
+			if (!$type->nullable) {
+				$required[] = $item->keyName->name;
+			}
 		}
-		return new OpenApiType(type: "object", nullable: false, properties: $properties, additionalProperties: count($properties) == 0 ? true : null);
+		return new OpenApiType(type: "object", nullable: false, properties: count($properties) > 0 ? $properties : null, additionalProperties: count($properties) == 0 ? true : null, required: count($required) > 0 ? $required : null);
 	}
 
 	if ($node instanceof NullableTypeNode || $node instanceof NullableType) {
@@ -528,21 +579,31 @@ function resolveOpenApiType(array $ast, Class_|NodeAbstract|TypeNode $node): Ope
 		foreach (array_filter($node->stmts, function ($stmt) {
 			return $stmt instanceof Property;
 		}) as $property) {
-
 			$name = $property->props[0]->name->name;
 			$type = null;
+			$description = [];
 			$doc = $property->getDocComment();
 			if ($doc != null) {
 				$docNodes = $phpDocParser->parse(new TokenIterator($lexer->tokenize($doc)))->children;
 				foreach ($docNodes as $docNode) {
+					if ($docNode instanceof PhpDocTextNode) {
+						$line = cleanDocComment($docNode->text);
+						if ($line == "") {
+							continue;
+						}
+						$description[] = $line;
+					}
+
 					if ($docNode instanceof PhpDocTagNode && $docNode->value instanceof VarTagValueNode) {
 						$type = resolveOpenApiType($ast, $docNode->value->type);
-						break;
 					}
 				}
 			}
 			if ($type == null) {
 				$type = resolveOpenApiType($ast, $property->type);
+			}
+			if (count($description) > 0) {
+				$type->description = implode(" \n", $description);
 			}
 			$properties[$name] = $type;
 			if (!$type->nullable) {
@@ -550,7 +611,9 @@ function resolveOpenApiType(array $ast, Class_|NodeAbstract|TypeNode $node): Ope
 			}
 		}
 
-		$type = new OpenApiType(type: "object", nullable: false, properties: $properties, required: $required);
+		// TODO: This is ugly, make better
+		$description = $node->getDocComment()?->getText();
+		$type = new OpenApiType(type: "object", nullable: false, properties: $properties, required: $required, isInlined: $description != null && str_contains($description, "@Inline"));
 		if ($node->extends != null) {
 			return new OpenApiType(allOf: [
 				resolveOpenApiType($ast, $node->extends),
@@ -589,7 +652,11 @@ class OpenApiType
 
 	public ?array $required;
 
-	public function __construct(?string $ref = null, ?string $type = null, ?string $format = null, ?bool $nullable = null, mixed $defaultValue = null, ?OpenApiType $items = null, ?array $properties = null, ?array $anyOf = null, ?array $allOf = null, ?bool $additionalProperties = null, ?array $required = null)
+	public ?string $description;
+
+	public bool $isInlined;
+
+	public function __construct(?string $ref = null, ?string $type = null, ?string $format = null, ?bool $nullable = null, mixed $defaultValue = null, ?OpenApiType $items = null, ?array $properties = null, ?array $anyOf = null, ?array $allOf = null, ?bool $additionalProperties = null, ?array $required = null, ?string $description = null, bool $isInlined = false)
 	{
 		$this->ref = $ref;
 		$this->type = $type;
@@ -602,6 +669,8 @@ class OpenApiType
 		$this->allOf = $allOf;
 		$this->additionalProperties = $additionalProperties;
 		$this->required = $required;
+		$this->description = $description;
+		$this->isInlined = $isInlined;
 	}
 
 	public function toSchema(array $ast, bool $booleanQuirk = false): Schema
@@ -626,6 +695,7 @@ class OpenApiType
 			}, $this->allOf)] : [],
 			$this->additionalProperties != null ? ["additionalProperties" => $this->additionalProperties] : [],
 			$this->required != null && count($this->required) > 0 ? ["required" => $this->required] : [],
+			$this->description != null && $this->description != "" ? ["description" => $this->description] : [],
 		));
 	}
 }
