@@ -466,7 +466,7 @@ class RequestParameter
 		$this->name = $name;
 		$this->methodParameter = $methodParameter;
 		$this->docParameter = $docParameter;
-		$this->type = resolveOpenApiType($docParameter);
+		$this->type = resolveOpenApiType($docParameter->type);
 		if ($methodParameter != null) {
 			$this->type->defaultValue = exprToString($methodParameter->default);
 		}
@@ -545,14 +545,9 @@ function resolveIdentifier(string $name): OpenApiType
 	};
 }
 
-function resolveOpenApiType(PhpDocTagValueNode|Class_|NodeAbstract|TypeNode $node): OpenApiType
+function resolveOpenApiType(Class_|NodeAbstract|TypeNode $node): OpenApiType
 {
 	global $phpDocParser, $lexer;
-	if ($node instanceof PhpDocTagValueNode) {
-		$type = resolveOpenApiType($node->type);
-		$type->description = $node->description;
-		return $type;
-	}
 	if ($node instanceof PhpParser\Node\Name) {
 		return resolveIdentifier($node->getLast());
 	}
