@@ -524,6 +524,15 @@ function resolveIdentifier(string $name): OpenApiType
 			// TODO: This name resolution isn't great, but works for now.
 			$class = loadClass(join("/", [$dir, "lib", "Model", $name . ".response.php"]), $name);
 			if ($class != null) {
+				$implementsJsonSerializable = false;
+				foreach ($class->implements as $implement) {
+					if ($implement->getLast() == "JsonSerializable") {
+						$implementsJsonSerializable = true;
+					}
+				}
+				if (!$implementsJsonSerializable) {
+					die("'" . $name . "' does not implement JsonSerializable\n");
+				}
 				if (!array_key_exists($name, $schemas)) {
 					$schemas[$name] = resolveOpenApiType($class)->toSchema();
 				}
