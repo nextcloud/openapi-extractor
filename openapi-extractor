@@ -17,9 +17,12 @@ use cebe\openapi\Writer;
 use PhpParser\Node\Expr;
 use PhpParser\Node\Expr\Array_;
 use PhpParser\Node\Expr\ArrayItem;
+use PhpParser\Node\Expr\ClassConstFetch;
 use PhpParser\Node\Expr\ConstFetch;
+use PhpParser\Node\Expr\New_;
 use PhpParser\Node\Expr\UnaryMinus;
 use PhpParser\Node\Identifier;
+use PhpParser\Node\Name;
 use PhpParser\Node\NullableType;
 use PhpParser\Node\Param;
 use PhpParser\Node\Scalar\LNumber;
@@ -28,7 +31,9 @@ use PhpParser\Node\Stmt\Class_;
 use PhpParser\Node\Stmt\ClassMethod;
 use PhpParser\Node\Stmt\Namespace_;
 use PhpParser\Node\Stmt\Property;
+use PhpParser\Node\Stmt\Return_;
 use PhpParser\NodeAbstract;
+use PhpParser\NodeFinder;
 use PhpParser\ParserFactory;
 use PHPStan\PhpDocParser\Ast\PhpDoc\GenericTagValueNode;
 use PHPStan\PhpDocParser\Ast\PhpDoc\ParamTagValueNode;
@@ -67,6 +72,7 @@ if ($out == "") {
 }
 
 $astParser = (new ParserFactory)->create(ParserFactory::PREFER_PHP7);
+$nodeFinder = new NodeFinder;
 
 $lexer = new Lexer();
 $constExprParser = new ConstExprParser();
@@ -185,6 +191,51 @@ foreach ($routes as $key => $value) {
 			continue;
 		}
 
+		$codeStatusCodes = [];
+		/* @var $returnStatement Return_ */
+		foreach ($nodeFinder->findInstanceOf($methodFunction->stmts, Return_::class) as $returnStatement) {
+			if ($returnStatement->expr instanceof New_) {
+				if ($returnStatement->expr->class instanceof Name) {
+					$type = $returnStatement->expr->class->getLast();
+					if ($type == "DataResponse" || $type == "JSONResponse") {
+						$statusCode = 200;
+						if (count($returnStatement->expr->args) > 1) {
+							if (!($returnStatement->expr->args[1]->value instanceof ClassConstFetch)) {
+								print_r("Warning " . $routeName . " contains a return statement that can not be evaluated\n");
+								continue;
+							}
+							$name = $returnStatement->expr->args[1]->value->name;
+							if (!($name instanceof Identifier)) {
+								print_r("Warning " . $routeName . " contains a return statement that can not be evaluated\n");
+								continue;
+							}
+							$statusCode = match ($name->name) {
+								"STATUS_OK" => 200,
+								"STATUS_CREATED" => 201,
+								"STATUS_ACCEPTED" => 202,
+								"STATUS_NO_CONTENT" => 204,
+								"STATUS_NOT_MODIFIED" => 304,
+								"STATUS_BAD_REQUEST" => 400,
+								"STATUS_UNAUTHORIZED" => 401,
+								"STATUS_FORBIDDEN" => 403,
+								"STATUS_NOT_FOUND" => 404,
+								"STATUS_METHOD_NOT_ALLOWED" => 405,
+								"STATUS_NOT_ACCEPTABLE" => 406,
+								"STATUS_CONFLICT" => 409,
+								"STATUS_PRECONDITION_FAILED" => 412,
+								"STATUS_REQUEST_ENTITY_TOO_LARGE" => 413,
+								"STATUS_INTERNAL_SERVER_ERROR" => 500,
+								"STATUS_NOT_IMPLEMENTED" => 501,
+								default => die("Unknown status code " . $name->name . "\n"),
+							};
+						}
+
+						$codeStatusCodes[] = $statusCode;
+					}
+				}
+			}
+		}
+
 		$methodDescription = [];
 		$methodParameters = $methodFunction->getParams();
 		$urlParameters = [];
@@ -256,6 +307,16 @@ foreach ($routes as $key => $value) {
 					$bodyParamsName = $docNode->value->value;
 				}
 			}
+		}
+
+		$missingDocStatusCodes = array_diff($codeStatusCodes, array_keys($responses));
+		$missingCodeStatusCodes = array_diff(array_keys($responses), $codeStatusCodes);
+
+		if (count($missingDocStatusCodes) > 0) {
+			print_r("Warning " . $routeName . " returns the following undocumented status codes: " . implode(", ", $missingDocStatusCodes) . "\n");
+		}
+		if (count($missingCodeStatusCodes) > 0) {
+			print_r("Warning " . $routeName . " documents the following status codes which are never returned: " . implode(", ", $missingCodeStatusCodes) . "\n");
 		}
 
 		$parameters = [];
