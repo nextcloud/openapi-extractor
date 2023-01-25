@@ -29,7 +29,6 @@ use PhpParser\Node\Scalar\LNumber;
 use PhpParser\Node\Scalar\String_;
 use PhpParser\Node\Stmt\Class_;
 use PhpParser\Node\Stmt\ClassMethod;
-use PhpParser\Node\Stmt\Namespace_;
 use PhpParser\Node\Stmt\Property;
 use PhpParser\Node\Stmt\Return_;
 use PhpParser\NodeAbstract;
@@ -182,11 +181,9 @@ foreach ($routes as $key => $value) {
 
 		$controllerName = ucfirst(str_replace("_", "", ucwords(explode("#", $routeName)[0], "_")));
 
-		$controllerContent = file_get_contents(join("/", $appIsCore ? [$dir, "Controller", $controllerName . "Controller.php"] : [$dir, "lib", "Controller", $controllerName . "Controller.php"]));
-		$ast = $astParser->parse($controllerContent);
-
-		$methodFunction = findMethod($ast, $controllerName, $methodName);
+		$methodFunction = findControllerMethod(join("/", $appIsCore ? [$dir, "Controller", $controllerName . "Controller.php"] : [$dir, "lib", "Controller", $controllerName . "Controller.php"]), $controllerName, $methodName);
 		if ($methodFunction == null) {
+			print_r("Warning " . $routeName . " is ignored\n");
 			continue;
 		}
 
@@ -280,7 +277,7 @@ foreach ($routes as $key => $value) {
 							"JSONResponse" => "application/json",
 						};
 
-						$realType = resolveOpenApiType($ast, $type->genericTypes[0]);
+						$realType = resolveOpenApiType($type->genericTypes[0]);
 
 						if (array_key_exists($statusCode, $responses)) {
 							die("Multiple return annotations for the same status code not allowed in '" . $routeName . "'\n");
@@ -290,7 +287,7 @@ foreach ($routes as $key => $value) {
 							array_merge([
 								"content" => [
 									$contentType => new MediaType([
-										"schema" => $realType->toSchema($ast),
+										"schema" => $realType->toSchema(),
 									]),
 								],
 							],
@@ -316,14 +313,14 @@ foreach ($routes as $key => $value) {
 		$parameters = [];
 		foreach ($docParameters as $docParameter) {
 			$name = substr($docParameter->parameterName, 1);
-			$parameters[$name] = new RequestParameter($ast, $name, null, $docParameter);
+			$parameters[$name] = new RequestParameter($name, null, $docParameter);
 		}
 		foreach ($methodParameters as $methodParameter) {
 			$name = $methodParameter->var->name;
 			if (!array_key_exists($name, $parameters)) {
 				die("Missing doc parameter '" . $name . "' for '" . $routeName . "'\n");
 			}
-			$parameters[$name] = new RequestParameter($ast, $name, $methodParameter, $parameters[$name]->docParameter);
+			$parameters[$name] = new RequestParameter($name, $methodParameter, $parameters[$name]->docParameter);
 		}
 
 		$pathParameters = [];
@@ -341,7 +338,7 @@ foreach ($routes as $key => $value) {
 							"in" => "path",
 							"required" => true,
 						],
-						$parameter->type != null ? ["schema" => $parameter->type->toSchema($ast),] : [],
+						$parameter->type != null ? ["schema" => $parameter->type->toSchema(),] : [],
 						$parameter?->docParameter != null && $parameter->docParameter->description != "" ? ["description" => cleanDocComment($parameter->docParameter->description)] : [],
 					));
 				} else {
@@ -408,14 +405,14 @@ foreach ($routes as $key => $value) {
 		],
 			$methodSummary != null ? ["summary" => $methodSummary] : [],
 			count($parameters) > 0 ? [
-				"parameters" => array_map(function (RequestParameter $parameter) use ($ast) {
+				"parameters" => array_map(function (RequestParameter $parameter) {
 					return new Parameter(array_merge(
 						[
 							"name" => $parameter->name,
 							"in" => "query",
 						],
 						$parameter->type != null ? array_merge(
-							["schema" => $parameter->type->toSchema($ast, true)],
+							["schema" => $parameter->type->toSchema(true)],
 							!$parameter->type->nullable ? ["required" => true] : [],
 						) : [],
 						$parameter->docParameter != null && $parameter->docParameter->description != "" ? ["description" => cleanDocComment($parameter->docParameter->description)] : [],
@@ -464,12 +461,12 @@ class RequestParameter
 
 	public ?OpenApiType $type = null;
 
-	public function __construct(array $ast, string $name, ?Param $methodParameter, PhpDocTagValueNode $docParameter)
+	public function __construct(string $name, ?Param $methodParameter, PhpDocTagValueNode $docParameter)
 	{
 		$this->name = $name;
 		$this->methodParameter = $methodParameter;
 		$this->docParameter = $docParameter;
-		$this->type = resolveOpenApiType($ast, $docParameter);
+		$this->type = resolveOpenApiType($docParameter);
 		if ($methodParameter != null) {
 			$this->type->defaultValue = exprToString($methodParameter->default);
 		}
@@ -512,9 +509,9 @@ function exprToString(null|Expr $expr): mixed
 	die("Unable to convert Expr " . get_class($expr) . "\n");
 }
 
-function resolveIdentifier(array $ast, string $name): OpenApiType
+function resolveIdentifier(string $name): OpenApiType
 {
-	global $openapi, $schemas;
+	global $openapi, $schemas, $dir;
 	return match ($name) {
 		"string" => new OpenApiType(type: "string", nullable: false),
 		"int", "integer" => new OpenApiType(type: "integer", nullable: false),
@@ -523,11 +520,12 @@ function resolveIdentifier(array $ast, string $name): OpenApiType
 		"float" => new OpenApiType(type: "number", format: "float", nullable: false),
 		"array" => new OpenApiType(type: "array", nullable: false),
 		"null" => new OpenApiType(nullable: true),
-		default => (function () use (&$schemas, $openapi, $ast, $name) {
-			$class = findClass($ast, $name);
+		default => (function () use ($dir, &$schemas, $openapi, $name) {
+			// TODO: This name resolution isn't great, but works for now.
+			$class = loadClass(join("/", [$dir, "lib", "Model", $name . ".response.php"]), $name);
 			if ($class != null) {
 				if (!array_key_exists($name, $schemas)) {
-					$schemas[$name] = resolveOpenApiType($ast, $class)->toSchema($ast);
+					$schemas[$name] = resolveOpenApiType($class)->toSchema();
 				}
 				return new OpenApiType(
 					ref: "#/components/schemas/" . $name,
@@ -538,30 +536,30 @@ function resolveIdentifier(array $ast, string $name): OpenApiType
 	};
 }
 
-function resolveOpenApiType(array $ast, PhpDocTagValueNode|Class_|NodeAbstract|TypeNode $node): OpenApiType
+function resolveOpenApiType(PhpDocTagValueNode|Class_|NodeAbstract|TypeNode $node): OpenApiType
 {
 	global $phpDocParser, $lexer;
 	if ($node instanceof PhpDocTagValueNode) {
-		$type = resolveOpenApiType($ast, $node->type);
+		$type = resolveOpenApiType($node->type);
 		$type->description = $node->description;
 		return $type;
 	}
 	if ($node instanceof PhpParser\Node\Name) {
-		return resolveIdentifier($ast, $node->getLast());
+		return resolveIdentifier($node->getLast());
 	}
 	if ($node instanceof IdentifierTypeNode || $node instanceof Identifier) {
-		return resolveIdentifier($ast, $node->name);
+		return resolveIdentifier($node->name);
 	}
 
 	if ($node instanceof ArrayTypeNode) {
-		return new OpenApiType(type: "array", nullable: false, items: resolveOpenApiType($ast, $node->type));
+		return new OpenApiType(type: "array", nullable: false, items: resolveOpenApiType($node->type));
 	}
 
 	if ($node instanceof ArrayShapeNode) {
 		$properties = [];
 		$required = [];
 		foreach ($node->items as $item) {
-			$type = resolveOpenApiType($ast, $item->valueType);
+			$type = resolveOpenApiType($item->valueType);
 			$properties[$item->keyName->name] = $type;
 			if (!$type->nullable) {
 				$required[] = $item->keyName->name;
@@ -571,7 +569,7 @@ function resolveOpenApiType(array $ast, PhpDocTagValueNode|Class_|NodeAbstract|T
 	}
 
 	if ($node instanceof NullableTypeNode || $node instanceof NullableType) {
-		$type = resolveOpenApiType($ast, $node->type);
+		$type = resolveOpenApiType($node->type);
 		$type->nullable = true;
 		return $type;
 	}
@@ -588,7 +586,7 @@ function resolveOpenApiType(array $ast, PhpDocTagValueNode|Class_|NodeAbstract|T
 		}
 
 		if (count($types) == 1) {
-			$type = resolveOpenApiType($ast, $types[0]);
+			$type = resolveOpenApiType($types[0]);
 			$type->nullable = true;
 			return $type;
 		} else {
@@ -623,12 +621,12 @@ function resolveOpenApiType(array $ast, PhpDocTagValueNode|Class_|NodeAbstract|T
 					}
 
 					if ($docNode instanceof PhpDocTagNode && $docNode->value instanceof VarTagValueNode) {
-						$type = resolveOpenApiType($ast, $docNode->value->type);
+						$type = resolveOpenApiType($docNode->value->type);
 					}
 				}
 			}
 			if ($type == null) {
-				$type = resolveOpenApiType($ast, $property->type);
+				$type = resolveOpenApiType($property->type);
 			}
 			if (count($description) > 0) {
 				$type->description = implode(" \n", $description);
@@ -642,7 +640,7 @@ function resolveOpenApiType(array $ast, PhpDocTagValueNode|Class_|NodeAbstract|T
 		$type = new OpenApiType(type: "object", nullable: false, properties: $properties, required: $required);
 		if ($node->extends != null) {
 			return new OpenApiType(allOf: [
-				resolveOpenApiType($ast, $node->extends),
+				resolveOpenApiType($node->extends),
 				$type,
 			]);
 		}
@@ -696,25 +694,25 @@ class OpenApiType
 		$this->description = $description;
 	}
 
-	public function toSchema(array $ast, bool $booleanQuirk = false): Schema
+	public function toSchema(bool $booleanQuirk = false): Schema
 	{
 		return new Schema(array_merge(
 			$this->ref != null ? ["\$ref" => $this->ref] : [],
 			$this->type != null ? ["type" => $booleanQuirk && $this->type == "boolean" ? "integer" : $this->type] : [],
 			$this->format != null ? ["format" => $this->format] : [],
 			$this->defaultValue != null ? ["default" => $booleanQuirk && $this->type == "boolean" ? $this->defaultValue == "true" ? 1 : 0 : $this->defaultValue] : [],
-			$this->items != null ? ["items" => $this->items->toSchema($ast, $booleanQuirk)] : [],
+			$this->items != null ? ["items" => $this->items->toSchema($booleanQuirk)] : [],
 			$this->properties != null ? ["properties" =>
 				array_combine(array_keys($this->properties),
-					array_map(function (OpenApiType $property) use ($ast, $booleanQuirk) {
-						return $property->toSchema($ast, $booleanQuirk);
+					array_map(function (OpenApiType $property) use ($booleanQuirk) {
+						return $property->toSchema($booleanQuirk);
 					}, array_values($this->properties)),
 				)] : [],
-			$this->anyOf != null ? ["anyOf" => array_map(function (OpenApiType $type) use ($ast, $booleanQuirk) {
-				return $type->toSchema($ast, $booleanQuirk);
+			$this->anyOf != null ? ["anyOf" => array_map(function (OpenApiType $type) use ($booleanQuirk) {
+				return $type->toSchema($booleanQuirk);
 			}, $this->anyOf)] : [],
-			$this->allOf != null ? ["allOf" => array_map(function (OpenApiType $type) use ($ast, $booleanQuirk) {
-				return $type->toSchema($ast, $booleanQuirk);
+			$this->allOf != null ? ["allOf" => array_map(function (OpenApiType $type) use ($booleanQuirk) {
+				return $type->toSchema($booleanQuirk);
 			}, $this->allOf)] : [],
 			$this->additionalProperties != null ? ["additionalProperties" => $this->additionalProperties] : [],
 			$this->required != null && count($this->required) > 0 ? ["required" => $this->required] : [],
@@ -723,9 +721,9 @@ class OpenApiType
 	}
 }
 
-function findMethod(array $ast, string $controllerName, string $methodName): ?ClassMethod
+function findControllerMethod(string $filename, string $controllerName, string $methodName): ?ClassMethod
 {
-	$class = findClass($ast, $controllerName . "Controller");
+	$class = loadClass($filename, $controllerName . "Controller");
 	if ($class != null) {
 		foreach ($class->stmts as $node) {
 			if ($node instanceof ClassMethod) {
@@ -744,15 +742,21 @@ function findMethod(array $ast, string $controllerName, string $methodName): ?Cl
 	return null;
 }
 
+function loadClass(string $filename, string $name): ?Class_
+{
+	global $astParser;
+	$content = file_get_contents($filename);
+	$ast = $astParser->parse($content);
+	return findClass($ast, $name);
+}
+
 function findClass(array $ast, string $className): ?Class_
 {
-	foreach ($ast as $node1) {
-		if ($node1 instanceof Namespace_) {
-			foreach ($node1->stmts as $node2) {
-				if ($node2 instanceof Class_ && $node2->name == $className) {
-					return $node2;
-				}
-			}
+	global $nodeFinder;
+	/** @var Class_ $class */
+	foreach ($nodeFinder->findInstanceOf($ast, Class_::class) as $class) {
+		if ($class->name == $className) {
+			return $class;
 		}
 	}
 
