@@ -39,7 +39,6 @@ use PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocTagNode;
 use PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocTagValueNode;
 use PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocTextNode;
 use PHPStan\PhpDocParser\Ast\PhpDoc\ReturnTagValueNode;
-use PHPStan\PhpDocParser\Ast\PhpDoc\VarTagValueNode;
 use PHPStan\PhpDocParser\Ast\Type\ArrayShapeNode;
 use PHPStan\PhpDocParser\Ast\Type\ArrayTypeNode;
 use PHPStan\PhpDocParser\Ast\Type\GenericTypeNode;
@@ -187,6 +186,11 @@ foreach ($routes as $key => $value) {
 			continue;
 		}
 
+		$classMethodInfo = extractMethodInfo($methodFunction);
+		if (count($classMethodInfo->returns) > 0) {
+			die($routeName . " can not return something that is not a valid response.\n");
+		}
+
 		$codeStatusCodes = [];
 		/* @var $returnStatement Return_ */
 		foreach ($nodeFinder->findInstanceOf($methodFunction->stmts, Return_::class) as $returnStatement) {
@@ -232,76 +236,11 @@ foreach ($routes as $key => $value) {
 			}
 		}
 
-		$methodDescription = [];
-		$methodParameters = $methodFunction->getParams();
-		$urlParameters = [];
-		$docParameters = [];
-		$responses = [];
-
-		preg_match_all("/{[^}]*}/", $url, $urlParameters);
-		$urlParameters = array_map(function (string $name) {
-			return substr($name, 1, -1);
-		}, $urlParameters[0]);
-
-		$doc = $methodFunction->getDocComment()?->getText();
-		if ($doc == null) {
-			die("Unable to read docs for '" . $routeName . "'\n");
-		}
-
-		$docNodes = $phpDocParser->parse(new TokenIterator($lexer->tokenize($doc)))->children;
-		foreach ($docNodes as $docNode) {
-			if ($docNode instanceof PhpDocTextNode) {
-				$line = cleanDocComment($docNode->text);
-				if ($line == "") {
-					continue;
-				}
-				$methodDescription[] = $line;
-			}
-
-			if ($docNode instanceof PhpDocTagNode) {
-				if ($docNode->value instanceof ParamTagValueNode) {
-					$docParameters[] = $docNode->value;
-				}
-
-				if ($docNode->value instanceof ReturnTagValueNode) {
-					preg_match("/^([0-9]{3})((?: .*)?)$/", $docNode->value->description, $matches);
-					if (count($matches) != 3) {
-						die("Unable to figure out status code and description for return type '" . $docNode . "'\n");
-					}
-					$statusCode = $matches[1];
-					$description = ltrim($matches[2], ' ');
-					$type = $docNode->value->type;
-
-					if ($type instanceof GenericTypeNode && $type->type->name == "JSONResponse") {
-						$contentType = match ($type->type->name) {
-							"JSONResponse" => "application/json",
-						};
-
-						$realType = resolveOpenApiType($type->genericTypes[0]);
-
-						if (array_key_exists($statusCode, $responses)) {
-							die("Multiple return annotations for the same status code not allowed in '" . $routeName . "'\n");
-						}
-
-						$responses[$statusCode] = new Response(
-							array_merge([
-								"content" => [
-									$contentType => new MediaType([
-										"schema" => $realType->toSchema(),
-									]),
-								],
-							],
-								$description != "" ? ["description" => $description] : [],
-							));
-					} else {
-						die("Unable to process return annotation '" . $docNode . "' in '" . $routeName . "'\n");
-					}
-				}
-			}
-		}
-
-		$missingDocStatusCodes = array_diff($codeStatusCodes, array_keys($responses));
-		$missingCodeStatusCodes = array_diff(array_keys($responses), $codeStatusCodes);
+		$docStatusCodes = array_map(function (ClassMethodResponse $response) {
+			return $response->statusCode;
+		}, $classMethodInfo->responses);
+		$missingDocStatusCodes = array_diff($codeStatusCodes, $docStatusCodes);
+		$missingCodeStatusCodes = array_diff($docStatusCodes, $codeStatusCodes);
 
 		if (count($missingDocStatusCodes) > 0) {
 			print_r("Warning " . $routeName . " returns the following undocumented status codes: " . implode(", ", $missingDocStatusCodes) . "\n");
@@ -310,26 +249,23 @@ foreach ($routes as $key => $value) {
 			print_r("Warning " . $routeName . " documents the following status codes which are never returned: " . implode(", ", $missingCodeStatusCodes) . "\n");
 		}
 
-		$parameters = [];
-		foreach ($docParameters as $docParameter) {
-			$name = substr($docParameter->parameterName, 1);
-			$parameters[$name] = new RequestParameter($name, null, $docParameter);
-		}
-		foreach ($methodParameters as $methodParameter) {
-			$name = $methodParameter->var->name;
-			if (!array_key_exists($name, $parameters)) {
-				die("Missing doc parameter '" . $name . "' for '" . $routeName . "'\n");
-			}
-			$parameters[$name] = new RequestParameter($name, $methodParameter, $parameters[$name]->docParameter);
-		}
-
 		$pathParameters = [];
+		$urlParameters = [];
+
+		preg_match_all("/{[^}]*}/", $url, $urlParameters);
+		$urlParameters = array_map(function (string $name) {
+			return substr($name, 1, -1);
+		}, $urlParameters[0]);
+
 		if (!$openapi->paths->hasPath($url)) {
 			foreach ($urlParameters as $urlParameter) {
-				if (array_key_exists($urlParameter, $parameters)) {
-					$parameter = $parameters[$urlParameter];
+				$matchingParameters = array_filter($classMethodInfo->parameters, function (ClassMethodParameter $param) use ($urlParameter) {
+					return $param->name == $urlParameter;
+				});
+				if (count($matchingParameters) == 1) {
+					$parameter = $matchingParameters[0];
 					if ($parameter?->methodParameter == null && ($requirements == null || !array_key_exists($urlParameter, $requirements))) {
-						die("Unable to find parameter for " . $urlParameter . " in " . $url . "\n");
+						die("Unable to find parameter for " . $urlParameter . " in " . $routeName . "\n");
 					}
 
 					$pathParameters[] = new Parameter(array_merge(
@@ -337,8 +273,8 @@ foreach ($routes as $key => $value) {
 							"name" => $urlParameter,
 							"in" => "path",
 							"required" => true,
+							"schema" => $parameter->type->toSchema(),
 						],
-						$parameter->type != null ? ["schema" => $parameter->type->toSchema(),] : [],
 						$parameter?->docParameter != null && $parameter->docParameter->description != "" ? ["description" => cleanDocComment($parameter->docParameter->description)] : [],
 					));
 				} else {
@@ -378,7 +314,7 @@ foreach ($routes as $key => $value) {
 		}
 
 		$queryParameters = [];
-		foreach ($parameters as $parameter) {
+		foreach ($classMethodInfo->parameters as $parameter) {
 			$alreadyInPath = false;
 			foreach ($pathParameters as $pathParameter) {
 				if ($pathParameter->name == $parameter->name) {
@@ -391,30 +327,38 @@ foreach ($routes as $key => $value) {
 			}
 		}
 
-		$methodSummary = null;
-		if (count($methodDescription) > 1) {
-			$methodSummary = $methodDescription[0];
-			$methodDescription = array_slice($methodDescription, 1);
+		$responses = [];
+		foreach ($classMethodInfo->responses as $response) {
+			$responses[$response->statusCode] = new Response(
+				array_merge(
+					[
+						"content" => [
+							$response->contentType => new MediaType([
+								"schema" => $response->type->toSchema(),
+							]),
+						],
+					],
+					$response->description != null ? ["description" => $response->description] : [],
+				),
+			);
 		}
 
 		$operation = new Operation(array_merge([
 			"operationId" => generateOperationID($methodName, $controllerName),
 			"tags" => [$appID],
 			"responses" => $responses,
-			"description" => implode("\n", $methodDescription),
+			"description" => implode("\n", $classMethodInfo->description),
 		],
-			$methodSummary != null ? ["summary" => $methodSummary] : [],
-			count($parameters) > 0 ? [
-				"parameters" => array_map(function (RequestParameter $parameter) {
+			$classMethodInfo->summary != null ? ["summary" => $classMethodInfo->summary] : [],
+			count($queryParameters) > 0 ? [
+				"parameters" => array_map(function (ClassMethodParameter $parameter) {
 					return new Parameter(array_merge(
 						[
 							"name" => $parameter->name,
 							"in" => "query",
+							"schema" => $parameter->type->toSchema(true),
 						],
-						$parameter->type != null ? array_merge(
-							["schema" => $parameter->type->toSchema(true)],
-							!$parameter->type->nullable ? ["required" => true] : [],
-						) : [],
+						!$parameter->type->nullable ? ["required" => true] : [],
 						$parameter->docParameter != null && $parameter->docParameter->description != "" ? ["description" => cleanDocComment($parameter->docParameter->description)] : [],
 					));
 				}, $queryParameters),
@@ -450,26 +394,128 @@ if (!$openapi->validate()) {
 	die("Invalid OpenAPI spec generated. Please review the output!\n");
 }
 
-
-class RequestParameter
+function extractMethodInfo(ClassMethod $method): ClassMethodInfo
 {
-	public string $name;
+	global $phpDocParser, $lexer;
 
-	public ?Param $methodParameter;
+	$parameters = [];
+	$responses = [];
+	$returns = [];
 
-	public ?PhpDocTagValueNode $docParameter;
+	$methodDescription = [];
+	$methodSummary = null;
+	$methodParameters = $method->getParams();
+	$docParameters = [];
 
-	public ?OpenApiType $type = null;
+	$doc = $method->getDocComment()?->getText();
+	if ($doc == null) {
+		die("Unable to read docs for '" . $method->name->name . "'\n");
+	}
 
-	public function __construct(string $name, ?Param $methodParameter, PhpDocTagValueNode $docParameter)
-	{
-		$this->name = $name;
-		$this->methodParameter = $methodParameter;
-		$this->docParameter = $docParameter;
-		$this->type = resolveOpenApiType($docParameter->type);
-		if ($methodParameter != null) {
-			$this->type->defaultValue = exprToString($methodParameter->default);
+	$docNodes = $phpDocParser->parse(new TokenIterator($lexer->tokenize($doc)))->children;
+	foreach ($docNodes as $docNode) {
+		if ($docNode instanceof PhpDocTextNode) {
+			$line = cleanDocComment($docNode->text);
+			if ($line == "") {
+				continue;
+			}
+			$methodDescription[] = $line;
 		}
+
+		if ($docNode instanceof PhpDocTagNode) {
+			if ($docNode->value instanceof ParamTagValueNode) {
+				$docParameters[] = $docNode->value;
+			}
+
+			if ($docNode->value instanceof ReturnTagValueNode) {
+				$type = $docNode->value->type;
+
+				if ($type instanceof GenericTypeNode && ($type->type->name == "JSONResponse" || $type->type->name == "DataResponse")) {
+					preg_match("/^([0-9]{3})((?: .*)?)$/", $docNode->value->description, $matches);
+					if (count($matches) != 3) {
+						die("Unable to figure out status code and description for return type '" . $docNode . "'\n");
+					}
+					$statusCode = $matches[1];
+					$description = ltrim($matches[2], ' ');
+
+					$contentType = match ($type->type->name) {
+						"JSONResponse" => "application/json",
+					};
+
+					$realType = resolveOpenApiType($type->genericTypes[0]);
+
+					if (array_key_exists($statusCode, $responses)) {
+						die("Multiple return annotations for the same status code not allowed in '" . $method->name . "'\n");
+					}
+
+					$responses[$statusCode] = new ClassMethodResponse($statusCode, $contentType, $realType, $description != "" ? $description : null);
+				} else {
+					$returns[] = resolveOpenApiType($type);
+				}
+			}
+		}
+	}
+
+	foreach ($methodParameters as $methodParameter) {
+		$param = null;
+		$methodParameterName = $methodParameter->var->name;
+
+		foreach ($docParameters as $docParameter) {
+			$docParameterName = substr($docParameter->parameterName, 1);
+
+			if ($docParameterName == $methodParameterName) {
+				$param = new ClassMethodParameter($methodParameterName, $methodParameter, $docParameter);
+				break;
+			}
+		}
+
+		if ($param == null) {
+			die("Missing doc parameter '" . $methodParameterName . "' for '" . $method->name->name . "'\n");
+		}
+
+		$parameters[] = $param;
+	}
+
+	if (count($methodDescription) > 1) {
+		$methodSummary = $methodDescription[0];
+		$methodDescription = array_slice($methodDescription, 1);
+	}
+
+	return new ClassMethodInfo($parameters, array_values($responses), $returns, $methodDescription, $methodSummary);
+}
+
+class ClassMethodInfo
+{
+	/**
+	 * @param ClassMethodParameter[] $parameters
+	 * @param ClassMethodResponse[] $responses
+	 * @param OpenApiType[] $returns
+	 * @param string[] $description
+	 */
+	public function __construct(public array $parameters, public array $responses, public array $returns, public array $description, public ?string $summary)
+	{
+	}
+}
+
+class ClassMethodResponse
+{
+	public function __construct(public int $statusCode, public string $contentType, public OpenApiType $type, public ?string $description)
+	{
+	}
+
+}
+
+class ClassMethodParameter
+{
+	public OpenApiType $type;
+
+	public bool $isPublic;
+
+	public function __construct(public string $name, public Param $methodParameter, public PhpDocTagValueNode $docParameter)
+	{
+		$this->type = resolveOpenApiType($docParameter->type);
+		$this->type->defaultValue = exprToString($methodParameter->default);
+		$this->isPublic = $this->methodParameter->flags == Class_::MODIFIER_PUBLIC;
 	}
 }
 
@@ -547,7 +593,6 @@ function resolveIdentifier(string $name): OpenApiType
 
 function resolveOpenApiType(Class_|NodeAbstract|TypeNode $node): OpenApiType
 {
-	global $phpDocParser, $lexer;
 	if ($node instanceof PhpParser\Node\Name) {
 		return resolveIdentifier($node->getLast());
 	}
@@ -603,41 +648,28 @@ function resolveOpenApiType(Class_|NodeAbstract|TypeNode $node): OpenApiType
 	}
 
 	if ($node instanceof Class_) {
+		if (count(array_filter($node->stmts, function ($stmt) {
+				return $stmt instanceof Property;
+			})) > 0) {
+			die("Model '" . $node->name->name . "' is not allowed to have properties. Fields can only be declared in the constructor.\n");
+		}
 		$properties = [];
 		$required = [];
-		/** @var Property $property */
-		foreach (array_filter($node->stmts, function ($stmt) {
-			return $stmt instanceof Property;
-		}) as $property) {
-			$name = $property->props[0]->name->name;
-			$type = null;
-			$description = [];
-			$doc = $property->getDocComment();
-			if ($doc != null) {
-				$docNodes = $phpDocParser->parse(new TokenIterator($lexer->tokenize($doc)))->children;
-				foreach ($docNodes as $docNode) {
-					if ($docNode instanceof PhpDocTextNode) {
-						$line = cleanDocComment($docNode->text);
-						if ($line == "") {
-							continue;
-						}
-						$description[] = $line;
-					}
+		foreach ($node->stmts as $stmt) {
+			if (!$stmt instanceof ClassMethod || $stmt->name != "__construct") {
+				continue;
+			}
 
-					if ($docNode instanceof PhpDocTagNode && $docNode->value instanceof VarTagValueNode) {
-						$type = resolveOpenApiType($docNode->value->type);
-					}
+			$classMethodInfo = extractMethodInfo($stmt);
+			foreach ($classMethodInfo->parameters as $parameter) {
+				if (!$parameter->isPublic) {
+					// Disallow non-public parameters since they are from extended classes
+					continue;
 				}
-			}
-			if ($type == null) {
-				$type = resolveOpenApiType($property->type);
-			}
-			if (count($description) > 0) {
-				$type->description = implode(" \n", $description);
-			}
-			$properties[$name] = $type;
-			if (!$type->nullable) {
-				$required[] = $name;
+				$properties[$parameter->name] = $parameter->type;
+				if (!$parameter->type->nullable) {
+					$required[] = $parameter->name;
+				}
 			}
 		}
 
