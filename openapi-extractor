@@ -522,7 +522,7 @@ function resolveIdentifier(string $name): OpenApiType
 		"null" => new OpenApiType(nullable: true),
 		default => (function () use ($dir, &$schemas, $openapi, $name) {
 			// TODO: This name resolution isn't great, but works for now.
-			$class = loadClass(join("/", [$dir, "lib", "Model", $name . ".response.php"]), $name);
+			$class = loadClass(join("/", [$dir, "lib", "Model", $name . ".php"]), $name);
 			if ($class != null) {
 				$implementsJsonSerializable = false;
 				foreach ($class->implements as $implement) {
