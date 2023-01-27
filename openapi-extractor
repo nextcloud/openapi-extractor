@@ -403,7 +403,7 @@ foreach ($routes as $key => $value) {
 		}
 
 		$operation = new Operation(array_merge([
-			"operationId" => generateOperationID($methodName, $controllerName),
+			"operationId" => generateOperationID($methodName, $controllerName, $appID),
 			"tags" => [$appID],
 			"responses" => $responses,
 			"description" => implode("\n", $classMethodInfo->description),
@@ -883,7 +883,7 @@ function splitOnUppercaseFollowedByNonUppercase(string $str): array
 	return preg_split('/(?=[A-Z][^A-Z])/', $str, -1, PREG_SPLIT_NO_EMPTY);
 }
 
-function generateOperationID(string $methodName, string $controllerName): string
+function generateOperationID(string $methodName, string $controllerName, string $appId): string
 {
 	$verbParts = array_map(function (string $verbPart) {
 		return strtolower($verbPart);
@@ -896,8 +896,9 @@ function generateOperationID(string $methodName, string $controllerName): string
 		return !in_array($objectPart, ["api", "endpoint", "request", "handler"]);
 	});
 	$object = implode("-", $objectParts);
+	$appIdParts = explode("_", $appId);
 
-	if (array_intersect($objectParts, $verbParts) == $objectParts || $object == "") {
+	if (array_intersect($objectParts, $verbParts) == $objectParts || array_intersect($objectParts, $appIdParts) == $objectParts || $object == "") {
 		return $verb;
 	}
 	if (array_intersect($verbParts, $objectParts) == $verbParts) {
