@@ -509,13 +509,13 @@ class ClassMethodParameter
 {
 	public OpenApiType $type;
 
-	public bool $isPublic;
+	public int $flags;
 
 	public function __construct(public string $name, public Param $methodParameter, public PhpDocTagValueNode $docParameter)
 	{
 		$this->type = resolveOpenApiType($docParameter->type);
 		$this->type->defaultValue = exprToString($methodParameter->default);
-		$this->isPublic = $this->methodParameter->flags == Class_::MODIFIER_PUBLIC;
+		$this->flags = $this->methodParameter->flags;
 	}
 }
 
@@ -568,7 +568,7 @@ function resolveIdentifier(string $name): OpenApiType
 		"null" => new OpenApiType(nullable: true),
 		default => (function () use ($dir, &$schemas, $openapi, $name) {
 			// TODO: This name resolution isn't great, but works for now.
-			$class = loadClass(join("/", [$dir, "lib", "Model", $name . ".php"]), $name);
+			$class = loadClass(join("/", [$dir, "lib", "Model", "Response", $name . ".php"]), $name);
 			if ($class != null) {
 				$implementsJsonSerializable = false;
 				foreach ($class->implements as $implement) {
@@ -662,9 +662,12 @@ function resolveOpenApiType(Class_|NodeAbstract|TypeNode $node): OpenApiType
 
 			$classMethodInfo = extractMethodInfo($stmt);
 			foreach ($classMethodInfo->parameters as $parameter) {
-				if (!$parameter->isPublic) {
-					// Disallow non-public parameters since they are from extended classes
+				if ($parameter->flags == 0) {
+					// Disallow non-protected parameters since they are from extended classes
 					continue;
+				}
+				if ($parameter->flags != Class_::MODIFIER_PROTECTED) {
+					die("Parameter '" . $parameter->name . "' of Model '" . $node->name->name . "' has a field that is not protected.\n");
 				}
 				$properties[$parameter->name] = $parameter->type;
 				if (!$parameter->type->nullable) {
