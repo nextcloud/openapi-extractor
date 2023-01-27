@@ -152,6 +152,9 @@ $routes = parseRoutes(join("/", $appIsCore ? [$dir, "routes.php"] : [$dir, "appi
 $seenRouteNames = [];
 
 foreach ($routes as $key => $value) {
+	if ($key != "routes" && $key != "ocs") {
+		continue;
+	}
 	foreach ($value as $route) {
 		$routeName = $route["name"];
 		if (str_starts_with(strtolower($routeName), "page#") || str_starts_with(strtolower($routeName), "admin#") || in_array($routeName, $seenRouteNames)) {
