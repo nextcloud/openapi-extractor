@@ -238,7 +238,9 @@ foreach ($routes as $key => $value) {
 		$docStatusCodes = array_map(function (ClassMethodResponse $response) {
 			return $response->statusCode;
 		}, $classMethodInfo->responses);
-		$missingDocStatusCodes = array_diff($codeStatusCodes, $docStatusCodes);
+		$missingDocStatusCodes = array_filter(array_diff($codeStatusCodes, $docStatusCodes), function (int $code) {
+			return $code < 500;
+		});
 		$missingCodeStatusCodes = array_diff($docStatusCodes, $codeStatusCodes);
 
 		if (count($missingDocStatusCodes) > 0) {
