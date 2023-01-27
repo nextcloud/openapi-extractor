@@ -692,8 +692,9 @@ function resolveOpenApiType(ParamTagValueNode|Class_|NodeAbstract|TypeNode $node
 	if ($node instanceof UnionTypeNode || $node instanceof IntersectionTypeNode || $node instanceof UnionType || $node instanceof IntersectionType) {
 		$nullable = false;
 		$types = [];
+
 		foreach ($node->types as $type) {
-			if ($type instanceof IdentifierTypeNode && $type->name == "null") {
+			if (($type instanceof IdentifierTypeNode || $type instanceof Identifier) && $type->name == "null") {
 				$nullable = true;
 			} else {
 				$types[] = resolveOpenApiType($type);
@@ -704,13 +705,13 @@ function resolveOpenApiType(ParamTagValueNode|Class_|NodeAbstract|TypeNode $node
 			$type = $types[0];
 			$type->nullable = true;
 			return $type;
-		} else {
-			return new OpenApiType(
-				nullable: $nullable,
-				oneOf: $node instanceof UnionTypeNode || $node instanceof UnionType ? $types : null,
-				allOf: $node instanceof IntersectionTypeNode || $node instanceof IntersectionType ? $types : null,
-			);
 		}
+
+		return new OpenApiType(
+			nullable: $nullable,
+			oneOf: $node instanceof UnionTypeNode || $node instanceof UnionType ? $types : null,
+			allOf: $node instanceof IntersectionTypeNode || $node instanceof IntersectionType ? $types : null,
+		);
 	}
 
 	if ($node instanceof Class_) {
