@@ -36,7 +36,6 @@ use PhpParser\NodeFinder;
 use PhpParser\ParserFactory;
 use PHPStan\PhpDocParser\Ast\PhpDoc\ParamTagValueNode;
 use PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocTagNode;
-use PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocTagValueNode;
 use PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocTextNode;
 use PHPStan\PhpDocParser\Ast\PhpDoc\ReturnTagValueNode;
 use PHPStan\PhpDocParser\Ast\Type\ArrayShapeNode;
@@ -509,10 +508,10 @@ class ClassMethodParameter
 
 	public int $flags;
 
-	public function __construct(public string $name, public Param $methodParameter, public ?PhpDocTagValueNode $docParameter)
+	public function __construct(public string $name, public Param $methodParameter, public ?ParamTagValueNode $docParameter)
 	{
 		if ($docParameter != null) {
-			$this->type = resolveOpenApiType($docParameter->type);
+			$this->type = resolveOpenApiType($docParameter);
 		} else {
 			$this->type = resolveOpenApiType($methodParameter->type);
 		}
@@ -593,8 +592,13 @@ function resolveIdentifier(string $name): OpenApiType
 	};
 }
 
-function resolveOpenApiType(Class_|NodeAbstract|TypeNode $node): OpenApiType
+function resolveOpenApiType(ParamTagValueNode|Class_|NodeAbstract|TypeNode $node): OpenApiType
 {
+	if ($node instanceof ParamTagValueNode) {
+		$type = resolveOpenApiType($node->type);
+		$type->description = $node->description;
+		return $type;
+	}
 	if ($node instanceof PhpParser\Node\Name) {
 		return resolveIdentifier($node->getLast());
 	}
@@ -735,29 +739,29 @@ class OpenApiType
 		$this->description = $description;
 	}
 
-	public function toSchema(bool $booleanQuirk = false): Schema
+	public function toSchema(bool $isParameter = false): Schema
 	{
 		return new Schema(array_merge(
 			$this->ref != null ? ["\$ref" => $this->ref] : [],
-			$this->type != null ? ["type" => $booleanQuirk && $this->type == "boolean" ? "integer" : $this->type] : [],
+			$this->type != null ? ["type" => $isParameter && $this->type == "boolean" ? "integer" : $this->type] : [],
 			$this->format != null ? ["format" => $this->format] : [],
-			$this->defaultValue != null ? ["default" => $booleanQuirk && $this->type == "boolean" ? $this->defaultValue == "true" ? 1 : 0 : $this->defaultValue] : [],
-			$this->items != null ? ["items" => $this->items->toSchema($booleanQuirk)] : [],
+			$this->defaultValue != null ? ["default" => $isParameter && $this->type == "boolean" ? $this->defaultValue == "true" ? 1 : 0 : $this->defaultValue] : [],
+			$this->items != null ? ["items" => $this->items->toSchema($isParameter)] : [],
 			$this->properties != null ? ["properties" =>
 				array_combine(array_keys($this->properties),
-					array_map(function (OpenApiType $property) use ($booleanQuirk) {
-						return $property->toSchema($booleanQuirk);
+					array_map(function (OpenApiType $property) use ($isParameter) {
+						return $property->toSchema($isParameter);
 					}, array_values($this->properties)),
 				)] : [],
-			$this->anyOf != null ? ["anyOf" => array_map(function (OpenApiType $type) use ($booleanQuirk) {
-				return $type->toSchema($booleanQuirk);
+			$this->anyOf != null ? ["anyOf" => array_map(function (OpenApiType $type) use ($isParameter) {
+				return $type->toSchema($isParameter);
 			}, $this->anyOf)] : [],
-			$this->allOf != null ? ["allOf" => array_map(function (OpenApiType $type) use ($booleanQuirk) {
-				return $type->toSchema($booleanQuirk);
+			$this->allOf != null ? ["allOf" => array_map(function (OpenApiType $type) use ($isParameter) {
+				return $type->toSchema($isParameter);
 			}, $this->allOf)] : [],
 			$this->additionalProperties != null ? ["additionalProperties" => $this->additionalProperties] : [],
 			$this->required != null && count($this->required) > 0 ? ["required" => $this->required] : [],
-			$this->description != null && $this->description != "" ? ["description" => $this->description] : [],
+			$this->description != null && $this->description != "" && !$isParameter ? ["description" => $this->description] : [],
 		));
 	}
 }
