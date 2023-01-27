@@ -408,49 +408,47 @@ function extractMethodInfo(ClassMethod $method): ClassMethodInfo
 	$docParameters = [];
 
 	$doc = $method->getDocComment()?->getText();
-	if ($doc == null) {
-		die("Unable to read docs for '" . $method->name->name . "'\n");
-	}
-
-	$docNodes = $phpDocParser->parse(new TokenIterator($lexer->tokenize($doc)))->children;
-	foreach ($docNodes as $docNode) {
-		if ($docNode instanceof PhpDocTextNode) {
-			$line = cleanDocComment($docNode->text);
-			if ($line == "") {
-				continue;
-			}
-			$methodDescription[] = $line;
-		}
-
-		if ($docNode instanceof PhpDocTagNode) {
-			if ($docNode->value instanceof ParamTagValueNode) {
-				$docParameters[] = $docNode->value;
+	if ($doc != null) {
+		$docNodes = $phpDocParser->parse(new TokenIterator($lexer->tokenize($doc)))->children;
+		foreach ($docNodes as $docNode) {
+			if ($docNode instanceof PhpDocTextNode) {
+				$line = cleanDocComment($docNode->text);
+				if ($line == "") {
+					continue;
+				}
+				$methodDescription[] = $line;
 			}
 
-			if ($docNode->value instanceof ReturnTagValueNode) {
-				$type = $docNode->value->type;
+			if ($docNode instanceof PhpDocTagNode) {
+				if ($docNode->value instanceof ParamTagValueNode) {
+					$docParameters[] = $docNode->value;
+				}
 
-				if ($type instanceof GenericTypeNode && ($type->type->name == "JSONResponse" || $type->type->name == "DataResponse")) {
-					preg_match("/^([0-9]{3})((?: .*)?)$/", $docNode->value->description, $matches);
-					if (count($matches) != 3) {
-						die("Unable to figure out status code and description for return type '" . $docNode . "'\n");
+				if ($docNode->value instanceof ReturnTagValueNode) {
+					$type = $docNode->value->type;
+
+					if ($type instanceof GenericTypeNode && ($type->type->name == "JSONResponse" || $type->type->name == "DataResponse")) {
+						preg_match("/^([0-9]{3})((?: .*)?)$/", $docNode->value->description, $matches);
+						if (count($matches) != 3) {
+							die("Unable to figure out status code and description for return type '" . $docNode . "'\n");
+						}
+						$statusCode = $matches[1];
+						$description = ltrim($matches[2], ' ');
+
+						$contentType = match ($type->type->name) {
+							"JSONResponse" => "application/json",
+						};
+
+						$realType = resolveOpenApiType($type->genericTypes[0]);
+
+						if (array_key_exists($statusCode, $responses)) {
+							die("Multiple return annotations for the same status code not allowed in '" . $method->name . "'\n");
+						}
+
+						$responses[$statusCode] = new ClassMethodResponse($statusCode, $contentType, $realType, $description != "" ? $description : null);
+					} else {
+						$returns[] = resolveOpenApiType($type);
 					}
-					$statusCode = $matches[1];
-					$description = ltrim($matches[2], ' ');
-
-					$contentType = match ($type->type->name) {
-						"JSONResponse" => "application/json",
-					};
-
-					$realType = resolveOpenApiType($type->genericTypes[0]);
-
-					if (array_key_exists($statusCode, $responses)) {
-						die("Multiple return annotations for the same status code not allowed in '" . $method->name . "'\n");
-					}
-
-					$responses[$statusCode] = new ClassMethodResponse($statusCode, $contentType, $realType, $description != "" ? $description : null);
-				} else {
-					$returns[] = resolveOpenApiType($type);
 				}
 			}
 		}
@@ -470,7 +468,7 @@ function extractMethodInfo(ClassMethod $method): ClassMethodInfo
 		}
 
 		if ($param == null) {
-			die("Missing doc parameter '" . $methodParameterName . "' for '" . $method->name->name . "'\n");
+			$param = new ClassMethodParameter($methodParameterName, $methodParameter, null);
 		}
 
 		$parameters[] = $param;
@@ -511,9 +509,13 @@ class ClassMethodParameter
 
 	public int $flags;
 
-	public function __construct(public string $name, public Param $methodParameter, public PhpDocTagValueNode $docParameter)
+	public function __construct(public string $name, public Param $methodParameter, public ?PhpDocTagValueNode $docParameter)
 	{
-		$this->type = resolveOpenApiType($docParameter->type);
+		if ($docParameter != null) {
+			$this->type = resolveOpenApiType($docParameter->type);
+		} else {
+			$this->type = resolveOpenApiType($methodParameter->type);
+		}
 		$this->type->defaultValue = exprToString($methodParameter->default);
 		$this->flags = $this->methodParameter->flags;
 	}
