@@ -22,6 +22,7 @@ use PhpParser\Node\Expr\ConstFetch;
 use PhpParser\Node\Expr\New_;
 use PhpParser\Node\Expr\UnaryMinus;
 use PhpParser\Node\Identifier;
+use PhpParser\Node\IntersectionType;
 use PhpParser\Node\Name;
 use PhpParser\Node\NullableType;
 use PhpParser\Node\Param;
@@ -31,6 +32,7 @@ use PhpParser\Node\Stmt\Class_;
 use PhpParser\Node\Stmt\ClassMethod;
 use PhpParser\Node\Stmt\Property;
 use PhpParser\Node\Stmt\Return_;
+use PhpParser\Node\UnionType;
 use PhpParser\NodeAbstract;
 use PhpParser\NodeFinder;
 use PhpParser\ParserFactory;
@@ -51,6 +53,8 @@ use PHPStan\PhpDocParser\Parser\ConstExprParser;
 use PHPStan\PhpDocParser\Parser\PhpDocParser;
 use PHPStan\PhpDocParser\Parser\TokenIterator;
 use PHPStan\PhpDocParser\Parser\TypeParser;
+
+$responseTypes = ["JSONResponse", "DataResponse"];
 
 $command = new Command("openapi-extractor", "Extract OpenAPI specs from the Nextcloud source code");
 $command
@@ -178,14 +182,46 @@ foreach ($routes as $key => $value) {
 		}
 
 		$controllerName = ucfirst(str_replace("_", "", ucwords(explode("#", $routeName)[0], "_")));
-
-		$methodFunction = findControllerMethod(join("/", $appIsCore ? [$dir, "Controller", $controllerName . "Controller.php"] : [$dir, "lib", "Controller", $controllerName . "Controller.php"]), $controllerName, $methodName);
+		$controllerClass = loadClass(join("/", $appIsCore ? [$dir, "Controller", $controllerName . "Controller.php"] : [$dir, "lib", "Controller", $controllerName . "Controller.php"]), $controllerName . "Controller");
+		$methodFunction = null;
+		$isOCS = false;
+		if ($controllerClass != null) {
+			foreach ($controllerClass->stmts as $node) {
+				if ($node instanceof ClassMethod) {
+					if ($node->name == $methodName) {
+						$doc = $node->getDocComment()?->getText();
+						if ($controllerClass->extends != "Controller" || ($doc != null && str_contains($doc, "@NoCSRFRequired"))) {
+							$methodFunction = $node;
+							$isOCS = $controllerClass->extends != "Controller";
+							break;
+						}
+					}
+				}
+			}
+		}
 		if ($methodFunction == null) {
 			print_r("Warning " . $routeName . " is ignored\n");
 			continue;
 		}
 
-		$classMethodInfo = extractMethodInfo($methodFunction);
+		if ($isOCS && !array_key_exists("OCSMeta", $schemas)) {
+			$schemas["OCSMeta"] = [
+				"type" => "object",
+				"required" => [
+					"status",
+					"statuscode",
+				],
+				"properties" => [
+					"status" => ["type" => "string"],
+					"statuscode" => ["type" => "integer"],
+					"message" => ["type" => "string"],
+					"totalitems" => ["type" => "string"],
+					"itemsperpage" => ["type" => "string"],
+				],
+			];
+		}
+
+		$classMethodInfo = extractMethodInfo($methodFunction, $isOCS);
 		if (count($classMethodInfo->returns) > 0) {
 			die($routeName . " can not return something that is not a valid response.\n");
 		}
@@ -196,7 +232,7 @@ foreach ($routes as $key => $value) {
 			if ($returnStatement->expr instanceof New_) {
 				if ($returnStatement->expr->class instanceof Name) {
 					$type = $returnStatement->expr->class->getLast();
-					if ($type == "DataResponse" || $type == "JSONResponse") {
+					if (in_array($type, $responseTypes)) {
 						$statusCode = 200;
 						if (count($returnStatement->expr->args) > 1) {
 							if (!($returnStatement->expr->args[1]->value instanceof ClassConstFetch)) {
@@ -333,13 +369,35 @@ foreach ($routes as $key => $value) {
 			$responses[$response->statusCode] = new Response(
 				array_merge(
 					[
+						"description" => $response->description != null ? $response->description : "",
 						"content" => [
-							$response->contentType => new MediaType([
-								"schema" => $response->type->toSchema(),
-							]),
+							$response->contentType => new MediaType(
+								$response->isOCS ? [
+									"schema" => [
+										"type" => "object",
+										"required" => [
+											"ocs",
+										],
+										"properties" => [
+											"ocs" => [
+												"type" => "object",
+												"required" => [
+													"meta",
+													"data",
+												],
+												"properties" => [
+													"meta" => [
+														"\$ref" => "#/components/schemas/OCSMeta",
+													],
+													"data" => $response->type->toSchema(),
+												],
+											],
+										],
+									],
+								] : ["schema" => $response->type->toSchema()],
+							),
 						],
 					],
-					$response->description != null ? ["description" => $response->description] : [],
 				),
 			);
 		}
@@ -395,9 +453,9 @@ if (!$openapi->validate()) {
 	die("Invalid OpenAPI spec generated. Please review the output!\n");
 }
 
-function extractMethodInfo(ClassMethod $method): ClassMethodInfo
+function extractMethodInfo(ClassMethod $method, bool $isOCS = false): ClassMethodInfo
 {
-	global $phpDocParser, $lexer;
+	global $phpDocParser, $lexer, $responseTypes;
 
 	$parameters = [];
 	$responses = [];
@@ -428,25 +486,25 @@ function extractMethodInfo(ClassMethod $method): ClassMethodInfo
 				if ($docNode->value instanceof ReturnTagValueNode) {
 					$type = $docNode->value->type;
 
-					if ($type instanceof GenericTypeNode && ($type->type->name == "JSONResponse" || $type->type->name == "DataResponse")) {
+					if (($type instanceof GenericTypeNode && in_array($type->type->name, $responseTypes)) ||
+						($type instanceof IdentifierTypeNode && in_array($type->name, $responseTypes))) {
+						if ($type instanceof GenericTypeNode) {
+							$realType = resolveOpenApiType($type->genericTypes[0]);
+						} else {
+							$realType = new OpenApiType();
+						}
+
 						preg_match("/^([0-9]{3})((?: .*)?)$/", $docNode->value->description, $matches);
 						if (count($matches) != 3) {
 							die("Unable to figure out status code and description for return type '" . $docNode . "'\n");
 						}
 						$statusCode = $matches[1];
-						$description = ltrim($matches[2], ' ');
-
-						$contentType = match ($type->type->name) {
-							"JSONResponse" => "application/json",
-						};
-
-						$realType = resolveOpenApiType($type->genericTypes[0]);
-
 						if (array_key_exists($statusCode, $responses)) {
 							die("Multiple return annotations for the same status code not allowed in '" . $method->name . "'\n");
 						}
 
-						$responses[$statusCode] = new ClassMethodResponse($statusCode, $contentType, $realType, $description != "" ? $description : null);
+						$description = ltrim($matches[2], ' ');
+						$responses[$statusCode] = new ClassMethodResponse($statusCode, "application/json", $realType, $description, $isOCS);
 					} else {
 						$returns[] = resolveOpenApiType($type);
 					}
@@ -498,7 +556,7 @@ class ClassMethodInfo
 
 class ClassMethodResponse
 {
-	public function __construct(public int $statusCode, public string $contentType, public OpenApiType $type, public ?string $description)
+	public function __construct(public int $statusCode, public string $contentType, public OpenApiType $type, public ?string $description, public bool $isOCS)
 	{
 	}
 
@@ -631,26 +689,26 @@ function resolveOpenApiType(ParamTagValueNode|Class_|NodeAbstract|TypeNode $node
 		return $type;
 	}
 
-	if ($node instanceof UnionTypeNode || $node instanceof IntersectionTypeNode) {
+	if ($node instanceof UnionTypeNode || $node instanceof IntersectionTypeNode || $node instanceof UnionType || $node instanceof IntersectionType) {
 		$nullable = false;
 		$types = [];
 		foreach ($node->types as $type) {
 			if ($type instanceof IdentifierTypeNode && $type->name == "null") {
 				$nullable = true;
 			} else {
-				$types[] = $type;
+				$types[] = resolveOpenApiType($type);
 			}
 		}
 
 		if (count($types) == 1) {
-			$type = resolveOpenApiType($types[0]);
+			$type = $types[0];
 			$type->nullable = true;
 			return $type;
 		} else {
 			return new OpenApiType(
 				nullable: $nullable,
-				anyOf: $node instanceof UnionTypeNode ? $types : null,
-				allOf: $node instanceof IntersectionTypeNode ? $types : null,
+				oneOf: $node instanceof UnionTypeNode || $node instanceof UnionType ? $types : null,
+				allOf: $node instanceof IntersectionTypeNode || $node instanceof IntersectionType ? $types : null,
 			);
 		}
 	}
@@ -714,6 +772,9 @@ class OpenApiType
 	public ?array $properties;
 
 	/** @var OpenApiType[]|null */
+	public ?array $oneOf;
+
+	/** @var OpenApiType[]|null */
 	public ?array $anyOf;
 
 	/** @var OpenApiType[]|null */
@@ -725,7 +786,7 @@ class OpenApiType
 
 	public ?string $description;
 
-	public function __construct(?string $ref = null, ?string $type = null, ?string $format = null, ?bool $nullable = null, mixed $defaultValue = null, ?OpenApiType $items = null, ?array $properties = null, ?array $anyOf = null, ?array $allOf = null, ?bool $additionalProperties = null, ?array $required = null, ?string $description = null)
+	public function __construct(?string $ref = null, ?string $type = null, ?string $format = null, ?bool $nullable = null, mixed $defaultValue = null, ?OpenApiType $items = null, ?array $properties = null, ?array $oneOf = null, ?array $anyOf = null, ?array $allOf = null, ?bool $additionalProperties = null, ?array $required = null, ?string $description = null)
 	{
 		$this->ref = $ref;
 		$this->type = $type;
@@ -734,6 +795,7 @@ class OpenApiType
 		$this->defaultValue = $defaultValue;
 		$this->items = $items;
 		$this->properties = $properties;
+		$this->oneOf = $oneOf;
 		$this->anyOf = $anyOf;
 		$this->allOf = $allOf;
 		$this->additionalProperties = $additionalProperties;
@@ -755,6 +817,9 @@ class OpenApiType
 						return $property->toSchema($isParameter);
 					}, array_values($this->properties)),
 				)] : [],
+			$this->oneOf != null ? ["oneOf" => array_map(function (OpenApiType $type) use ($isParameter) {
+				return $type->toSchema($isParameter);
+			}, $this->oneOf)] : [],
 			$this->anyOf != null ? ["anyOf" => array_map(function (OpenApiType $type) use ($isParameter) {
 				return $type->toSchema($isParameter);
 			}, $this->anyOf)] : [],
@@ -766,27 +831,6 @@ class OpenApiType
 			$this->description != null && $this->description != "" && !$isParameter ? ["description" => $this->description] : [],
 		));
 	}
-}
-
-function findControllerMethod(string $filename, string $controllerName, string $methodName): ?ClassMethod
-{
-	$class = loadClass($filename, $controllerName . "Controller");
-	if ($class != null) {
-		foreach ($class->stmts as $node) {
-			if ($node instanceof ClassMethod) {
-				if ($node->name == $methodName) {
-					$doc = $node->getDocComment()?->getText();
-					if ($class->extends != "Controller" || ($doc != null && str_contains($doc, "@NoCSRFRequired"))) {
-						return $node;
-					} else {
-						return null;
-					}
-				}
-			}
-		}
-	}
-
-	return null;
 }
 
 function loadClass(string $filename, string $name): ?Class_
