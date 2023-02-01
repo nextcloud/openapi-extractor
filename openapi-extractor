@@ -471,6 +471,7 @@ foreach ($routes as $key => $value) {
 	}
 }
 
+ksort($schemas);
 $openapi->components->schemas = $schemas;
 
 file_put_contents($out, Writer::writeToJson($openapi, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
