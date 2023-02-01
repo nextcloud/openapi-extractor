@@ -30,7 +30,6 @@ use PhpParser\Node\Scalar\LNumber;
 use PhpParser\Node\Scalar\String_;
 use PhpParser\Node\Stmt\Class_;
 use PhpParser\Node\Stmt\ClassMethod;
-use PhpParser\Node\Stmt\Property;
 use PhpParser\Node\Stmt\Return_;
 use PhpParser\Node\UnionType;
 use PhpParser\NodeAbstract;
@@ -40,6 +39,7 @@ use PHPStan\PhpDocParser\Ast\PhpDoc\ParamTagValueNode;
 use PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocTagNode;
 use PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocTextNode;
 use PHPStan\PhpDocParser\Ast\PhpDoc\ReturnTagValueNode;
+use PHPStan\PhpDocParser\Ast\PhpDoc\TypeAliasTagValueNode;
 use PHPStan\PhpDocParser\Ast\Type\ArrayShapeNode;
 use PHPStan\PhpDocParser\Ast\Type\ArrayTypeNode;
 use PHPStan\PhpDocParser\Ast\Type\GenericTypeNode;
@@ -143,12 +143,27 @@ $openapi = new OpenApi([
 	"paths" => [],
 ]);
 
-$schemas = [];
-
 print_r("Extracting OpenAPI spec for " . $appName . " " . $appVersion . "\n");
 
-$routes = parseRoutes(join("/", $appIsCore ? [$dir, "routes.php"] : [$dir, "appinfo", "routes.php"]));
+$schemas = [];
 
+$definitions = [];
+$definitionsPath = join("/", ["lib", "ResponseDefinitions.php"]);
+if (file_exists($definitionsPath)) {
+	foreach ($nodeFinder->findInstanceOf(loadAST($definitionsPath), Class_::class) as $node) {
+		$doc = $node->getDocComment()?->getText();
+		if ($doc != null) {
+			$docNodes = $phpDocParser->parse(new TokenIterator($lexer->tokenize($doc)))->children;
+			foreach ($docNodes as $docNode) {
+				if ($docNode instanceof PhpDocTagNode && $docNode->value instanceof TypeAliasTagValueNode) {
+					$definitions[$docNode->value->alias] = resolveOpenApiType($docNode->value->type)->toSchema();
+				}
+			}
+		}
+	}
+}
+
+$routes = parseRoutes(join("/", $appIsCore ? [$dir, "routes.php"] : [$dir, "appinfo", "routes.php"]));
 $seenRouteNames = [];
 
 foreach ($routes as $key => $value) {
@@ -185,20 +200,27 @@ foreach ($routes as $key => $value) {
 		}
 
 		$controllerName = ucfirst(str_replace("_", "", ucwords(explode("#", $routeName)[0], "_")));
-		$controllerClass = loadClass(join("/", $appIsCore ? [$dir, "Controller", $controllerName . "Controller.php"] : [$dir, "lib", "Controller", $controllerName . "Controller.php"]), $controllerName . "Controller");
+		$controllerClass = null;
+		/** @var Class_ $class */
+		foreach ($nodeFinder->findInstanceOf(loadAST(join("/", $appIsCore ? [$dir, "Controller", $controllerName . "Controller.php"] : [$dir, "lib", "Controller", $controllerName . "Controller.php"])), Class_::class) as $class) {
+			if ($class->name == $controllerName . "Controller") {
+				$controllerClass = $class;
+				break;
+			}
+		}
+		if ($controllerClass == null) {
+			die("Controller " . $controllerName . " not found\n");
+		}
 		$methodFunction = null;
 		$isOCS = false;
-		if ($controllerClass != null) {
-			foreach ($controllerClass->stmts as $node) {
-				if ($node instanceof ClassMethod) {
-					if ($node->name == $methodName) {
-						$doc = $node->getDocComment()?->getText();
-						if ($controllerClass->extends != "Controller" || ($doc != null && str_contains($doc, "@NoCSRFRequired"))) {
-							$methodFunction = $node;
-							$isOCS = $controllerClass->extends != "Controller";
-							break;
-						}
-					}
+		/** @var ClassMethod $classMethod */
+		foreach ($nodeFinder->findInstanceOf($controllerClass->stmts, ClassMethod::class) as $classMethod) {
+			if ($classMethod->name == $methodName) {
+				$doc = $classMethod->getDocComment()?->getText();
+				if ($controllerClass->extends != "Controller" || ($doc != null && str_contains($doc, "@NoCSRFRequired"))) {
+					$methodFunction = $classMethod;
+					$isOCS = $controllerClass->extends != "Controller";
+					break;
 				}
 			}
 		}
@@ -569,8 +591,6 @@ class ClassMethodParameter
 {
 	public OpenApiType $type;
 
-	public int $flags;
-
 	public function __construct(public string $name, public Param $methodParameter, public ?ParamTagValueNode $docParameter)
 	{
 		if ($docParameter != null) {
@@ -579,7 +599,6 @@ class ClassMethodParameter
 			$this->type = resolveOpenApiType($methodParameter->type);
 		}
 		$this->type->defaultValue = exprToString($methodParameter->default);
-		$this->flags = $this->methodParameter->flags;
 	}
 }
 
@@ -621,7 +640,7 @@ function exprToString(null|Expr $expr): mixed
 
 function resolveIdentifier(string $name): OpenApiType
 {
-	global $openapi, $schemas, $dir;
+	global $openapi, $definitions, $schemas, $dir;
 	return match ($name) {
 		"string" => new OpenApiType(type: "string", nullable: false),
 		"int", "integer" => new OpenApiType(type: "integer", nullable: false),
@@ -630,21 +649,10 @@ function resolveIdentifier(string $name): OpenApiType
 		"float" => new OpenApiType(type: "number", format: "float", nullable: false),
 		"array" => new OpenApiType(type: "array", nullable: false),
 		"null" => new OpenApiType(nullable: true),
-		default => (function () use ($dir, &$schemas, $openapi, $name) {
-			// TODO: This name resolution isn't great, but works for now.
-			$class = loadClass(join("/", [$dir, "lib", "Model", "Response", $name . ".php"]), $name);
-			if ($class != null) {
-				$implementsJsonSerializable = false;
-				foreach ($class->implements as $implement) {
-					if ($implement->getLast() == "JsonSerializable") {
-						$implementsJsonSerializable = true;
-					}
-				}
-				if (!$implementsJsonSerializable) {
-					die("'" . $name . "' does not implement JsonSerializable\n");
-				}
+		default => (function () use ($dir, $definitions, &$schemas, $openapi, $name) {
+			if (array_key_exists($name, $definitions)) {
 				if (!array_key_exists($name, $schemas)) {
-					$schemas[$name] = resolveOpenApiType($class)->toSchema();
+					$schemas[$name] = $definitions[$name];
 				}
 				return new OpenApiType(
 					ref: "#/components/schemas/" . $name,
@@ -655,7 +663,7 @@ function resolveIdentifier(string $name): OpenApiType
 	};
 }
 
-function resolveOpenApiType(ParamTagValueNode|Class_|NodeAbstract|TypeNode $node): OpenApiType
+function resolveOpenApiType(ParamTagValueNode|NodeAbstract|TypeNode $node): OpenApiType
 {
 	if ($node instanceof ParamTagValueNode) {
 		$type = resolveOpenApiType($node->type);
@@ -715,45 +723,6 @@ function resolveOpenApiType(ParamTagValueNode|Class_|NodeAbstract|TypeNode $node
 			oneOf: $node instanceof UnionTypeNode || $node instanceof UnionType ? $types : null,
 			allOf: $node instanceof IntersectionTypeNode || $node instanceof IntersectionType ? $types : null,
 		);
-	}
-
-	if ($node instanceof Class_) {
-		if (count(array_filter($node->stmts, function ($stmt) {
-				return $stmt instanceof Property;
-			})) > 0) {
-			die("Model '" . $node->name->name . "' is not allowed to have properties. Fields can only be declared in the constructor.\n");
-		}
-		$properties = [];
-		$required = [];
-		foreach ($node->stmts as $stmt) {
-			if (!$stmt instanceof ClassMethod || $stmt->name != "__construct") {
-				continue;
-			}
-
-			$classMethodInfo = extractMethodInfo($stmt);
-			foreach ($classMethodInfo->parameters as $parameter) {
-				if ($parameter->flags == 0) {
-					// Disallow non-protected parameters since they are from extended classes
-					continue;
-				}
-				if ($parameter->flags != Class_::MODIFIER_PROTECTED) {
-					die("Parameter '" . $parameter->name . "' of Model '" . $node->name->name . "' has a field that is not protected.\n");
-				}
-				$properties[$parameter->name] = $parameter->type;
-				if (!$parameter->type->nullable) {
-					$required[] = $parameter->name;
-				}
-			}
-		}
-
-		$type = new OpenApiType(type: "object", nullable: false, properties: $properties, required: $required);
-		if ($node->extends != null) {
-			return new OpenApiType(allOf: [
-				resolveOpenApiType($node->extends),
-				$type,
-			]);
-		}
-		return $type;
 	}
 
 	die("Unable to resolve OpenAPI type for type '" . get_class($node) . "'\n");
@@ -837,25 +806,10 @@ class OpenApiType
 	}
 }
 
-function loadClass(string $filename, string $name): ?Class_
+function loadAST(string $filename): array
 {
 	global $astParser;
-	$content = file_get_contents($filename);
-	$ast = $astParser->parse($content);
-	return findClass($ast, $name);
-}
-
-function findClass(array $ast, string $className): ?Class_
-{
-	global $nodeFinder;
-	/** @var Class_ $class */
-	foreach ($nodeFinder->findInstanceOf($ast, Class_::class) as $class) {
-		if ($class->name == $className) {
-			return $class;
-		}
-	}
-
-	return null;
+	return $astParser->parse(file_get_contents($filename));
 }
 
 function parseRoutes(string $path): array
