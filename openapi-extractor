@@ -296,12 +296,8 @@ foreach ($routes as $key => $value) {
 			}
 		}
 
-		$docStatusCodes = array_map(function (ClassMethodResponse $response) {
-			return $response->statusCode;
-		}, $classMethodInfo->responses);
-		$missingDocStatusCodes = array_filter(array_diff($codeStatusCodes, $docStatusCodes), function (int $code) {
-			return $code < 500;
-		});
+		$docStatusCodes = array_map(fn(ClassMethodResponse $response) => $response->statusCode, $classMethodInfo->responses);
+		$missingDocStatusCodes = array_filter(array_diff($codeStatusCodes, $docStatusCodes), fn(int $code) => $code < 500);
 		$missingCodeStatusCodes = array_diff($docStatusCodes, $codeStatusCodes);
 
 		if (count($missingDocStatusCodes) > 0) {
@@ -315,9 +311,7 @@ foreach ($routes as $key => $value) {
 		$urlParameters = [];
 
 		preg_match_all("/{[^}]*}/", $url, $urlParameters);
-		$urlParameters = array_map(function (string $name) {
-			return substr($name, 1, -1);
-		}, $urlParameters[0]);
+		$urlParameters = array_map(fn(string $name) => substr($name, 1, -1), $urlParameters[0]);
 
 		if (!$openapi->paths->hasPath($url)) {
 			foreach ($urlParameters as $urlParameter) {
@@ -435,17 +429,15 @@ foreach ($routes as $key => $value) {
 		],
 			$classMethodInfo->summary != null ? ["summary" => $classMethodInfo->summary] : [],
 			count($queryParameters) > 0 ? [
-				"parameters" => array_map(function (ClassMethodParameter $parameter) {
-					return new Parameter(array_merge(
-						[
-							"name" => $parameter->name,
-							"in" => "query",
-							"schema" => $parameter->type->toSchema(true),
-						],
-						!$parameter->type->nullable ? ["required" => true] : [],
-						$parameter->docParameter != null && $parameter->docParameter->description != "" ? ["description" => cleanDocComment($parameter->docParameter->description)] : [],
-					));
-				}, $queryParameters),
+				"parameters" => array_map(fn(ClassMethodParameter $parameter) => new Parameter(array_merge(
+					[
+						"name" => $parameter->name,
+						"in" => "query",
+						"schema" => $parameter->type->toSchema(true),
+					],
+					!$parameter->type->nullable ? ["required" => true] : [],
+					$parameter->docParameter != null && $parameter->docParameter->description != "" ? ["description" => cleanDocComment($parameter->docParameter->description)] : [],
+				)), $queryParameters),
 			] : []),
 		);
 		switch ($verb) {
@@ -631,9 +623,7 @@ function exprToString(null|Expr $expr): mixed
 		return exprToString($expr->expr);
 	}
 	if ($expr instanceof Array_) {
-		return array_map(function (ArrayItem $item) {
-			return exprToString($item);
-		}, $expr->items);
+		return array_map(fn(ArrayItem $item) => exprToString($item), $expr->items);
 	}
 
 	die("Unable to convert Expr " . get_class($expr) . "\n");
@@ -731,50 +721,27 @@ function resolveOpenApiType(ParamTagValueNode|NodeAbstract|TypeNode $node): Open
 
 class OpenApiType
 {
-
-	public ?string $ref;
-	public ?string $type;
-
-	public ?string $format;
-
-	public ?bool $nullable;
-
-	public mixed $defaultValue;
-
-	public ?OpenApiType $items;
-
-	public ?array $properties;
-
-	/** @var OpenApiType[]|null */
-	public ?array $oneOf;
-
-	/** @var OpenApiType[]|null */
-	public ?array $anyOf;
-
-	/** @var OpenApiType[]|null */
-	public ?array $allOf;
-
-	public ?bool $additionalProperties;
-
-	public ?array $required;
-
-	public ?string $description;
-
-	public function __construct(?string $ref = null, ?string $type = null, ?string $format = null, ?bool $nullable = null, mixed $defaultValue = null, ?OpenApiType $items = null, ?array $properties = null, ?array $oneOf = null, ?array $anyOf = null, ?array $allOf = null, ?bool $additionalProperties = null, ?array $required = null, ?string $description = null)
+	/**
+	 * @param OpenApiType[]|null $oneOf
+	 * @param OpenApiType[]|null $anyOf
+	 * @param OpenApiType[]|null $allOf
+	 */
+	public function __construct(
+		public ?string $ref = null,
+		public ?string $type = null,
+		public ?string $format = null,
+		public ?bool $nullable = null,
+		public mixed $defaultValue = null,
+		public ?OpenApiType $items = null,
+		public ?array $properties = null,
+		public ?array $oneOf = null,
+		public ?array $anyOf = null,
+		public ?array $allOf = null,
+		public ?bool $additionalProperties = null,
+		public ?array $required = null,
+		public ?string $description = null,
+	)
 	{
-		$this->ref = $ref;
-		$this->type = $type;
-		$this->format = $format;
-		$this->nullable = $nullable;
-		$this->defaultValue = $defaultValue;
-		$this->items = $items;
-		$this->properties = $properties;
-		$this->oneOf = $oneOf;
-		$this->anyOf = $anyOf;
-		$this->allOf = $allOf;
-		$this->additionalProperties = $additionalProperties;
-		$this->required = $required;
-		$this->description = $description;
 	}
 
 	public function toSchema(bool $isParameter = false): Schema
