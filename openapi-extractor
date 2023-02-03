@@ -31,6 +31,7 @@ use PhpParser\Node\Scalar\String_;
 use PhpParser\Node\Stmt\Class_;
 use PhpParser\Node\Stmt\ClassMethod;
 use PhpParser\Node\Stmt\Return_;
+use PhpParser\Node\Stmt\Throw_;
 use PhpParser\Node\UnionType;
 use PhpParser\NodeAbstract;
 use PhpParser\NodeFinder;
@@ -39,6 +40,7 @@ use PHPStan\PhpDocParser\Ast\PhpDoc\ParamTagValueNode;
 use PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocTagNode;
 use PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocTextNode;
 use PHPStan\PhpDocParser\Ast\PhpDoc\ReturnTagValueNode;
+use PHPStan\PhpDocParser\Ast\PhpDoc\ThrowsTagValueNode;
 use PHPStan\PhpDocParser\Ast\PhpDoc\TypeAliasTagValueNode;
 use PHPStan\PhpDocParser\Ast\Type\ArrayShapeNode;
 use PHPStan\PhpDocParser\Ast\Type\ArrayTypeNode;
@@ -258,51 +260,62 @@ foreach ($routes as $key => $value) {
 		$codeStatusCodes = [];
 		/* @var $returnStatement Return_ */
 		foreach ($nodeFinder->findInstanceOf($methodFunction->stmts, Return_::class) as $returnStatement) {
-			if ($returnStatement->expr instanceof New_) {
-				if ($returnStatement->expr->class instanceof Name) {
-					$type = $returnStatement->expr->class->getLast();
-					if (in_array($type, $responseTypes)) {
-						$statusCode = 200;
-						if (count($returnStatement->expr->args) > 1) {
-							if (!($returnStatement->expr->args[1]->value instanceof ClassConstFetch)) {
-								print_r("Warning " . $routeName . " contains a return statement that can not be evaluated\n");
-								continue;
-							}
-							$name = $returnStatement->expr->args[1]->value->name;
-							if (!($name instanceof Identifier)) {
-								print_r("Warning " . $routeName . " contains a return statement that can not be evaluated\n");
-								continue;
-							}
-							$statusCode = match ($name->name) {
-								"STATUS_OK" => 200,
-								"STATUS_CREATED" => 201,
-								"STATUS_ACCEPTED" => 202,
-								"STATUS_NO_CONTENT" => 204,
-								"STATUS_NOT_MODIFIED" => 304,
-								"STATUS_BAD_REQUEST" => 400,
-								"STATUS_UNAUTHORIZED" => 401,
-								"STATUS_FORBIDDEN" => 403,
-								"STATUS_NOT_FOUND" => 404,
-								"STATUS_METHOD_NOT_ALLOWED" => 405,
-								"STATUS_NOT_ACCEPTABLE" => 406,
-								"STATUS_CONFLICT" => 409,
-								"STATUS_PRECONDITION_FAILED" => 412,
-								"STATUS_REQUEST_ENTITY_TOO_LARGE" => 413,
-								"STATUS_INTERNAL_SERVER_ERROR" => 500,
-								"STATUS_NOT_IMPLEMENTED" => 501,
-								default => die("Unknown status code " . $name->name . "\n"),
-							};
+			if ($returnStatement->expr instanceof New_ && $returnStatement->expr->class instanceof Name) {
+				$type = $returnStatement->expr->class->getLast();
+				if (in_array($type, $responseTypes)) {
+					$statusCode = 200;
+					if (count($returnStatement->expr->args) > 1) {
+						if (!($returnStatement->expr->args[1]->value instanceof ClassConstFetch)) {
+							print_r("Warning " . $routeName . " contains a return statement that can not be evaluated\n");
+							continue;
 						}
-
-						$codeStatusCodes[] = $statusCode;
+						$name = $returnStatement->expr->args[1]->value->name;
+						if (!($name instanceof Identifier)) {
+							print_r("Warning " . $routeName . " contains a return statement that can not be evaluated\n");
+							continue;
+						}
+						$statusCode = match ($name->name) {
+							"STATUS_OK" => 200,
+							"STATUS_CREATED" => 201,
+							"STATUS_ACCEPTED" => 202,
+							"STATUS_NO_CONTENT" => 204,
+							"STATUS_NOT_MODIFIED" => 304,
+							"STATUS_BAD_REQUEST" => 400,
+							"STATUS_UNAUTHORIZED" => 401,
+							"STATUS_FORBIDDEN" => 403,
+							"STATUS_NOT_FOUND" => 404,
+							"STATUS_METHOD_NOT_ALLOWED" => 405,
+							"STATUS_NOT_ACCEPTABLE" => 406,
+							"STATUS_CONFLICT" => 409,
+							"STATUS_PRECONDITION_FAILED" => 412,
+							"STATUS_REQUEST_ENTITY_TOO_LARGE" => 413,
+							"STATUS_INTERNAL_SERVER_ERROR" => 500,
+							"STATUS_NOT_IMPLEMENTED" => 501,
+							default => die("Unknown status code " . $name->name . "\n"),
+						};
 					}
+
+					$codeStatusCodes[] = $statusCode;
 				}
 			}
 		}
 
+		/* @var $throwStatement Throw_ */
+		foreach ($nodeFinder->findInstanceOf($methodFunction->stmts, Throw_::class) as $throwStatement) {
+			if ($throwStatement->expr instanceof New_ && $throwStatement->expr->class instanceof Name) {
+				$type = $throwStatement->expr->class->getLast();
+				$statusCode = exceptionToStatusCode($type);
+				if ($statusCode != null) {
+					$codeStatusCodes[] = $statusCode;
+				}
+			} else {
+				print_r($throwStatement);
+			}
+		}
+
 		$docStatusCodes = array_map(fn(ClassMethodResponse $response) => $response->statusCode, $classMethodInfo->responses);
-		$missingDocStatusCodes = array_filter(array_diff($codeStatusCodes, $docStatusCodes), fn(int $code) => $code < 500);
-		$missingCodeStatusCodes = array_diff($docStatusCodes, $codeStatusCodes);
+		$missingDocStatusCodes = array_unique(array_filter(array_diff($codeStatusCodes, $docStatusCodes), fn(int $code) => $code < 500));
+		$missingCodeStatusCodes = array_unique(array_diff($docStatusCodes, $codeStatusCodes));
 
 		if (count($missingDocStatusCodes) > 0) {
 			print_r("Warning " . $routeName . " returns the following undocumented status codes: " . implode(", ", $missingDocStatusCodes) . "\n");
@@ -531,6 +544,14 @@ function extractMethodInfo(ClassMethod $method, bool $isOCS = false): ClassMetho
 						$returns[] = resolveOpenApiType($type);
 					}
 				}
+
+				if ($docNode->value instanceof ThrowsTagValueNode) {
+					$type = $docNode->value->type;
+					$statusCode = exceptionToStatusCode($type);
+					if ($statusCode != null) {
+						$responses[$statusCode] = new ClassMethodResponse($statusCode, "text/plain", new OpenApiType(type: "string"), $docNode->value->description, $isOCS);
+					}
+				}
 			}
 		}
 	}
@@ -561,6 +582,20 @@ function extractMethodInfo(ClassMethod $method, bool $isOCS = false): ClassMetho
 	}
 
 	return new ClassMethodInfo($parameters, array_values($responses), $returns, $methodDescription, $methodSummary);
+}
+
+function exceptionToStatusCode(string $name): ?int
+{
+	if (!str_starts_with($name, "OCS")) {
+		return 500;
+	}
+	return match ($name) {
+		"OCSException" => null,
+		"OCSBadRequestException" => 400,
+		"OCSForbiddenException" => 403,
+		"OCSNotFoundException" => 404,
+		default => die("Unknown exception " . $name . "\n"),
+	};
 }
 
 class ClassMethodInfo
