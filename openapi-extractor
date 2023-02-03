@@ -452,7 +452,7 @@ foreach ($routes as $key => $value) {
 						"in" => "query",
 						"schema" => $parameter->type->toSchema(true),
 					],
-					!$parameter->type->nullable ? ["required" => true] : [],
+					!$parameter->type->nullable && $parameter->type->defaultValue == null ? ["required" => true] : [],
 					$parameter->docParameter != null && $parameter->docParameter->description != "" ? ["description" => cleanDocComment($parameter->docParameter->description)] : [],
 				)), $queryParameters),
 			] : []),
@@ -630,7 +630,9 @@ class ClassMethodParameter
 		} else {
 			$this->type = resolveOpenApiType($methodParameter->type);
 		}
-		$this->type->defaultValue = exprToString($methodParameter->default);
+		if ($methodParameter->default != null) {
+			$this->type->defaultValue = exprToString($methodParameter->default);
+		}
 	}
 }
 
