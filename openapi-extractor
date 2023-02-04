@@ -336,7 +336,7 @@ foreach ($routes as $key => $value) {
 					return $param->name == $urlParameter;
 				});
 				if (count($matchingParameters) == 1) {
-					$parameter = $matchingParameters[0];
+					$parameter = $matchingParameters[array_keys($matchingParameters)[0]];
 					if ($parameter?->methodParameter == null && ($requirements == null || !array_key_exists($urlParameter, $requirements))) {
 						die("Unable to find parameter for " . $urlParameter . " in " . $routeName . "\n");
 					}
