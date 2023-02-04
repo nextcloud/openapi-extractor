@@ -166,7 +166,7 @@ if (file_exists($definitionsPath)) {
 		}
 	}
 } else {
-    print_r("Warning no response definitions were loaded");
+	print_r("Warning no response definitions were loaded");
 }
 
 $routes = parseRoutes(join("/", $appIsCore ? [$dir, "routes.php"] : [$dir, "appinfo", "routes.php"]));
@@ -493,8 +493,7 @@ if (!$openapi->validate()) {
 	die("Invalid OpenAPI spec generated. Please review the output!\n");
 }
 
-function extractMethodInfo(ClassMethod $method, bool $isOCS = false): ClassMethodInfo
-{
+function extractMethodInfo(ClassMethod $method, bool $isOCS = false): ClassMethodInfo {
 	global $phpDocParser, $lexer, $responseTypes;
 
 	$parameters = [];
@@ -589,8 +588,7 @@ function extractMethodInfo(ClassMethod $method, bool $isOCS = false): ClassMetho
 	return new ClassMethodInfo($parameters, array_values($responses), $returns, $methodDescription, $methodSummary);
 }
 
-function exceptionToStatusCode(string $name): ?int
-{
+function exceptionToStatusCode(string $name): ?int {
 	if (!str_starts_with($name, "OCS")) {
 		return 500;
 	}
@@ -603,33 +601,27 @@ function exceptionToStatusCode(string $name): ?int
 	};
 }
 
-class ClassMethodInfo
-{
+class ClassMethodInfo {
 	/**
 	 * @param ClassMethodParameter[] $parameters
 	 * @param ClassMethodResponse[] $responses
 	 * @param OpenApiType[] $returns
 	 * @param string[] $description
 	 */
-	public function __construct(public array $parameters, public array $responses, public array $returns, public array $description, public ?string $summary)
-	{
+	public function __construct(public array $parameters, public array $responses, public array $returns, public array $description, public ?string $summary) {
 	}
 }
 
-class ClassMethodResponse
-{
-	public function __construct(public int $statusCode, public string $contentType, public OpenApiType $type, public ?string $description, public bool $isOCS)
-	{
+class ClassMethodResponse {
+	public function __construct(public int $statusCode, public string $contentType, public OpenApiType $type, public ?string $description, public bool $isOCS) {
 	}
 
 }
 
-class ClassMethodParameter
-{
+class ClassMethodParameter {
 	public OpenApiType $type;
 
-	public function __construct(public string $name, public Param $methodParameter, public ?ParamTagValueNode $docParameter)
-	{
+	public function __construct(public string $name, public Param $methodParameter, public ?ParamTagValueNode $docParameter) {
 		if ($docParameter != null) {
 			$this->type = resolveOpenApiType($docParameter);
 		} else {
@@ -641,8 +633,7 @@ class ClassMethodParameter
 	}
 }
 
-function exprToString(null|Expr $expr): mixed
-{
+function exprToString(null|Expr $expr): mixed {
 	if ($expr == null) {
 		return null;
 	}
@@ -675,8 +666,7 @@ function exprToString(null|Expr $expr): mixed
 	die("Unable to convert Expr " . get_class($expr) . "\n");
 }
 
-function resolveIdentifier(string $name): OpenApiType
-{
+function resolveIdentifier(string $name): OpenApiType {
 	global $openapi, $definitions, $schemas, $dir;
 	return match ($name) {
 		"string" => new OpenApiType(type: "string", nullable: false),
@@ -700,8 +690,7 @@ function resolveIdentifier(string $name): OpenApiType
 	};
 }
 
-function resolveOpenApiType(ParamTagValueNode|NodeAbstract|TypeNode $node): OpenApiType
-{
+function resolveOpenApiType(ParamTagValueNode|NodeAbstract|TypeNode $node): OpenApiType {
 	if ($node instanceof ParamTagValueNode) {
 		$type = resolveOpenApiType($node->type);
 		$type->description = $node->description;
@@ -765,8 +754,7 @@ function resolveOpenApiType(ParamTagValueNode|NodeAbstract|TypeNode $node): Open
 	die("Unable to resolve OpenAPI type for type '" . get_class($node) . "'\n");
 }
 
-class OpenApiType
-{
+class OpenApiType {
 	/**
 	 * @param OpenApiType[]|null $oneOf
 	 * @param OpenApiType[]|null $anyOf
@@ -786,12 +774,10 @@ class OpenApiType
 		public ?bool $additionalProperties = null,
 		public ?array $required = null,
 		public ?string $description = null,
-	)
-	{
+	) {
 	}
 
-	public function toSchema(bool $isParameter = false): Schema
-	{
+	public function toSchema(bool $isParameter = false): Schema {
 		return new Schema(array_merge(
 			$this->ref != null ? ["\$ref" => $this->ref] : [],
 			$this->type != null ? ["type" => $isParameter && $this->type == "boolean" ? "integer" : $this->type] : [],
@@ -820,14 +806,12 @@ class OpenApiType
 	}
 }
 
-function loadAST(string $filename): array
-{
+function loadAST(string $filename): array {
 	global $astParser;
 	return $astParser->parse(file_get_contents($filename));
 }
 
-function parseRoutes(string $path): array
-{
+function parseRoutes(string $path): array {
 	$content = file_get_contents($path);
 	if (str_contains($content, "return ")) {
 		return include($path);
@@ -845,18 +829,15 @@ function parseRoutes(string $path): array
 	}
 }
 
-function cleanDocComment(string $comment): string
-{
+function cleanDocComment(string $comment): string {
 	return trim(preg_replace("/\s+/", " ", $comment));
 }
 
-function splitOnUppercaseFollowedByNonUppercase(string $str): array
-{
+function splitOnUppercaseFollowedByNonUppercase(string $str): array {
 	return preg_split('/(?=[A-Z][^A-Z])/', $str, -1, PREG_SPLIT_NO_EMPTY);
 }
 
-function generateOperationID(string $methodName, string $controllerName, string $appId): string
-{
+function generateOperationID(string $methodName, string $controllerName, string $appId): string {
 	$verbParts = array_map(function (string $verbPart) {
 		return strtolower($verbPart);
 	}, splitOnUppercaseFollowedByNonUppercase($methodName));
@@ -889,8 +870,7 @@ function generateOperationID(string $methodName, string $controllerName, string 
 	return "$object-$verb";
 }
 
-function mapVerb(string $verb): string
-{
+function mapVerb(string $verb): string {
 	return match ($verb) {
 		"index" => "list",
 		default => $verb,
