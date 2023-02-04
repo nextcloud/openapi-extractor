@@ -150,7 +150,7 @@ print_r("Extracting OpenAPI spec for " . $appName . " " . $appVersion . "\n");
 $schemas = [];
 
 $definitions = [];
-$definitionsPath = join("/", ["lib", "ResponseDefinitions.php"]);
+$definitionsPath = join("/", [$dir, "lib", "ResponseDefinitions.php"]);
 if (file_exists($definitionsPath)) {
 	foreach ($nodeFinder->findInstanceOf(loadAST($definitionsPath), Class_::class) as $node) {
 		$doc = $node->getDocComment()?->getText();
@@ -163,6 +163,8 @@ if (file_exists($definitionsPath)) {
 			}
 		}
 	}
+} else {
+    print_r("Warning no response definitions were loaded");
 }
 
 $routes = parseRoutes(join("/", $appIsCore ? [$dir, "routes.php"] : [$dir, "appinfo", "routes.php"]));
