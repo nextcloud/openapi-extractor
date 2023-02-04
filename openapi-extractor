@@ -61,10 +61,12 @@ $responseTypes = ["JSONResponse", "DataResponse"];
 $command = new Command("openapi-extractor", "Extract OpenAPI specs from the Nextcloud source code");
 $command
 	->arguments("dir out")
+	->option('--first-response', 'Only output the first response')
 	->parse($_SERVER["argv"]);
 
 $dir = $command->dir;
 $out = $command->out;
+$firstResponse = $command->firstResponse ?? false;
 
 if ($dir == "") {
 	$dir = ".";
@@ -402,6 +404,9 @@ foreach ($routes as $key => $value) {
 
 		$responses = [];
 		foreach ($classMethodInfo->responses as $response) {
+			if ($firstResponse && count($responses) > 0) {
+				break;
+			}
 			$responses[$response->statusCode] = new Response(
 				array_merge(
 					[
