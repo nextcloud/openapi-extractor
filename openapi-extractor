@@ -310,8 +310,6 @@ foreach ($routes as $key => $value) {
 				if ($statusCode != null) {
 					$codeStatusCodes[] = $statusCode;
 				}
-			} else {
-				print_r($throwStatement);
 			}
 		}
 
