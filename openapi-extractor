@@ -720,6 +720,10 @@ function resolveOpenApiType(ParamTagValueNode|NodeAbstract|TypeNode $node): Open
 		return new OpenApiType(type: "object", nullable: false, properties: count($properties) > 0 ? $properties : null, additionalProperties: count($properties) == 0 ? true : null, required: count($required) > 0 ? $required : null);
 	}
 
+	if ($node instanceof GenericTypeNode && $node->type->name == "array" && count($node->genericTypes) == 2 && $node->genericTypes[0] instanceof IdentifierTypeNode && $node->genericTypes[0]->name == "string") {
+		return new OpenApiType(type: "object", additionalProperties: resolveOpenApiType($node->genericTypes[1]));
+	}
+
 	if ($node instanceof NullableTypeNode || $node instanceof NullableType) {
 		$type = resolveOpenApiType($node->type);
 		$type->nullable = true;
@@ -771,7 +775,7 @@ class OpenApiType {
 		public ?array $oneOf = null,
 		public ?array $anyOf = null,
 		public ?array $allOf = null,
-		public ?bool $additionalProperties = null,
+		public bool|OpenApiType|null $additionalProperties = null,
 		public ?array $required = null,
 		public ?string $description = null,
 	) {
@@ -799,7 +803,9 @@ class OpenApiType {
 			$this->allOf != null ? ["allOf" => array_map(function (OpenApiType $type) use ($isParameter) {
 				return $type->toSchema($isParameter);
 			}, $this->allOf)] : [],
-			$this->additionalProperties != null ? ["additionalProperties" => $this->additionalProperties] : [],
+			$this->additionalProperties != null ? [
+				"additionalProperties" => $this->additionalProperties instanceof OpenApiType ? $this->additionalProperties->toSchema() : $this->additionalProperties,
+			] : [],
 			$this->required != null && count($this->required) > 0 ? ["required" => $this->required] : [],
 			$this->description != null && $this->description != "" && !$isParameter ? ["description" => $this->description] : [],
 		));
