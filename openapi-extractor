@@ -166,7 +166,7 @@ if (file_exists($definitionsPath)) {
 		}
 	}
 } else {
-	print_r("Warning no response definitions were loaded");
+	print_r("Warning no response definitions were loaded\n");
 }
 
 $routes = parseRoutes(join("/", $appIsCore ? [$dir, "routes.php"] : [$dir, "appinfo", "routes.php"]));
