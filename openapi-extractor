@@ -701,7 +701,8 @@ function resolveIdentifier(string $name): OpenApiType {
 		"bool", "boolean" => new OpenApiType(type: "boolean", nullable: false),
 		"double" => new OpenApiType(type: "number", format: "double", nullable: false),
 		"float" => new OpenApiType(type: "number", format: "float", nullable: false),
-		"array" => new OpenApiType(type: "object", nullable: false, additionalProperties: true),
+		"array" => new OpenApiType(type: "object", nullable: false),
+		"object" => new OpenApiType(type: "object", nullable: false, additionalProperties: true),
 		"null" => new OpenApiType(nullable: true),
 		default => (function () use ($dir, $definitions, &$schemas, $openapi, $name) {
 			if (array_key_exists($name, $definitions)) {
@@ -736,7 +737,7 @@ function resolveOpenApiType(ParamTagValueNode|NodeAbstract|TypeNode $node): Open
 
 	if ($node instanceof ArrayShapeNode) {
 		if (count($node->items) == 0) {
-			die("Use 'array' instead of 'array{}'\n");
+			die("Use 'object' instead of 'array{}'\n");
 		}
 		$properties = [];
 		$required = [];
