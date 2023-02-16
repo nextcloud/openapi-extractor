@@ -35,6 +35,7 @@ use PhpParser\Node\UnionType;
 use PhpParser\NodeAbstract;
 use PhpParser\NodeFinder;
 use PhpParser\ParserFactory;
+use PHPStan\PhpDocParser\Ast\ConstExpr\ConstExprStringNode;
 use PHPStan\PhpDocParser\Ast\PhpDoc\ParamTagValueNode;
 use PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocTagNode;
 use PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocTextNode;
@@ -43,6 +44,7 @@ use PHPStan\PhpDocParser\Ast\PhpDoc\ThrowsTagValueNode;
 use PHPStan\PhpDocParser\Ast\PhpDoc\TypeAliasTagValueNode;
 use PHPStan\PhpDocParser\Ast\Type\ArrayShapeNode;
 use PHPStan\PhpDocParser\Ast\Type\ArrayTypeNode;
+use PHPStan\PhpDocParser\Ast\Type\ConstTypeNode;
 use PHPStan\PhpDocParser\Ast\Type\GenericTypeNode;
 use PHPStan\PhpDocParser\Ast\Type\IdentifierTypeNode;
 use PHPStan\PhpDocParser\Ast\Type\IntersectionTypeNode;
@@ -758,6 +760,16 @@ function resolveOpenApiType(ParamTagValueNode|NodeAbstract|TypeNode $node): Open
 		return $type;
 	}
 
+	if (($node instanceof UnionTypeNode || $node instanceof UnionType) && count($node->types) == count(array_filter($node->types, fn($type) => $type instanceof ConstTypeNode && $type->constExpr instanceof ConstExprStringNode))) {
+		$values = [];
+		/** @var ConstTypeNode $type */
+		foreach ($node->types as $type) {
+			$values[] = $type->constExpr->value;
+		}
+
+		return new OpenApiType(type: "string", enum: $values);
+	}
+
 	if ($node instanceof UnionTypeNode || $node instanceof IntersectionTypeNode || $node instanceof UnionType || $node instanceof IntersectionType) {
 		$nullable = false;
 		$types = [];
@@ -808,6 +820,7 @@ class OpenApiType {
 		public ?string $description = null,
 		public ?int $minLength = null,
 		public ?int $maxLength = null,
+		public ?array $enum = null,
 	) {
 	}
 
@@ -840,6 +853,7 @@ class OpenApiType {
 			$this->description != null && $this->description != "" && !$isParameter ? ["description" => $this->description] : [],
 			$this->minLength != null && $this->minLength != 0 ? ["minLength" => $this->minLength] : [],
 			$this->maxLength != null && $this->maxLength != 0 ? ["maxLength" => $this->maxLength] : [],
+			$this->enum != null && count($this->enum) > 0 ? ["enum" => $this->enum] : [],
 		));
 	}
 }
