@@ -17,6 +17,7 @@ use cebe\openapi\Writer;
 use PhpParser\Node\Expr;
 use PhpParser\Node\Expr\Array_;
 use PhpParser\Node\Expr\ArrayItem;
+use PhpParser\Node\Expr\ClassConstFetch;
 use PhpParser\Node\Expr\ConstFetch;
 use PhpParser\Node\Expr\New_;
 use PhpParser\Node\Expr\UnaryMinus;
@@ -560,24 +561,33 @@ function extractMethodInfo(ClassMethod $method, bool $isOCS = false): ClassMetho
 function resolveReturnType(&$responses, &$returns, $responseDescriptions, TypeNode $type): void {
 	global $responseTypes, $isOCS;
 	if ($type instanceof GenericTypeNode && in_array($type->type->name, $responseTypes)) {
-		if (count($type->genericTypes) != 2) {
-			die($type->type->name . " needs two parameters.\n");
+		if ($type->type->name == "FileDisplayResponse") {
+			$statusCodeNode = $type->genericTypes[0];
+			$realType = new OpenApiType(type: "string", format: "binary");
+			// TODO: This is really annoying, because we need to match any content type since it's not possible to know which one will be returned
+			$contentType = "*/*";
+		} else {
+			if (count($type->genericTypes) != 2) {
+				die($type->type->name . " needs two parameters.\n");
+			}
+			$statusCodeNode = $type->genericTypes[1];
+			$realType = resolveOpenApiType($type->genericTypes[0]);
+			$contentType = "application/json";
 		}
 		$statusCodes = [];
 		$statusCodeNodes = [];
-		if ($type->genericTypes[1] instanceof UnionTypeNode) {
-			$statusCodeNodes = $type->genericTypes[1]->types;
+		if ($statusCodeNode instanceof UnionTypeNode) {
+			$statusCodeNodes = $statusCodeNode->types;
 		} else {
-			$statusCodeNodes[] = $type->genericTypes[1];
+			$statusCodeNodes[] = $statusCodeNode;
 		}
 		foreach ($statusCodeNodes as $node) {
 			$statusCodes[] = statusEnumToCode($node->constExpr->name);
 		}
-		$realType = resolveOpenApiType($type->genericTypes[0]);
 		foreach ($statusCodes as $statusCode) {
 			$responses[$statusCode] = new ClassMethodResponse(
 				$statusCode,
-				"application/json",
+				$contentType,
 				$realType,
 				array_key_exists($statusCode, $responseDescriptions) ? $responseDescriptions[$statusCode] : null,
 				$isOCS,
