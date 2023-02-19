@@ -275,7 +275,11 @@ foreach ($routes as $key => $value) {
 		foreach ($nodeFinder->findInstanceOf($methodFunction->stmts, Return_::class) as $returnStatement) {
 			if ($returnStatement->expr instanceof New_ && $returnStatement->expr->class instanceof Name && in_array($returnStatement->expr->class->getLast(), $responseTypes)) {
 				if (count($returnStatement->expr->args) >= 2) {
-					$codeStatusCodes[] = statusEnumToCode($returnStatement->expr->args[1]->value->name->name);
+					if ($returnStatement->expr->args[1]->value instanceof ClassConstFetch) {
+						$codeStatusCodes[] = statusEnumToCode($returnStatement->expr->args[1]->value->name->name);
+					} else {
+						print_r("Warning " . $routeName . " has a return statement that can not be understood.\n");
+					}
 				} else {
 					$codeStatusCodes[] = 200;
 				}
