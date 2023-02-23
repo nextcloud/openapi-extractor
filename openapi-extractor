@@ -328,9 +328,6 @@ foreach ($routes as $route) {
 		$tags[] = $route->tag;
 	}
 }
-if (count($tags) > 1) {
-	$openapi->tags = array_map(fn(string $tag) => ["name" => $tag], $tags);
-}
 
 foreach ($routes as $route) {
 	$pathParameters = [];
