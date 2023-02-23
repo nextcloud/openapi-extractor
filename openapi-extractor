@@ -509,7 +509,7 @@ class Route {
 		public array $requirements,
 		public ClassMethodInfo $classMethodInfo,
 	) {
-		$this->tag = implode("_", array_map(fn(string $s) => str_replace("api", "", strtolower($s)), splitOnUppercaseFollowedByNonUppercase($controllerName)));
+		$this->tag = implode("_", array_map(fn(string $s) => strtolower($s), splitOnUppercaseFollowedByNonUppercase($controllerName)));
 	}
 }
 
