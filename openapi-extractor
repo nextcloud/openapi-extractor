@@ -456,10 +456,10 @@ foreach ($routes as $route) {
 	$operation = new Operation(array_merge([
 		"operationId" => implode("-", $operationId),
 		"responses" => $responses,
-		"description" => implode("\n", $route->classMethodInfo->description),
 	],
 		count($tags) > 1 ? ["tags" => [$route->tag],] : [],
 		$route->classMethodInfo->summary != null ? ["summary" => $route->classMethodInfo->summary] : [],
+		count($route->classMethodInfo->description) > 0 ? ["description" => implode("\n", $route->classMethodInfo->description)] : [],
 		count($queryParameters) > 0 ? [
 			"parameters" => array_map(fn(ClassMethodParameter $parameter) => new Parameter(array_merge(
 				[
@@ -597,7 +597,10 @@ function extractMethodInfo(ClassMethod $method, bool $isOCS = false): ClassMetho
 		$parameters[] = $param;
 	}
 
-	if (count($methodDescription) > 1) {
+	if (count($methodDescription) == 1) {
+		$methodSummary = $methodDescription[0];
+		$methodDescription = [];
+	} else if (count($methodDescription) > 1) {
 		$methodSummary = $methodDescription[0];
 		$methodDescription = array_slice($methodDescription, 1);
 	}
