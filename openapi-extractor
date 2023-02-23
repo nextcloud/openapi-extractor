@@ -92,7 +92,7 @@ $phpDocParser = new PhpDocParser($typeParser, $constExprParser);
 $infoXMLPath = join("/", [$dir, "appinfo", "info.xml"]);
 
 if (file_exists($infoXMLPath)) {
-	$xml = simplexml_load_file($infoXMLPath) or die("Unable to read or parse " . $infoXMLPath . "\n");
+	$xml = simplexml_load_file($infoXMLPath);
 
 	$appIsCore = false;
 	$appID = (string)$xml->id;
@@ -104,13 +104,13 @@ if (file_exists($infoXMLPath)) {
 	$versionPHPPath = join("/", [$dir, "..", "version.php"]);
 
 	if (!file_exists($versionPHPPath)) {
-		die("Neither " . $infoXMLPath . " nor " . $versionPHPPath . " exists\n");
+		throw new Exception("Neither " . $infoXMLPath . " nor " . $versionPHPPath . " exists");
 	}
 
 	// Includes https://github.com/nextcloud/server/blob/master/version.php when running inside https://github.com/nextcloud/server/tree/master/core
 	include(join("/", [$dir, "..", "version.php"]));
 	if (!isset($OC_VersionString)) {
-		die("Unable to figure out core version\n");
+		throw new Exception("Unable to figure out core version");
 	}
 
 	$appIsCore = true;
@@ -164,7 +164,7 @@ if (file_exists($definitionsPath)) {
 			foreach ($docNodes as $docNode) {
 				if ($docNode instanceof PhpDocTagNode && $docNode->value instanceof TypeAliasTagValueNode) {
 					if (!str_starts_with($docNode->value->alias, $readableAppID)) {
-						die("Type alias '" . $docNode->value->alias . "' has to start with '" . $readableAppID . "'\n");
+						throw new Exception("Type alias '" . $docNode->value->alias . "' has to start with '" . $readableAppID . "'");
 					}
 					$definitions[$docNode->value->alias] = resolveOpenApiType($docNode->value->type)->toSchema();
 				}
@@ -227,7 +227,7 @@ foreach ($parsedRoutes as $key => $value) {
 			}
 		}
 		if ($controllerClass == null) {
-			die("Controller " . $controllerName . " not found\n");
+			throw new Exception("Controller " . $controllerName . " not found");
 		}
 		$methodFunction = null;
 		$isOCS = false;
@@ -266,10 +266,10 @@ foreach ($parsedRoutes as $key => $value) {
 
 		$classMethodInfo = extractMethodInfo($methodFunction, $isOCS);
 		if (count($classMethodInfo->returns) > 0) {
-			die($routeName . " can not return something that is not a valid response.\n");
+			throw new Exception($routeName . " can not return something that is not a valid response");
 		}
 		if (count($classMethodInfo->responses) == 0) {
-			die($routeName . " does not return any response.\n");
+			throw new Exception($routeName . " does not return any response");
 		}
 
 		$codeStatusCodes = [];
@@ -347,7 +347,7 @@ foreach ($routes as $route) {
 			if (count($matchingParameters) == 1) {
 				$parameter = $matchingParameters[array_keys($matchingParameters)[0]];
 				if ($parameter?->methodParameter == null && ($route->requirements == null || !array_key_exists($urlParameter, $route->requirements))) {
-					die("Unable to find parameter for " . $urlParameter . " in " . $route->name . "\n");
+					throw new Exception("Unable to find parameter for " . $urlParameter . " in " . $route->name);
 				}
 
 				$pathParameters[] = new Parameter(array_merge(
@@ -518,7 +518,7 @@ $openapi->components->schemas = $schemas;
 
 file_put_contents($out, Writer::writeToJson($openapi, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
 if (!$openapi->validate()) {
-	die("Invalid OpenAPI spec generated. Please review the output!\n");
+	throw new Exception("Invalid OpenAPI spec generated. Please review the output!");
 }
 
 function extractMethodInfo(ClassMethod $method, bool $isOCS = false): ClassMethodInfo {
@@ -618,7 +618,7 @@ function resolveReturnType(&$responses, &$returns, $responseDescriptions, TypeNo
 			$contentType = "*/*";
 		} else {
 			if (count($type->genericTypes) != 2) {
-				die($type->type->name . " needs two parameters.\n");
+				throw new Exception($type->type->name . " needs two parameters");
 			}
 			$statusCodeNode = $type->genericTypes[1];
 			$realType = resolveOpenApiType($type->genericTypes[0]);
@@ -670,7 +670,7 @@ function statusEnumToCode(string $name) {
 		"STATUS_REQUEST_ENTITY_TOO_LARGE" => 413,
 		"STATUS_INTERNAL_SERVER_ERROR" => 500,
 		"STATUS_NOT_IMPLEMENTED" => 501,
-		default => die("Unknown status code " . $name . "\n"),
+		default => throw new Exception("Unknown status code " . $name),
 	};
 }
 
@@ -683,7 +683,7 @@ function exceptionToStatusCode(string $name): ?int {
 		"OCSBadRequestException" => 400,
 		"OCSForbiddenException" => 403,
 		"OCSNotFoundException" => 404,
-		default => die("Unknown exception " . $name . "\n"),
+		default => throw new Exception("Unknown exception " . $name),
 	};
 }
 
@@ -733,7 +733,7 @@ function exprToString(null|Expr $expr): mixed {
 			case "false":
 				return false;
 			default:
-				die("Unable to convert ConstFetch " . $value . "\n");
+				throw new Exception("Unable to convert ConstFetch " . $value);
 		}
 	}
 	if ($expr instanceof String_) {
@@ -749,7 +749,7 @@ function exprToString(null|Expr $expr): mixed {
 		return array_map(fn(ArrayItem $item) => exprToString($item), $expr->items);
 	}
 
-	die("Unable to convert Expr " . get_class($expr) . "\n");
+	throw new Exception("Unable to convert Expr " . get_class($expr));
 }
 
 function resolveIdentifier(string $name): OpenApiType {
@@ -774,7 +774,7 @@ function resolveIdentifier(string $name): OpenApiType {
 					ref: "#/components/schemas/" . $cleanedName,
 				);
 			}
-			die("Unable to resolve OpenAPI type for identifier '" . $name . "'\n");
+			throw new Exception("Unable to resolve OpenAPI type for identifier '" . $name . "'");
 		})(),
 	};
 }
@@ -798,7 +798,7 @@ function resolveOpenApiType(ParamTagValueNode|NodeAbstract|TypeNode $node): Open
 
 	if ($node instanceof ArrayShapeNode) {
 		if (count($node->items) == 0) {
-			die("Use 'object' instead of 'array{}'\n");
+			throw new Exception("Use 'object' instead of 'array{}'");
 		}
 		$properties = [];
 		$required = [];
@@ -857,7 +857,7 @@ function resolveOpenApiType(ParamTagValueNode|NodeAbstract|TypeNode $node): Open
 		);
 	}
 
-	die("Unable to resolve OpenAPI type for type '" . get_class($node) . "'\n");
+	throw new Exception("Unable to resolve OpenAPI type for type '" . get_class($node) . "'");
 }
 
 class OpenApiType {
@@ -939,7 +939,7 @@ function parseRoutes(string $path): array {
 
 		return $routes;
 	} else {
-		die("Unknown routes.php format\n");
+		throw new Exception("Unknown routes.php format");
 	}
 }
 
