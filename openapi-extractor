@@ -121,6 +121,8 @@ if (file_exists($infoXMLPath)) {
 	$appLicence = "agpl";
 }
 
+$readableAppID = implode("", array_map(fn(string $s) => ucfirst($s), explode("_", $appID)));
+
 $openapi = new OpenApi([
 	"openapi" => "3.0.3",
 	"info" => new Info([
@@ -166,6 +168,9 @@ if (file_exists($definitionsPath)) {
 			$docNodes = $phpDocParser->parse(new TokenIterator($lexer->tokenize($doc)))->children;
 			foreach ($docNodes as $docNode) {
 				if ($docNode instanceof PhpDocTagNode && $docNode->value instanceof TypeAliasTagValueNode) {
+					if (!str_starts_with($docNode->value->alias, $readableAppID)) {
+						die("Type alias '" . $docNode->value->alias . "' has to start with '" . $readableAppID . "'\n");
+					}
 					$definitions[$docNode->value->alias] = resolveOpenApiType($docNode->value->type)->toSchema();
 				}
 			}
@@ -707,7 +712,7 @@ function exprToString(null|Expr $expr): mixed {
 }
 
 function resolveIdentifier(string $name): OpenApiType {
-	global $openapi, $definitions, $schemas, $dir;
+	global $openapi, $definitions, $schemas, $dir, $readableAppID;
 	return match ($name) {
 		"string" => new OpenApiType(type: "string", nullable: false),
 		"non-empty-string" => new OpenApiType(type: "string", nullable: false, minLength: 1),
@@ -718,13 +723,14 @@ function resolveIdentifier(string $name): OpenApiType {
 		"array" => new OpenApiType(type: "object", nullable: false),
 		"object" => new OpenApiType(type: "object", nullable: false, additionalProperties: true),
 		"null" => new OpenApiType(nullable: true),
-		default => (function () use ($dir, $definitions, &$schemas, $openapi, $name) {
+		default => (function () use ($dir, $definitions, &$schemas, $openapi, $name, $readableAppID) {
 			if (array_key_exists($name, $definitions)) {
-				if (!array_key_exists($name, $schemas)) {
-					$schemas[$name] = $definitions[$name];
+				$cleanedName = str_replace($readableAppID, "", $name);
+				if (!array_key_exists($cleanedName, $schemas)) {
+					$schemas[$cleanedName] = $definitions[$name];
 				}
 				return new OpenApiType(
-					ref: "#/components/schemas/" . $name,
+					ref: "#/components/schemas/" . $cleanedName,
 				);
 			}
 			die("Unable to resolve OpenAPI type for identifier '" . $name . "'\n");
