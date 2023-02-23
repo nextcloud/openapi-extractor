@@ -147,11 +147,6 @@ $openapi = new OpenApi([
 		],
 		"schemas" => [],
 	],
-	"tags" => [
-		[
-			"name" => $appID,
-		]
-	],
 	"paths" => [],
 ]);
 
@@ -180,14 +175,16 @@ if (file_exists($definitionsPath)) {
 	print_r("Warning no response definitions were loaded\n");
 }
 
-$routes = parseRoutes(join("/", $appIsCore ? [$dir, "routes.php"] : [$dir, "appinfo", "routes.php"]));
+$parsedRoutes = parseRoutes(join("/", $appIsCore ? [$dir, "routes.php"] : [$dir, "appinfo", "routes.php"]));
 $seenRouteNames = [];
 
-if (array_key_exists("routes", $routes) && array_key_exists("ocs", $routes)) {
-	$routes = ["ocs" => $routes["ocs"]];
+if (array_key_exists("routes", $parsedRoutes) && array_key_exists("ocs", $parsedRoutes)) {
+	$parsedRoutes = ["ocs" => $parsedRoutes["ocs"]];
 }
 
-foreach ($routes as $key => $value) {
+$routes = [];
+
+foreach ($parsedRoutes as $key => $value) {
 	if ($key != "routes" && $key != "ocs") {
 		continue;
 	}
@@ -313,162 +310,206 @@ foreach ($routes as $key => $value) {
 			print_r("Warning " . $routeName . " documents the following status codes which are never returned: " . implode(", ", $missingCodeStatusCodes) . "\n");
 		}
 
-		$pathParameters = [];
-		$urlParameters = [];
+		$routes[] = new Route(
+			$routeName,
+			$controllerName,
+			$methodName,
+			$verb,
+			$url,
+			$requirements,
+			$classMethodInfo,
+		);
+	}
+}
 
-		preg_match_all("/{[^}]*}/", $url, $urlParameters);
-		$urlParameters = array_map(fn(string $name) => substr($name, 1, -1), $urlParameters[0]);
+$tags = [];
+foreach ($routes as $route) {
+	if (!in_array($route->tag, $tags)) {
+		$tags[] = $route->tag;
+	}
+}
+if (count($tags) > 1) {
+	$openapi->tags = array_map(fn(string $tag) => ["name" => $tag], $tags);
+}
 
-		if (!$openapi->paths->hasPath($url)) {
-			foreach ($urlParameters as $urlParameter) {
-				$matchingParameters = array_filter($classMethodInfo->parameters, function (ClassMethodParameter $param) use ($urlParameter) {
-					return $param->name == $urlParameter;
-				});
-				if (count($matchingParameters) == 1) {
-					$parameter = $matchingParameters[array_keys($matchingParameters)[0]];
-					if ($parameter?->methodParameter == null && ($requirements == null || !array_key_exists($urlParameter, $requirements))) {
-						die("Unable to find parameter for " . $urlParameter . " in " . $routeName . "\n");
-					}
+foreach ($routes as $route) {
+	$pathParameters = [];
+	$urlParameters = [];
 
-					$pathParameters[] = new Parameter(array_merge(
-						[
-							"name" => $urlParameter,
-							"in" => "path",
-							"required" => true,
-							"schema" => $parameter->type->toSchema(),
-						],
-						$parameter?->docParameter != null && $parameter->docParameter->description != "" ? ["description" => cleanDocComment($parameter->docParameter->description)] : [],
-					));
-				} else {
-					$requirement = array_key_exists($urlParameter, $requirements) ? $requirements[$urlParameter] : null;
-					if ($requirement != null) {
-						if (!str_starts_with($requirement, "^")) {
-							$requirement = "^" . $requirement;
-						}
-						if (!str_ends_with($requirement, "$")) {
-							$requirement = $requirement . "$";
-						}
-					}
-					$pathParameters[] = new Parameter(array_merge(
-						[
-							"name" => $urlParameter,
-							"in" => "path",
-							"required" => true,
-							"schema" => array_merge(
-								$requirement != null ? [
-									"type" => "string",
-									"pattern" => $requirement,
-								] : [],
-							),
-						],
-					));
+	preg_match_all("/{[^}]*}/", $route->url, $urlParameters);
+	$urlParameters = array_map(fn(string $name) => substr($name, 1, -1), $urlParameters[0]);
+
+	if (!$openapi->paths->hasPath($route->url)) {
+		foreach ($urlParameters as $urlParameter) {
+			$matchingParameters = array_filter($route->classMethodInfo->parameters, function (ClassMethodParameter $param) use ($urlParameter) {
+				return $param->name == $urlParameter;
+			});
+			if (count($matchingParameters) == 1) {
+				$parameter = $matchingParameters[array_keys($matchingParameters)[0]];
+				if ($parameter?->methodParameter == null && ($route->requirements == null || !array_key_exists($urlParameter, $route->requirements))) {
+					die("Unable to find parameter for " . $urlParameter . " in " . $route->name . "\n");
 				}
-			}
 
-			$openapi->paths->addPath(
-				$url,
-				new PathItem([
-					"parameters" => $pathParameters,
-				]),
-			);
-		} else {
-			$pathParameters = $openapi->paths->getPath($url)->parameters;
+				$pathParameters[] = new Parameter(array_merge(
+					[
+						"name" => $urlParameter,
+						"in" => "path",
+						"required" => true,
+						"schema" => $parameter->type->toSchema(),
+					],
+					$parameter?->docParameter != null && $parameter->docParameter->description != "" ? ["description" => cleanDocComment($parameter->docParameter->description)] : [],
+				));
+			} else {
+				$requirement = array_key_exists($urlParameter, $route->requirements) ? $route->requirements[$urlParameter] : null;
+				if ($requirement != null) {
+					if (!str_starts_with($requirement, "^")) {
+						$requirement = "^" . $requirement;
+					}
+					if (!str_ends_with($requirement, "$")) {
+						$requirement = $requirement . "$";
+					}
+				}
+				$pathParameters[] = new Parameter(array_merge(
+					[
+						"name" => $urlParameter,
+						"in" => "path",
+						"required" => true,
+						"schema" => array_merge(
+							$requirement != null ? [
+								"type" => "string",
+								"pattern" => $requirement,
+							] : [],
+						),
+					],
+				));
+			}
 		}
 
-		$queryParameters = [];
-		foreach ($classMethodInfo->parameters as $parameter) {
-			$alreadyInPath = false;
-			foreach ($pathParameters as $pathParameter) {
-				if ($pathParameter->name == $parameter->name) {
-					$alreadyInPath = true;
-					break;
-				}
-			}
-			if (!$alreadyInPath) {
-				$queryParameters[] = $parameter;
-			}
-		}
+		$openapi->paths->addPath(
+			$route->url,
+			new PathItem([
+				"parameters" => $pathParameters,
+			]),
+		);
+	} else {
+		$pathParameters = $openapi->paths->getPath($route->url)->parameters;
+	}
 
-		$responses = [];
-		foreach ($classMethodInfo->responses as $response) {
-			if ($firstResponse && count($responses) > 0) {
+	$queryParameters = [];
+	foreach ($route->classMethodInfo->parameters as $parameter) {
+		$alreadyInPath = false;
+		foreach ($pathParameters as $pathParameter) {
+			if ($pathParameter->name == $parameter->name) {
+				$alreadyInPath = true;
 				break;
 			}
-			$responses[$response->statusCode] = new Response(
-				array_merge(
-					[
-						"description" => $response->description != null ? $response->description : "",
-						"content" => [
-							$response->contentType => new MediaType(
-								$response->isOCS ? [
-									"schema" => [
-										"type" => "object",
-										"required" => [
-											"ocs",
-										],
-										"properties" => [
-											"ocs" => [
-												"type" => "object",
-												"required" => [
-													"meta",
-													"data",
+		}
+		if (!$alreadyInPath) {
+			$queryParameters[] = $parameter;
+		}
+	}
+
+	$responses = [];
+	foreach ($route->classMethodInfo->responses as $response) {
+		if ($firstResponse && count($responses) > 0) {
+			break;
+		}
+		$responses[$response->statusCode] = new Response(
+			array_merge(
+				[
+					"description" => $response->description != null ? $response->description : "",
+					"content" => [
+						$response->contentType => new MediaType(
+							$response->isOCS ? [
+								"schema" => [
+									"type" => "object",
+									"required" => [
+										"ocs",
+									],
+									"properties" => [
+										"ocs" => [
+											"type" => "object",
+											"required" => [
+												"meta",
+												"data",
+											],
+											"properties" => [
+												"meta" => [
+													"\$ref" => "#/components/schemas/OCSMeta",
 												],
-												"properties" => [
-													"meta" => [
-														"\$ref" => "#/components/schemas/OCSMeta",
-													],
-													"data" => $response->type->toSchema(),
-												],
+												"data" => $response->type->toSchema(),
 											],
 										],
 									],
-								] : ["schema" => $response->type->toSchema()],
-							),
-						],
+								],
+							] : ["schema" => $response->type->toSchema()],
+						),
 					],
-				),
-			);
-		}
-
-		$operation = new Operation(array_merge([
-			"operationId" => generateOperationID($methodName, $controllerName, $appID),
-			"tags" => [$appID],
-			"responses" => $responses,
-			"description" => implode("\n", $classMethodInfo->description),
-		],
-			$classMethodInfo->summary != null ? ["summary" => $classMethodInfo->summary] : [],
-			count($queryParameters) > 0 ? [
-				"parameters" => array_map(fn(ClassMethodParameter $parameter) => new Parameter(array_merge(
-					[
-						"name" => $parameter->name,
-						"in" => "query",
-						"schema" => $parameter->type->toSchema(true),
-					],
-					!$parameter->type->nullable && $parameter->type->defaultValue == null ? ["required" => true] : [],
-					$parameter->docParameter != null && $parameter->docParameter->description != "" ? ["description" => cleanDocComment($parameter->docParameter->description)] : [],
-				)), $queryParameters),
-			] : []),
+				],
+			),
 		);
-		switch ($verb) {
-			case "DELETE":
-				$openapi->paths->getPath($url)->delete = $operation;
-				break;
-			case "GET":
-				$openapi->paths->getPath($url)->get = $operation;
-				break;
-			case "POST":
-				$openapi->paths->getPath($url)->post = $operation;
-				break;
-			case "PUT":
-				$openapi->paths->getPath($url)->put = $operation;
-				break;
-			case "PATCH":
-				$openapi->paths->getPath($url)->patch = $operation;
-				break;
-			case "OPTIONS":
-				$openapi->paths->getPath($url)->options = $operation;
-				break;
-		}
+	}
+
+	$operationId = [];
+	if (count($tags) > 1) {
+		$operationId[] = $route->tag;
+	}
+	$operationId = array_merge($operationId, array_map(fn(string $s) => mapVerb(strtolower($s)), splitOnUppercaseFollowedByNonUppercase($route->methodName)));
+
+	$operation = new Operation(array_merge([
+		"operationId" => implode("-", $operationId),
+		"responses" => $responses,
+		"description" => implode("\n", $route->classMethodInfo->description),
+	],
+		count($tags) > 1 ? ["tags" => [$route->tag],] : [],
+		$route->classMethodInfo->summary != null ? ["summary" => $route->classMethodInfo->summary] : [],
+		count($queryParameters) > 0 ? [
+			"parameters" => array_map(fn(ClassMethodParameter $parameter) => new Parameter(array_merge(
+				[
+					"name" => $parameter->name,
+					"in" => "query",
+					"schema" => $parameter->type->toSchema(true),
+				],
+				!$parameter->type->nullable && $parameter->type->defaultValue == null ? ["required" => true] : [],
+				$parameter->docParameter != null && $parameter->docParameter->description != "" ? ["description" => cleanDocComment($parameter->docParameter->description)] : [],
+			)), $queryParameters),
+		] : []),
+	);
+	switch ($route->verb) {
+		case "DELETE":
+			$openapi->paths->getPath($route->url)->delete = $operation;
+			break;
+		case "GET":
+			$openapi->paths->getPath($route->url)->get = $operation;
+			break;
+		case "POST":
+			$openapi->paths->getPath($route->url)->post = $operation;
+			break;
+		case "PUT":
+			$openapi->paths->getPath($route->url)->put = $operation;
+			break;
+		case "PATCH":
+			$openapi->paths->getPath($route->url)->patch = $operation;
+			break;
+		case "OPTIONS":
+			$openapi->paths->getPath($route->url)->options = $operation;
+			break;
+	}
+}
+
+class Route {
+	public string $tag;
+
+	public function __construct(
+		public string $name,
+		public string $controllerName,
+		public string $methodName,
+		public string $verb,
+		public string $url,
+		public array $requirements,
+		public ClassMethodInfo $classMethodInfo,
+	) {
+		$this->tag = implode("_", array_map(fn(string $s) => str_replace("api", "", strtolower($s)), splitOnUppercaseFollowedByNonUppercase($controllerName)));
 	}
 }
 
@@ -908,39 +949,6 @@ function cleanDocComment(string $comment): string {
 
 function splitOnUppercaseFollowedByNonUppercase(string $str): array {
 	return preg_split('/(?=[A-Z][^A-Z])/', $str, -1, PREG_SPLIT_NO_EMPTY);
-}
-
-function generateOperationID(string $methodName, string $controllerName, string $appId): string {
-	$verbParts = array_map(function (string $verbPart) {
-		return strtolower($verbPart);
-	}, splitOnUppercaseFollowedByNonUppercase($methodName));
-	$verb = mapVerb(implode("-", $verbParts));
-
-	$objectParts = array_filter(array_map(function (string $objectPart) {
-		return strtolower($objectPart);
-	}, splitOnUppercaseFollowedByNonUppercase($controllerName)), function (string $objectPart) {
-		return !in_array($objectPart, ["api", "endpoint", "request", "handler"]);
-	});
-	$object = implode("-", $objectParts);
-	$appIdParts = explode("_", $appId);
-
-	if (array_intersect($objectParts, $verbParts) == $objectParts || array_intersect($objectParts, $appIdParts) == $objectParts || $object == "") {
-		return $verb;
-	}
-	if (array_intersect($verbParts, $objectParts) == $verbParts) {
-		return $object;
-	}
-
-	if (count($verbParts) == 1) {
-		// Make it plural when listing
-		if ($verb == "list" && !str_ends_with($object, "s")) {
-			$object .= "s";
-		}
-
-		return "$verb-$object";
-	}
-
-	return "$object-$verb";
 }
 
 function mapVerb(string $verb): string {
