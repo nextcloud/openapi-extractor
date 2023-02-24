@@ -352,7 +352,7 @@ foreach ($routes as $route) {
 						"name" => $urlParameter,
 						"in" => "path",
 						"required" => true,
-						"schema" => $parameter->type->toSchema(),
+						"schema" => $parameter->type->toSchema(true),
 					],
 					$parameter?->docParameter != null && $parameter->docParameter->description != "" ? ["description" => cleanDocComment($parameter->docParameter->description)] : [],
 				));
