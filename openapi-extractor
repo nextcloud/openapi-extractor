@@ -68,11 +68,13 @@ $command = new Command("openapi-extractor", "Extract OpenAPI specs from the Next
 $command
 	->arguments("dir out")
 	->option('--first-response', 'Only output the first response')
+	->option('--allow-missing-docs', 'Allow missing documentation fields')
 	->parse($_SERVER["argv"]);
 
 $dir = $command->dir;
 $out = $command->out;
 $firstResponse = $command->firstResponse ?? false;
+$allowMissingDocs = $command->allowMissingDocs ?? false;
 
 if ($dir == "") {
 	$dir = ".";
@@ -264,7 +266,7 @@ foreach ($parsedRoutes as $key => $value) {
 			];
 		}
 
-		$classMethodInfo = extractMethodInfo($methodFunction, $isOCS);
+		$classMethodInfo = extractMethodInfo($methodFunction, $routeName, $isOCS);
 		if (count($classMethodInfo->returns) > 0) {
 			throw new Exception($routeName . " can not return something that is not a valid response");
 		}
@@ -518,8 +520,8 @@ if (!$openapi->validate()) {
 	throw new Exception("Invalid OpenAPI spec generated. Please review the output!");
 }
 
-function extractMethodInfo(ClassMethod $method, bool $isOCS = false): ClassMethodInfo {
-	global $phpDocParser, $lexer;
+function extractMethodInfo(ClassMethod $method, string $routeName, bool $isOCS = false): ClassMethodInfo {
+	global $phpDocParser, $lexer, $allowMissingDocs;
 
 	$parameters = [];
 	$responses = [];
@@ -570,9 +572,21 @@ function extractMethodInfo(ClassMethod $method, bool $isOCS = false): ClassMetho
 					$type = $docNode->value->type;
 					$statusCode = exceptionToStatusCode($type);
 					if ($statusCode != null) {
+						if (!$allowMissingDocs && $docNode->value->description == "" && $statusCode < 500) {
+							throw new Exception("Missing description for exception '" . $type . "' in " . $routeName);
+						}
+						$responseDescriptions[$statusCode] = $docNode->value->description;
 						$responses[$statusCode] = new ClassMethodResponse($statusCode, "text/plain", new OpenApiType(type: "string"), $docNode->value->description, $isOCS);
 					}
 				}
+			}
+		}
+	}
+
+	if (!$allowMissingDocs && count($responses) > 1) {
+		foreach (array_keys($responses) as $statusCode) {
+			if ($statusCode < 500 && (!array_key_exists($statusCode, $responseDescriptions) || $responseDescriptions[$statusCode] == "")) {
+				throw new Exception("Missing description for status code " . $statusCode . " in " . $routeName);
 			}
 		}
 	}
@@ -591,10 +605,22 @@ function extractMethodInfo(ClassMethod $method, bool $isOCS = false): ClassMetho
 		}
 
 		if ($param == null) {
-			$param = new ClassMethodParameter($methodParameterName, $methodParameter, null);
+			if ($allowMissingDocs) {
+				$param = new ClassMethodParameter($methodParameterName, $methodParameter, null);
+			} else {
+				throw new Exception("Missing doc parameter for '" . $methodParameterName . "' in " . $routeName);
+			}
+		}
+
+		if (!$allowMissingDocs && $param->type->description == "") {
+			throw new Exception("Missing description for parameter '" . $methodParameterName . "' in " . $routeName);
 		}
 
 		$parameters[] = $param;
+	}
+
+	if (!$allowMissingDocs && count($methodDescription) == 0) {
+		throw new Exception("Missing description for " . $routeName);
 	}
 
 	if (count($methodDescription) == 1) {
