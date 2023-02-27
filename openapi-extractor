@@ -187,18 +187,15 @@ if (array_key_exists("routes", $parsedRoutes) && array_key_exists("ocs", $parsed
 	$parsedRoutes = ["ocs" => $parsedRoutes["ocs"]];
 }
 
-$routes = [];
-
 foreach ($parsedRoutes as $key => $value) {
 	if ($key != "routes" && $key != "ocs") {
 		continue;
 	}
 	foreach ($value as $route) {
 		$routeName = $route["name"];
-		if (str_starts_with(strtolower($routeName), "page#") || str_starts_with(strtolower($routeName), "admin#") || in_array($routeName, $seenRouteNames)) {
+		if (str_starts_with(strtolower($routeName), "page#") || str_starts_with(strtolower($routeName), "admin#")) {
 			continue;
 		}
-		$seenRouteNames[] = $routeName;
 
 		$verb = array_key_exists("verb", $route) ? $route["verb"] : "GET";
 		$requirements = array_key_exists("requirements", $route) ? $route["requirements"] : [];
