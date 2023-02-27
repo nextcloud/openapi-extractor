@@ -71,6 +71,7 @@ $command
 	->option('--first-status-code', 'Only output the first status code')
 	->option('--first-content-type', 'Only output the first content type')
 	->option('--allow-missing-docs', 'Allow missing documentation fields')
+	->option('--single-tag', 'Only use a single tag for everything')
 	->parse($_SERVER["argv"]);
 
 $dir = $command->dir;
@@ -78,6 +79,7 @@ $out = $command->out;
 $firstStatusCode = $command->firstStatusCode ?? false;
 $firstContentType = $command->firstContentType ?? false;
 $allowMissingDocs = $command->allowMissingDocs ?? false;
+$singleTag = $command->singleTag ?? false;
 
 if ($dir == "") {
 	$dir = ".";
@@ -325,9 +327,13 @@ foreach ($parsedRoutes as $key => $value) {
 }
 
 $tags = [];
-foreach ($routes as $route) {
-	if (!in_array($route->tag, $tags)) {
-		$tags[] = $route->tag;
+if ($singleTag) {
+	$tags[] = $appID;
+} else {
+	foreach ($routes as $route) {
+		if (!in_array($route->tag, $tags)) {
+			$tags[] = $route->tag;
+		}
 	}
 }
 
@@ -467,7 +473,7 @@ foreach ($routes as $route) {
 	}
 
 	$operationId = [];
-	if (count($tags) > 1) {
+	if (count($tags) > 1 || $singleTag) {
 		$operationId[] = $route->tag;
 	}
 	$operationId = array_merge($operationId, array_map(fn(string $s) => mapVerb(strtolower($s)), splitOnUppercaseFollowedByNonUppercase($route->methodName)));
@@ -476,7 +482,7 @@ foreach ($routes as $route) {
 		"operationId" => implode("-", $operationId),
 		"responses" => $mergedResponses,
 	],
-		count($tags) > 1 ? ["tags" => [$route->tag],] : [],
+		$singleTag ? ["tags" => [$appID]] : (count($tags) > 1 ? ["tags" => [$route->tag]] : []),
 		$route->classMethodInfo->summary != null ? ["summary" => $route->classMethodInfo->summary] : [],
 		count($route->classMethodInfo->description) > 0 ? ["description" => implode("\n", $route->classMethodInfo->description)] : [],
 		count($queryParameters) > 0 ? [
