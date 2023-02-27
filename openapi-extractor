@@ -4,6 +4,7 @@
 require_once __DIR__ . "/vendor/autoload.php";
 
 use Ahc\Cli\Input\Command;
+use cebe\openapi\spec\Header;
 use cebe\openapi\spec\Info;
 use cebe\openapi\spec\MediaType;
 use cebe\openapi\spec\OpenApi;
@@ -58,7 +59,7 @@ use PHPStan\PhpDocParser\Parser\PhpDocParser;
 use PHPStan\PhpDocParser\Parser\TokenIterator;
 use PHPStan\PhpDocParser\Parser\TypeParser;
 
-$responseTypePrefixes = ["JSON", "Data", "FileDisplay"];
+$responseTypePrefixes = ["JSON", "Data", "FileDisplay", "DataDisplay", "Redirect", "Template", "DataDownload"];
 $responseTypes = [];
 foreach ($responseTypePrefixes as $responseTypePrefix) {
 	$responseTypes[] = $responseTypePrefix . "Response";
@@ -67,13 +68,15 @@ foreach ($responseTypePrefixes as $responseTypePrefix) {
 $command = new Command("openapi-extractor", "Extract OpenAPI specs from the Nextcloud source code");
 $command
 	->arguments("dir out")
-	->option('--first-response', 'Only output the first response')
+	->option('--first-status-code', 'Only output the first status code')
+	->option('--first-content-type', 'Only output the first content type')
 	->option('--allow-missing-docs', 'Allow missing documentation fields')
 	->parse($_SERVER["argv"]);
 
 $dir = $command->dir;
 $out = $command->out;
-$firstResponse = $command->firstResponse ?? false;
+$firstStatusCode = $command->firstStatusCode ?? false;
+$firstContentType = $command->firstContentType ?? false;
 $allowMissingDocs = $command->allowMissingDocs ?? false;
 
 if ($dir == "") {
@@ -408,43 +411,60 @@ foreach ($routes as $route) {
 		}
 	}
 
-	$responses = [];
-	foreach ($route->classMethodInfo->responses as $response) {
-		if ($firstResponse && count($responses) > 0) {
+	$mergedResponses = [];
+	foreach (array_unique(array_map(fn(ClassMethodResponse $response) => $response->statusCode, $route->classMethodInfo->responses)) as $statusCode) {
+		if ($firstStatusCode && count($mergedResponses) > 0) {
 			break;
 		}
-		$responses[$response->statusCode] = new Response(
+
+		$statusCodeResponses = array_filter($route->classMethodInfo->responses, fn(ClassMethodResponse $response) => $response->statusCode == $statusCode);
+		$headers = array_merge(...array_map(fn(ClassMethodResponse $response) => $response->headers ?? [], $statusCodeResponses));
+
+		$mergedContentTypeResponses = [];
+		foreach (array_unique(array_map(fn(ClassMethodResponse $response) => $response->contentType, array_filter($statusCodeResponses, fn(ClassMethodResponse $response) => $response->contentType != null))) as $contentType) {
+			if ($firstContentType && count($mergedContentTypeResponses) > 0) {
+				break;
+			}
+
+			$contentTypeResponses = array_values(array_filter($statusCodeResponses, fn(ClassMethodResponse $response) => $response->contentType == $contentType));
+
+			$hasEmpty = count(array_filter($contentTypeResponses, fn(ClassMethodResponse $response) => $response->type == null)) > 0;
+			$uniqueResponses = array_values(array_intersect_key($contentTypeResponses, array_unique(array_map(fn(ClassMethodResponse $response) => $response->type->toSchema(), array_filter($contentTypeResponses, fn(ClassMethodResponse $response) => $response->type != null)), SORT_REGULAR)));
+			if (count($uniqueResponses) == 1) {
+				if ($hasEmpty) {
+					$mergedContentTypeResponses[$contentType] = new MediaType([]);
+				} else {
+					$schema = $contentTypeResponses[0]->type->toSchema();
+					$mergedContentTypeResponses[$contentType] = new MediaType(["schema" => $uniqueResponses[0]->isOCS ? wrapOCSResponse($schema) : $schema]);
+				}
+			} else {
+				$mergedContentTypeResponses[$contentType] = new MediaType([
+					"schema" => [
+						$hasEmpty ? "anyOf" : "oneOf" => array_map(fn(ClassMethodResponse $response) => $response->type->toSchema(), $uniqueResponses),
+					],
+				]);
+			}
+		}
+
+		$mergedResponses[$statusCode] = new Response(
 			array_merge(
 				[
-					"description" => $response->description != null ? $response->description : "",
-					"content" => [
-						$response->contentType => new MediaType(
-							$response->isOCS ? [
-								"schema" => [
-									"type" => "object",
-									"required" => [
-										"ocs",
-									],
-									"properties" => [
-										"ocs" => [
-											"type" => "object",
-											"required" => [
-												"meta",
-												"data",
-											],
-											"properties" => [
-												"meta" => [
-													"\$ref" => "#/components/schemas/OCSMeta",
-												],
-												"data" => $response->type->toSchema(),
-											],
-										],
-									],
-								],
-							] : ["schema" => $response->type->toSchema()],
-						),
-					],
+					"description" => array_key_exists($statusCode, $route->classMethodInfo->responseDescription) != null ? $route->classMethodInfo->responseDescription[$statusCode] : "",
 				],
+				count($mergedContentTypeResponses) > 0 ? [
+					"content" => $mergedContentTypeResponses,
+				] : [],
+				count($headers) > 0 ? [
+					"headers" => array_combine(
+						array_keys($headers),
+						array_map(
+							fn(OpenApiType $type) => new Header([
+								"schema" => $type->toSchema(),
+							]),
+							array_values($headers),
+						),
+					),
+				] : [],
 			),
 		);
 	}
@@ -457,7 +477,7 @@ foreach ($routes as $route) {
 
 	$operation = new Operation(array_merge([
 		"operationId" => implode("-", $operationId),
-		"responses" => $responses,
+		"responses" => $mergedResponses,
 	],
 		count($tags) > 1 ? ["tags" => [$route->tag],] : [],
 		$route->classMethodInfo->summary != null ? ["summary" => $route->classMethodInfo->summary] : [],
@@ -494,6 +514,30 @@ foreach ($routes as $route) {
 			$openapi->paths->getPath($route->url)->options = $operation;
 			break;
 	}
+}
+
+function wrapOCSResponse(Schema $schema): array {
+	return [
+		"type" => "object",
+		"required" => [
+			"ocs",
+		],
+		"properties" => [
+			"ocs" => [
+				"type" => "object",
+				"required" => [
+					"meta",
+					"data",
+				],
+				"properties" => [
+					"meta" => [
+						"\$ref" => "#/components/schemas/OCSMeta",
+					],
+					"data" => $schema,
+				],
+			],
+		],
+	];
 }
 
 class Route {
@@ -576,7 +620,7 @@ function extractMethodInfo(ClassMethod $method, string $routeName, bool $isOCS =
 							throw new Exception("Missing description for exception '" . $type . "' in " . $routeName);
 						}
 						$responseDescriptions[$statusCode] = $docNode->value->description;
-						$responses[$statusCode] = new ClassMethodResponse($statusCode, "text/plain", new OpenApiType(type: "string"), $docNode->value->description, $isOCS);
+						$responses[] = new ClassMethodResponse($statusCode, "text/plain", new OpenApiType(type: "string"), $isOCS, null);
 					}
 				}
 			}
@@ -584,7 +628,7 @@ function extractMethodInfo(ClassMethod $method, string $routeName, bool $isOCS =
 	}
 
 	if (!$allowMissingDocs && count($responses) > 1) {
-		foreach (array_keys($responses) as $statusCode) {
+		foreach (array_unique(array_map(fn(ClassMethodResponse $response) => $response->statusCode, $responses)) as $statusCode) {
 			if ($statusCode < 500 && (!array_key_exists($statusCode, $responseDescriptions) || $responseDescriptions[$statusCode] == "")) {
 				throw new Exception("Missing description for status code " . $statusCode . " in " . $routeName);
 			}
@@ -631,17 +675,37 @@ function extractMethodInfo(ClassMethod $method, string $routeName, bool $isOCS =
 		$methodDescription = array_slice($methodDescription, 1);
 	}
 
-	return new ClassMethodInfo($parameters, array_values($responses), $returns, $methodDescription, $methodSummary);
+	return new ClassMethodInfo($parameters, array_values($responses), $returns, $responseDescriptions, $methodDescription, $methodSummary);
 }
 
 function resolveReturnType(&$responses, &$returns, $responseDescriptions, TypeNode $type): void {
 	global $responseTypes, $isOCS;
-	if ($type instanceof GenericTypeNode && in_array($type->type->name, $responseTypes)) {
-		if ($type->type->name == "FileDisplayResponse") {
+	if ($type instanceof IdentifierTypeNode && $type->name == "RedirectResponse") {
+		$responses[] = new ClassMethodResponse(
+			303,
+			null,
+			null,
+			$isOCS,
+			["Location" => new OpenApiType(type: "string")],
+		);
+	} else if ($type instanceof GenericTypeNode && $type->type->name == "DataDownloadResponse") {
+		$responses[] = new ClassMethodResponse(
+			200,
+			$type->genericTypes[0]->constExpr->value,
+			new OpenApiType(type: "string"),
+			$isOCS,
+			null,
+		);
+	} else if ($type instanceof GenericTypeNode && in_array($type->type->name, $responseTypes)) {
+		if ($type->type->name == "FileDisplayResponse" || $type->type->name == "DataDisplayResponse" || $type->type->name == "TemplateResponse") {
 			$statusCodeNode = $type->genericTypes[0];
-			$realType = new OpenApiType(type: "string", format: "binary");
-			// TODO: This is really annoying, because we need to match any content type since it's not possible to know which one will be returned
-			$contentType = "*/*";
+			$realType = new OpenApiType(type: "string", format: $type->type->name == "FileDisplayResponse" ? "binary" : null);
+			if ($type->type->name == "TemplateResponse") {
+				$contentType = "text/html";
+			} else {
+				// TODO: This is really annoying, because we need to match any content type since it's not possible to know which one will be returned
+				$contentType = "*/*";
+			}
 		} else {
 			if (count($type->genericTypes) != 2) {
 				throw new Exception($type->type->name . " needs two parameters");
@@ -661,12 +725,12 @@ function resolveReturnType(&$responses, &$returns, $responseDescriptions, TypeNo
 			$statusCodes[] = statusEnumToCode($node->constExpr->name);
 		}
 		foreach ($statusCodes as $statusCode) {
-			$responses[$statusCode] = new ClassMethodResponse(
+			$responses[] = new ClassMethodResponse(
 				$statusCode,
 				$contentType,
 				$realType,
-				array_key_exists($statusCode, $responseDescriptions) ? $responseDescriptions[$statusCode] : null,
 				$isOCS,
+				null,
 			);
 		}
 	} else if ($type instanceof UnionTypeNode) {
@@ -718,14 +782,18 @@ class ClassMethodInfo {
 	 * @param ClassMethodParameter[] $parameters
 	 * @param ClassMethodResponse[] $responses
 	 * @param OpenApiType[] $returns
+	 * @param array<int, string> $responseDescription
 	 * @param string[] $description
 	 */
-	public function __construct(public array $parameters, public array $responses, public array $returns, public array $description, public ?string $summary) {
+	public function __construct(public array $parameters, public array $responses, public array $returns, public array $responseDescription, public array $description, public ?string $summary) {
 	}
 }
 
 class ClassMethodResponse {
-	public function __construct(public int $statusCode, public string $contentType, public OpenApiType $type, public ?string $description, public bool $isOCS) {
+	/**
+	 * @param array<string, OpenApiType>|null $headers
+	 */
+	public function __construct(public int $statusCode, public ?string $contentType, public ?OpenApiType $type, public bool $isOCS, public ?array $headers) {
 	}
 
 }
