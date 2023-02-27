@@ -830,9 +830,10 @@ function resolveOpenApiType(ParamTagValueNode|NodeAbstract|TypeNode $node): Open
 		$required = [];
 		foreach ($node->items as $item) {
 			$type = resolveOpenApiType($item->valueType);
-			$properties[$item->keyName->name] = $type;
+			$name = $item->keyName instanceof ConstExprStringNode ? $item->keyName->value : $item->keyName->name;
+			$properties[$name] = $type;
 			if (!$type->nullable) {
-				$required[] = $item->keyName->name;
+				$required[] = $name;
 			}
 		}
 		return new OpenApiType(type: "object", nullable: false, properties: $properties, required: count($required) > 0 ? $required : null);
