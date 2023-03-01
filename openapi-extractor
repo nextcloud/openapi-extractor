@@ -14,6 +14,7 @@ use cebe\openapi\spec\PathItem;
 use cebe\openapi\spec\Response;
 use cebe\openapi\spec\Schema;
 use cebe\openapi\spec\SecurityRequirement;
+use cebe\openapi\spec\Tag;
 use cebe\openapi\Writer;
 use PhpParser\Node\Expr;
 use PhpParser\Node\Expr\Array_;
@@ -71,7 +72,7 @@ $command
 	->option('--first-status-code', 'Only output the first status code')
 	->option('--first-content-type', 'Only output the first content type')
 	->option('--allow-missing-docs', 'Allow missing documentation fields')
-	->option('--single-tag', 'Only use a single tag for everything')
+	->option('--no-tags', 'Use no tags')
 	->parse($_SERVER["argv"]);
 
 $dir = $command->dir;
@@ -79,7 +80,7 @@ $out = $command->out;
 $firstStatusCode = $command->firstStatusCode ?? false;
 $firstContentType = $command->firstContentType ?? false;
 $allowMissingDocs = $command->allowMissingDocs ?? false;
-$singleTag = $command->singleTag ?? false;
+$useTags = $command->tags ?? true;
 
 if ($dir == "") {
 	$dir = ".";
@@ -160,6 +161,7 @@ $openapi = new OpenApi([
 print_r("Extracting OpenAPI spec for " . $appName . " " . $appVersion . "\n");
 
 $schemas = [];
+$tags = [];
 
 $definitions = [];
 $definitionsPath = join("/", [$dir, "lib", "ResponseDefinitions.php"]);
@@ -233,6 +235,31 @@ foreach ($parsedRoutes as $key => $value) {
 		if ($controllerClass == null) {
 			throw new Exception("Controller " . $controllerName . " not found");
 		}
+
+		$tagName = implode("_", array_map(fn(string $s) => strtolower($s), splitOnUppercaseFollowedByNonUppercase($controllerName)));
+		$doc = $controllerClass->getDocComment()?->getText();
+		if ($doc != null && count(array_filter($tags, fn(Tag $tag) => $tag->name == $tagName)) == 0) {
+			$classDescription = [];
+
+			$docNodes = $phpDocParser->parse(new TokenIterator($lexer->tokenize($doc)))->children;
+			foreach ($docNodes as $docNode) {
+				if ($docNode instanceof PhpDocTextNode) {
+					$block = cleanDocComment($docNode->text);
+					if ($block == "") {
+						continue;
+					}
+					$classDescription[] = $block;
+				}
+			}
+
+			if (count($classDescription) > 0) {
+				$tags[] = new Tag([
+					"name" => $tagName,
+					"description" => join("\n", $classDescription),
+				]);
+			}
+		}
+
 		$methodFunction = null;
 		$isOCS = false;
 		/** @var ClassMethod $classMethod */
@@ -316,6 +343,7 @@ foreach ($parsedRoutes as $key => $value) {
 
 		$routes[] = new Route(
 			$routeName,
+			$tagName,
 			$controllerName,
 			$methodName,
 			$verb,
@@ -326,13 +354,11 @@ foreach ($parsedRoutes as $key => $value) {
 	}
 }
 
-$tags = [];
-if ($singleTag) {
-	$tags[] = $appID;
-} else {
+$tagNames = [];
+if ($useTags) {
 	foreach ($routes as $route) {
-		if (!in_array($route->tag, $tags)) {
-			$tags[] = $route->tag;
+		if (!in_array($route->tag, $tagNames)) {
+			$tagNames[] = $route->tag;
 		}
 	}
 }
@@ -472,17 +498,14 @@ foreach ($routes as $route) {
 		);
 	}
 
-	$operationId = [];
-	if (count($tags) > 1 || $singleTag) {
-		$operationId[] = $route->tag;
-	}
+	$operationId = [$route->tag];
 	$operationId = array_merge($operationId, array_map(fn(string $s) => mapVerb(strtolower($s)), splitOnUppercaseFollowedByNonUppercase($route->methodName)));
 
 	$operation = new Operation(array_merge([
 		"operationId" => implode("-", $operationId),
 		"responses" => $mergedResponses,
 	],
-		$singleTag ? ["tags" => [$appID]] : (count($tags) > 1 ? ["tags" => [$route->tag]] : []),
+		$useTags ? ["tags" => [$route->tag]] : [],
 		$route->classMethodInfo->summary != null ? ["summary" => $route->classMethodInfo->summary] : [],
 		count($route->classMethodInfo->description) > 0 ? ["description" => implode("\n", $route->classMethodInfo->description)] : [],
 		count($queryParameters) > 0 ? [
@@ -544,10 +567,9 @@ function wrapOCSResponse(Schema $schema): array {
 }
 
 class Route {
-	public string $tag;
-
 	public function __construct(
 		public string $name,
+		public string $tag,
 		public string $controllerName,
 		public string $methodName,
 		public string $verb,
@@ -555,12 +577,15 @@ class Route {
 		public array $requirements,
 		public ClassMethodInfo $classMethodInfo,
 	) {
-		$this->tag = implode("_", array_map(fn(string $s) => strtolower($s), splitOnUppercaseFollowedByNonUppercase($controllerName)));
 	}
 }
 
 ksort($schemas);
 $openapi->components->schemas = $schemas;
+
+if ($useTags) {
+	$openapi->tags = $tags;
+}
 
 file_put_contents($out, Writer::writeToJson($openapi, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
 if (!$openapi->validate()) {
