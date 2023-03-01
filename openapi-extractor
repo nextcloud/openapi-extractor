@@ -175,13 +175,13 @@ if (file_exists($definitionsPath)) {
 					if (!str_starts_with($docNode->value->alias, $readableAppID)) {
 						throw new Exception("Type alias '" . $docNode->value->alias . "' has to start with '" . $readableAppID . "'");
 					}
-					$definitions[$docNode->value->alias] = resolveOpenApiType($docNode->value->type)->toSchema();
+					$definitions[$docNode->value->alias] = resolveOpenApiType("Response definitions", $docNode->value->type)->toSchema();
 				}
 			}
 		}
 	}
 } else {
-	print_r("Warning no response definitions were loaded\n");
+	print_r("No response definitions were loaded\n");
 }
 
 $parsedRoutes = parseRoutes(join("/", $appIsCore ? [$dir, "routes.php"] : [$dir, "appinfo", "routes.php"]));
@@ -233,7 +233,7 @@ foreach ($parsedRoutes as $key => $value) {
 			}
 		}
 		if ($controllerClass == null) {
-			throw new Exception("Controller " . $controllerName . " not found");
+			throw new Exception($routeName . ": Controller '" . $controllerName . "' not found");
 		}
 
 		$tagName = implode("_", array_map(fn(string $s) => strtolower($s), splitOnUppercaseFollowedByNonUppercase($controllerName)));
@@ -274,7 +274,7 @@ foreach ($parsedRoutes as $key => $value) {
 			}
 		}
 		if ($methodFunction == null) {
-			print_r("Warning " . $routeName . " is ignored\n");
+			print_r($routeName . ": Route ignored\n");
 			continue;
 		}
 
@@ -295,12 +295,12 @@ foreach ($parsedRoutes as $key => $value) {
 			];
 		}
 
-		$classMethodInfo = extractMethodInfo($methodFunction, $routeName, $isOCS);
+		$classMethodInfo = extractMethodInfo($routeName, $methodFunction, $isOCS);
 		if (count($classMethodInfo->returns) > 0) {
-			throw new Exception($routeName . " can not return something that is not a valid response");
+			throw new Exception($routeName . ": Returns an invalid response");
 		}
 		if (count($classMethodInfo->responses) == 0) {
-			throw new Exception($routeName . " does not return any response");
+			throw new Exception($routeName . ": Returns no responses");
 		}
 
 		$codeStatusCodes = [];
@@ -309,9 +309,9 @@ foreach ($parsedRoutes as $key => $value) {
 			if ($returnStatement->expr instanceof New_ && $returnStatement->expr->class instanceof Name && in_array($returnStatement->expr->class->getLast(), $responseTypes)) {
 				if (count($returnStatement->expr->args) >= 2) {
 					if ($returnStatement->expr->args[1]->value instanceof ClassConstFetch) {
-						$codeStatusCodes[] = statusEnumToCode($returnStatement->expr->args[1]->value->name->name);
+						$codeStatusCodes[] = statusEnumToCode($routeName, $returnStatement->expr->args[1]->value->name->name);
 					} else {
-						print_r("Warning " . $routeName . " has a return statement that can not be understood.\n");
+						print_r($routeName . ": Return statement could not be understood\n");
 					}
 				} else {
 					$codeStatusCodes[] = 200;
@@ -323,7 +323,7 @@ foreach ($parsedRoutes as $key => $value) {
 		foreach ($nodeFinder->findInstanceOf($methodFunction->stmts, Throw_::class) as $throwStatement) {
 			if ($throwStatement->expr instanceof New_ && $throwStatement->expr->class instanceof Name) {
 				$type = $throwStatement->expr->class->getLast();
-				$statusCode = exceptionToStatusCode($type);
+				$statusCode = exceptionToStatusCode($routeName, $type);
 				if ($statusCode != null) {
 					$codeStatusCodes[] = $statusCode;
 				}
@@ -335,10 +335,10 @@ foreach ($parsedRoutes as $key => $value) {
 		$missingCodeStatusCodes = array_unique(array_diff($docStatusCodes, $codeStatusCodes));
 
 		if (count($missingDocStatusCodes) > 0) {
-			print_r("Warning " . $routeName . " returns the following undocumented status codes: " . implode(", ", $missingDocStatusCodes) . "\n");
+			print_r($routeName . ": Returns undocumented status codes: " . implode(", ", $missingDocStatusCodes) . "\n");
 		}
 		if (count($missingCodeStatusCodes) > 0) {
-			print_r("Warning " . $routeName . " documents the following status codes which are never returned: " . implode(", ", $missingCodeStatusCodes) . "\n");
+			print_r($routeName . ": Documents status codes which are never returned: " . implode(", ", $missingCodeStatusCodes) . "\n");
 		}
 
 		$routes[] = new Route(
@@ -378,7 +378,7 @@ foreach ($routes as $route) {
 			if (count($matchingParameters) == 1) {
 				$parameter = $matchingParameters[array_keys($matchingParameters)[0]];
 				if ($parameter?->methodParameter == null && ($route->requirements == null || !array_key_exists($urlParameter, $route->requirements))) {
-					throw new Exception("Unable to find parameter for " . $urlParameter . " in " . $route->name);
+					throw new Exception($route->name . ": Unable to find parameter for '" . $urlParameter . "'");
 				}
 
 				$pathParameters[] = new Parameter(array_merge(
@@ -592,7 +592,7 @@ if (!$openapi->validate()) {
 	throw new Exception("Invalid OpenAPI spec generated. Please review the output!");
 }
 
-function extractMethodInfo(ClassMethod $method, string $routeName, bool $isOCS = false): ClassMethodInfo {
+function extractMethodInfo(string $context, ClassMethod $method, bool $isOCS = false): ClassMethodInfo {
 	global $phpDocParser, $lexer, $allowMissingDocs;
 
 	$parameters = [];
@@ -637,15 +637,15 @@ function extractMethodInfo(ClassMethod $method, string $routeName, bool $isOCS =
 				if ($docNode->value instanceof ReturnTagValueNode) {
 					$type = $docNode->value->type;
 
-					resolveReturnType($responses, $returns, $responseDescriptions, $type);
+					resolveReturnType($context, $responses, $returns, $responseDescriptions, $type);
 				}
 
 				if ($docNode->value instanceof ThrowsTagValueNode) {
 					$type = $docNode->value->type;
-					$statusCode = exceptionToStatusCode($type);
+					$statusCode = exceptionToStatusCode($context, $type);
 					if ($statusCode != null) {
 						if (!$allowMissingDocs && $docNode->value->description == "" && $statusCode < 500) {
-							throw new Exception("Missing description for exception '" . $type . "' in " . $routeName);
+							throw new Exception($context . ": Missing description for exception '" . $type . "'");
 						}
 						$responseDescriptions[$statusCode] = $docNode->value->description;
 						$responses[] = new ClassMethodResponse($statusCode, "text/plain", new OpenApiType(type: "string"), $isOCS, null);
@@ -658,7 +658,7 @@ function extractMethodInfo(ClassMethod $method, string $routeName, bool $isOCS =
 	if (!$allowMissingDocs && count($responses) > 1) {
 		foreach (array_unique(array_map(fn(ClassMethodResponse $response) => $response->statusCode, $responses)) as $statusCode) {
 			if ($statusCode < 500 && (!array_key_exists($statusCode, $responseDescriptions) || $responseDescriptions[$statusCode] == "")) {
-				throw new Exception("Missing description for status code " . $statusCode . " in " . $routeName);
+				throw new Exception($context . ": Missing description for status code " . $statusCode);
 			}
 		}
 	}
@@ -671,28 +671,28 @@ function extractMethodInfo(ClassMethod $method, string $routeName, bool $isOCS =
 			$docParameterName = substr($docParameter->parameterName, 1);
 
 			if ($docParameterName == $methodParameterName) {
-				$param = new ClassMethodParameter($methodParameterName, $methodParameter, $docParameter);
+				$param = new ClassMethodParameter($context, $methodParameterName, $methodParameter, $docParameter);
 				break;
 			}
 		}
 
 		if ($param == null) {
 			if ($allowMissingDocs) {
-				$param = new ClassMethodParameter($methodParameterName, $methodParameter, null);
+				$param = new ClassMethodParameter($context, $methodParameterName, $methodParameter, null);
 			} else {
-				throw new Exception("Missing doc parameter for '" . $methodParameterName . "' in " . $routeName);
+				throw new Exception($context . ": Missing doc parameter for '" . $methodParameterName . "'");
 			}
 		}
 
 		if (!$allowMissingDocs && $param->type->description == "") {
-			throw new Exception("Missing description for parameter '" . $methodParameterName . "' in " . $routeName);
+			throw new Exception($context . ": Missing description for parameter '" . $methodParameterName . "'");
 		}
 
 		$parameters[] = $param;
 	}
 
 	if (!$allowMissingDocs && count($methodDescription) == 0) {
-		throw new Exception("Missing description for " . $routeName);
+		throw new Exception($context . ": Missing method description");
 	}
 
 	if (count($methodDescription) == 1) {
@@ -706,7 +706,7 @@ function extractMethodInfo(ClassMethod $method, string $routeName, bool $isOCS =
 	return new ClassMethodInfo($parameters, array_values($responses), $returns, $responseDescriptions, $methodDescription, $methodSummary);
 }
 
-function resolveReturnType(&$responses, &$returns, $responseDescriptions, TypeNode $type): void {
+function resolveReturnType(string $context, &$responses, &$returns, $responseDescriptions, TypeNode $type): void {
 	global $responseTypes, $isOCS;
 	if ($type instanceof IdentifierTypeNode && $type->name == "RedirectResponse") {
 		$responses[] = new ClassMethodResponse(
@@ -736,10 +736,10 @@ function resolveReturnType(&$responses, &$returns, $responseDescriptions, TypeNo
 			}
 		} else {
 			if (count($type->genericTypes) != 2) {
-				throw new Exception($type->type->name . " needs two parameters");
+				throw new Exception($context . ": '" . $type->type->name . "' needs two parameters");
 			}
 			$statusCodeNode = $type->genericTypes[1];
-			$realType = resolveOpenApiType($type->genericTypes[0]);
+			$realType = resolveOpenApiType($context, $type->genericTypes[0]);
 			$contentType = "application/json";
 		}
 		$statusCodes = [];
@@ -750,7 +750,7 @@ function resolveReturnType(&$responses, &$returns, $responseDescriptions, TypeNo
 			$statusCodeNodes[] = $statusCodeNode;
 		}
 		foreach ($statusCodeNodes as $node) {
-			$statusCodes[] = statusEnumToCode($node->constExpr->name);
+			$statusCodes[] = statusEnumToCode($context, $node->constExpr->name);
 		}
 		foreach ($statusCodes as $statusCode) {
 			$responses[] = new ClassMethodResponse(
@@ -763,14 +763,14 @@ function resolveReturnType(&$responses, &$returns, $responseDescriptions, TypeNo
 		}
 	} else if ($type instanceof UnionTypeNode) {
 		foreach ($type->types as $subType) {
-			resolveReturnType($responses, $returns, $responseDescriptions, $subType);
+			resolveReturnType($context, $responses, $returns, $responseDescriptions, $subType);
 		}
 	} else {
-		$returns[] = resolveOpenApiType($type);
+		throw new Exception($context . ": Invalid return type '" . $type . "'");
 	}
 }
 
-function statusEnumToCode(string $name) {
+function statusEnumToCode(string $context, string $name): int {
 	return match ($name) {
 		"STATUS_OK" => 200,
 		"STATUS_CREATED" => 201,
@@ -788,11 +788,11 @@ function statusEnumToCode(string $name) {
 		"STATUS_REQUEST_ENTITY_TOO_LARGE" => 413,
 		"STATUS_INTERNAL_SERVER_ERROR" => 500,
 		"STATUS_NOT_IMPLEMENTED" => 501,
-		default => throw new Exception("Unknown status code " . $name),
+		default => throw new Exception($context . ": Unknown status code '" . $name . "'"),
 	};
 }
 
-function exceptionToStatusCode(string $name): ?int {
+function exceptionToStatusCode(string $context, string $name): ?int {
 	if (!str_starts_with($name, "OCS")) {
 		return 500;
 	}
@@ -801,7 +801,7 @@ function exceptionToStatusCode(string $name): ?int {
 		"OCSBadRequestException" => 400,
 		"OCSForbiddenException" => 403,
 		"OCSNotFoundException" => 404,
-		default => throw new Exception("Unknown exception " . $name),
+		default => throw new Exception($context . ": Unknown exception '" . $name . "'"),
 	};
 }
 
@@ -829,19 +829,19 @@ class ClassMethodResponse {
 class ClassMethodParameter {
 	public OpenApiType $type;
 
-	public function __construct(public string $name, public Param $methodParameter, public ?ParamTagValueNode $docParameter) {
+	public function __construct(string $context, public string $name, public Param $methodParameter, public ?ParamTagValueNode $docParameter) {
 		if ($docParameter != null) {
-			$this->type = resolveOpenApiType($docParameter);
+			$this->type = resolveOpenApiType($context, $docParameter);
 		} else {
-			$this->type = resolveOpenApiType($methodParameter->type);
+			$this->type = resolveOpenApiType($context, $methodParameter->type);
 		}
 		if ($methodParameter->default != null) {
-			$this->type->defaultValue = exprToString($methodParameter->default);
+			$this->type->defaultValue = exprToString($context, $methodParameter->default);
 		}
 	}
 }
 
-function exprToString(null|Expr $expr): mixed {
+function exprToString(string $context, null|Expr $expr): mixed {
 	if ($expr == null) {
 		return null;
 	}
@@ -855,7 +855,7 @@ function exprToString(null|Expr $expr): mixed {
 			case "false":
 				return false;
 			default:
-				throw new Exception("Unable to convert ConstFetch " . $value);
+				throw new Exception($context . ": Unable to evaluate constant value '" . $value . "'");
 		}
 	}
 	if ($expr instanceof String_) {
@@ -865,16 +865,16 @@ function exprToString(null|Expr $expr): mixed {
 		return intval($expr->value);
 	}
 	if ($expr instanceof UnaryMinus) {
-		return exprToString($expr->expr);
+		return exprToString($context, $expr->expr);
 	}
 	if ($expr instanceof Array_) {
-		return array_map(fn(ArrayItem $item) => exprToString($item), $expr->items);
+		return array_map(fn(ArrayItem $item) => exprToString($context, $item), $expr->items);
 	}
 
-	throw new Exception("Unable to convert Expr " . get_class($expr));
+	throw new Exception($context . ": Unable to evaluate expression '" . get_class($expr) . "'");
 }
 
-function resolveIdentifier(string $name): OpenApiType {
+function resolveIdentifier(string $context, string $name): OpenApiType {
 	global $openapi, $definitions, $schemas, $dir, $readableAppID;
 	return match ($name) {
 		"string" => new OpenApiType(type: "string", nullable: false),
@@ -886,7 +886,7 @@ function resolveIdentifier(string $name): OpenApiType {
 		"array" => new OpenApiType(type: "object", nullable: false),
 		"object" => new OpenApiType(type: "object", nullable: false, additionalProperties: true),
 		"null" => new OpenApiType(nullable: true),
-		default => (function () use ($dir, $definitions, &$schemas, $openapi, $name, $readableAppID) {
+		default => (function () use ($context, $dir, $definitions, &$schemas, $openapi, $name, $readableAppID) {
 			if (array_key_exists($name, $definitions)) {
 				$cleanedName = str_replace($readableAppID, "", $name);
 				if (!array_key_exists($cleanedName, $schemas)) {
@@ -896,36 +896,36 @@ function resolveIdentifier(string $name): OpenApiType {
 					ref: "#/components/schemas/" . $cleanedName,
 				);
 			}
-			throw new Exception("Unable to resolve OpenAPI type for identifier '" . $name . "'");
+			throw new Exception($context . ": Unable to resolve OpenAPI type for identifier '" . $name . "'");
 		})(),
 	};
 }
 
-function resolveOpenApiType(ParamTagValueNode|NodeAbstract|TypeNode $node): OpenApiType {
+function resolveOpenApiType(string $context, ParamTagValueNode|NodeAbstract|TypeNode $node): OpenApiType {
 	if ($node instanceof ParamTagValueNode) {
-		$type = resolveOpenApiType($node->type);
+		$type = resolveOpenApiType($context, $node->type);
 		$type->description = $node->description;
 		return $type;
 	}
 	if ($node instanceof PhpParser\Node\Name) {
-		return resolveIdentifier($node->getLast());
+		return resolveIdentifier($context, $node->getLast());
 	}
 	if ($node instanceof IdentifierTypeNode || $node instanceof Identifier) {
-		return resolveIdentifier($node->name);
+		return resolveIdentifier($context, $node->name);
 	}
 
 	if ($node instanceof ArrayTypeNode) {
-		return new OpenApiType(type: "array", nullable: false, items: resolveOpenApiType($node->type));
+		return new OpenApiType(type: "array", nullable: false, items: resolveOpenApiType($context, $node->type));
 	}
 
 	if ($node instanceof ArrayShapeNode) {
 		if (count($node->items) == 0) {
-			throw new Exception("Use 'object' instead of 'array{}'");
+			throw new Exception($context . ": Use 'object' instead of 'array{}'");
 		}
 		$properties = [];
 		$required = [];
 		foreach ($node->items as $item) {
-			$type = resolveOpenApiType($item->valueType);
+			$type = resolveOpenApiType($context, $item->valueType);
 			$name = $item->keyName instanceof ConstExprStringNode ? $item->keyName->value : $item->keyName->name;
 			$properties[$name] = $type;
 			if (!$type->nullable) {
@@ -936,11 +936,11 @@ function resolveOpenApiType(ParamTagValueNode|NodeAbstract|TypeNode $node): Open
 	}
 
 	if ($node instanceof GenericTypeNode && $node->type->name == "array" && count($node->genericTypes) == 2 && $node->genericTypes[0] instanceof IdentifierTypeNode && $node->genericTypes[0]->name == "string") {
-		return new OpenApiType(type: "object", additionalProperties: resolveOpenApiType($node->genericTypes[1]));
+		return new OpenApiType(type: "object", additionalProperties: resolveOpenApiType($context, $node->genericTypes[1]));
 	}
 
 	if ($node instanceof NullableTypeNode || $node instanceof NullableType) {
-		$type = resolveOpenApiType($node->type);
+		$type = resolveOpenApiType($context, $node->type);
 		$type->nullable = true;
 		return $type;
 	}
@@ -963,7 +963,7 @@ function resolveOpenApiType(ParamTagValueNode|NodeAbstract|TypeNode $node): Open
 			if (($type instanceof IdentifierTypeNode || $type instanceof Identifier) && $type->name == "null") {
 				$nullable = true;
 			} else {
-				$types[] = resolveOpenApiType($type);
+				$types[] = resolveOpenApiType($context, $type);
 			}
 		}
 
@@ -980,7 +980,7 @@ function resolveOpenApiType(ParamTagValueNode|NodeAbstract|TypeNode $node): Open
 		);
 	}
 
-	throw new Exception("Unable to resolve OpenAPI type for type '" . get_class($node) . "'");
+	throw new Exception($context . ": Unable to resolve OpenAPI type for type '" . get_class($node) . "'");
 }
 
 class OpenApiType {
