@@ -201,6 +201,7 @@ foreach ($parsedRoutes as $key => $value) {
 			continue;
 		}
 
+		$postfix = array_key_exists("postfix", $route) ? $route["postfix"] : null;
 		$verb = array_key_exists("verb", $route) ? $route["verb"] : "GET";
 		$requirements = array_key_exists("requirements", $route) ? $route["requirements"] : [];
 		$root = array_key_exists("root", $route) ? $route["root"] : ($appIsCore ? "" : "/apps") . "/" . $appID;
@@ -346,6 +347,7 @@ foreach ($parsedRoutes as $key => $value) {
 			$tagName,
 			$controllerName,
 			$methodName,
+			$postfix,
 			$verb,
 			$url,
 			$requirements,
@@ -500,6 +502,9 @@ foreach ($routes as $route) {
 
 	$operationId = [$route->tag];
 	$operationId = array_merge($operationId, array_map(fn(string $s) => mapVerb(strtolower($s)), splitOnUppercaseFollowedByNonUppercase($route->methodName)));
+	if ($route->postfix != null) {
+		$operationId[] = $route->postfix;
+	}
 
 	$operation = new Operation(array_merge([
 		"operationId" => implode("-", $operationId),
@@ -572,6 +577,7 @@ class Route {
 		public string $tag,
 		public string $controllerName,
 		public string $methodName,
+		public ?string $postfix,
 		public string $verb,
 		public string $url,
 		public array $requirements,
