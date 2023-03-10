@@ -331,7 +331,7 @@ foreach ($parsedRoutes as $key => $value) {
 			}
 		}
 
-		$docStatusCodes = array_map(fn(ClassMethodResponse $response) => $response->statusCode, $classMethodInfo->responses);
+		$docStatusCodes = array_map(fn(ClassMethodResponse $response) => $response->statusCode, array_filter($classMethodInfo->responses, fn(?ClassMethodResponse $response) => $response != null));
 		$missingDocStatusCodes = array_unique(array_filter(array_diff($codeStatusCodes, $docStatusCodes), fn(int $code) => $code < 500));
 		$missingCodeStatusCodes = array_unique(array_diff($docStatusCodes, $codeStatusCodes));
 
@@ -443,12 +443,12 @@ foreach ($routes as $route) {
 	}
 
 	$mergedResponses = [];
-	foreach (array_unique(array_map(fn(ClassMethodResponse $response) => $response->statusCode, $route->classMethodInfo->responses)) as $statusCode) {
+	foreach (array_unique(array_map(fn(ClassMethodResponse $response) => $response->statusCode, array_filter($route->classMethodInfo->responses, fn(?ClassMethodResponse $response) => $response != null))) as $statusCode) {
 		if ($firstStatusCode && count($mergedResponses) > 0) {
 			break;
 		}
 
-		$statusCodeResponses = array_filter($route->classMethodInfo->responses, fn(ClassMethodResponse $response) => $response->statusCode == $statusCode);
+		$statusCodeResponses = array_filter($route->classMethodInfo->responses, fn(?ClassMethodResponse $response) => $response != null && $response->statusCode == $statusCode);
 		$headers = array_merge(...array_map(fn(ClassMethodResponse $response) => $response->headers ?? [], $statusCodeResponses));
 
 		$mergedContentTypeResponses = [];
@@ -662,7 +662,7 @@ function extractMethodInfo(string $context, ClassMethod $method, bool $isOCS = f
 	}
 
 	if (!$allowMissingDocs && count($responses) > 1) {
-		foreach (array_unique(array_map(fn(ClassMethodResponse $response) => $response->statusCode, $responses)) as $statusCode) {
+		foreach (array_unique(array_map(fn(ClassMethodResponse $response) => $response->statusCode, array_filter($responses, fn(?ClassMethodResponse $response) => $response != null))) as $statusCode) {
 			if ($statusCode < 500 && (!array_key_exists($statusCode, $responseDescriptions) || $responseDescriptions[$statusCode] == "")) {
 				throw new Exception($context . ": Missing description for status code " . $statusCode);
 			}
@@ -722,6 +722,8 @@ function resolveReturnType(string $context, &$responses, &$returns, $responseDes
 			$isOCS,
 			["Location" => new OpenApiType(type: "string")],
 		);
+	} else if ($type instanceof IdentifierTypeNode && $type->name == "void") {
+		$responses[] = null;
 	} else if ($type instanceof GenericTypeNode && $type->type->name == "DataDownloadResponse") {
 		$responses[] = new ClassMethodResponse(
 			200,
