@@ -197,9 +197,6 @@ foreach ($parsedRoutes as $key => $value) {
 	}
 	foreach ($value as $route) {
 		$routeName = $route["name"];
-		if (str_starts_with(strtolower($routeName), "page#") || str_starts_with(strtolower($routeName), "admin#")) {
-			continue;
-		}
 
 		$postfix = array_key_exists("postfix", $route) ? $route["postfix"] : null;
 		$verb = array_key_exists("verb", $route) ? $route["verb"] : "GET";
@@ -263,6 +260,7 @@ foreach ($parsedRoutes as $key => $value) {
 
 		$methodFunction = null;
 		$isOCS = false;
+		$isAdmin = true;
 		/** @var ClassMethod $classMethod */
 		foreach ($nodeFinder->findInstanceOf($controllerClass->stmts, ClassMethod::class) as $classMethod) {
 			if ($classMethod->name == $methodName) {
@@ -270,6 +268,7 @@ foreach ($parsedRoutes as $key => $value) {
 				if ($controllerClass->extends != "Controller" || ($doc != null && str_contains($doc, "@NoCSRFRequired"))) {
 					$methodFunction = $classMethod;
 					$isOCS = $controllerClass->extends != "Controller";
+					$isAdmin = !str_contains($doc, "@NoAdminRequired") && !str_contains($doc, "@PublicPage");
 					break;
 				}
 			}
@@ -296,7 +295,7 @@ foreach ($parsedRoutes as $key => $value) {
 			];
 		}
 
-		$classMethodInfo = extractMethodInfo($routeName, $methodFunction, $isOCS);
+		$classMethodInfo = extractMethodInfo($routeName, $methodFunction, $isOCS, $isAdmin);
 		if (count($classMethodInfo->returns) > 0) {
 			throw new Exception($routeName . ": Returns an invalid response");
 		}
@@ -598,7 +597,7 @@ if (!$openapi->validate()) {
 	throw new Exception("Invalid OpenAPI spec generated. Please review the output!");
 }
 
-function extractMethodInfo(string $context, ClassMethod $method, bool $isOCS = false): ClassMethodInfo {
+function extractMethodInfo(string $context, ClassMethod $method, bool $isOCS, bool $isAdmin): ClassMethodInfo {
 	global $phpDocParser, $lexer, $allowMissingDocs;
 
 	$parameters = [];
@@ -699,6 +698,10 @@ function extractMethodInfo(string $context, ClassMethod $method, bool $isOCS = f
 
 	if (!$allowMissingDocs && count($methodDescription) == 0) {
 		throw new Exception($context . ": Missing method description");
+	}
+
+	if ($isAdmin) {
+		$methodDescription[] = "This endpoint requires admin access";
 	}
 
 	if (count($methodDescription) == 1) {
