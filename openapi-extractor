@@ -709,6 +709,10 @@ function extractMethodInfo(string $context, ClassMethod $method, bool $isOCS = f
 		$methodDescription = array_slice($methodDescription, 1);
 	}
 
+	if (preg_match("/[.,!?:-]$/", $methodSummary)) {
+		throw new Exception($context . ": Summary ends with a punctuation mark");
+	}
+
 	return new ClassMethodInfo($parameters, array_values($responses), $returns, $responseDescriptions, $methodDescription, $methodSummary);
 }
 
