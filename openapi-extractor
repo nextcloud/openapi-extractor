@@ -776,6 +776,14 @@ function resolveReturnType(string $context, &$responses, &$returns, $responseDes
 			$isOCS,
 			["Location" => new OpenApiType(type: "string")],
 		);
+	} else if ($type instanceof IdentifierTypeNode && $type->name == "NotFoundResponse") {
+		$responses[] = new ClassMethodResponse(
+			404,
+			"text/html",
+			new OpenApiType(type: "string"),
+			$isOCS,
+			null,
+		);
 	} else if ($type instanceof IdentifierTypeNode && $type->name == "void") {
 		$responses[] = null;
 	} else if ($type instanceof GenericTypeNode && $type->type->name == "DataDownloadResponse") {
