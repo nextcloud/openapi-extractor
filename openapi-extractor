@@ -269,6 +269,7 @@ foreach ($parsedRoutes as $key => $value) {
 					$methodFunction = $classMethod;
 					$isOCS = $controllerClass->extends != "Controller" && $controllerClass->extends != "ApiController";
 					$isAdmin = !str_contains($doc, "@NoAdminRequired") && !str_contains($doc, "@PublicPage");
+					$isDeprecated = str_contains($doc, "@deprecated");
 					break;
 				}
 			}
@@ -295,7 +296,7 @@ foreach ($parsedRoutes as $key => $value) {
 			];
 		}
 
-		$classMethodInfo = extractMethodInfo($routeName, $methodFunction, $isOCS, $isAdmin);
+		$classMethodInfo = extractMethodInfo($routeName, $methodFunction, $isOCS, $isAdmin, $isDeprecated);
 		if (count($classMethodInfo->returns) > 0) {
 			throw new Exception($routeName . ": Returns an invalid response");
 		}
@@ -512,6 +513,7 @@ foreach ($routes as $route) {
 		$useTags ? ["tags" => [$route->tag]] : [],
 		$route->classMethodInfo->summary != null ? ["summary" => $route->classMethodInfo->summary] : [],
 		count($route->classMethodInfo->description) > 0 ? ["description" => implode("\n", $route->classMethodInfo->description)] : [],
+		$route->classMethodInfo->isDeprecated ? ["deprecated" => true] : [],
 		count($queryParameters) > 0 ? [
 			"parameters" => array_map(fn(ClassMethodParameter $parameter) => new Parameter(array_merge(
 				[
@@ -597,7 +599,7 @@ if (!$openapi->validate()) {
 	throw new Exception("Invalid OpenAPI spec generated. Please review the output!");
 }
 
-function extractMethodInfo(string $context, ClassMethod $method, bool $isOCS, bool $isAdmin): ClassMethodInfo {
+function extractMethodInfo(string $context, ClassMethod $method, bool $isOCS, bool $isAdmin, bool $isDeprecated): ClassMethodInfo {
 	global $phpDocParser, $lexer, $allowMissingDocs;
 
 	$parameters = [];
@@ -716,7 +718,7 @@ function extractMethodInfo(string $context, ClassMethod $method, bool $isOCS, bo
 		throw new Exception($context . ": Summary ends with a punctuation mark");
 	}
 
-	return new ClassMethodInfo($parameters, array_values($responses), $returns, $responseDescriptions, $methodDescription, $methodSummary);
+	return new ClassMethodInfo($parameters, array_values($responses), $returns, $responseDescriptions, $methodDescription, $methodSummary, $isDeprecated);
 }
 
 function resolveReturnType(string $context, &$responses, &$returns, $responseDescriptions, TypeNode $type): void {
@@ -830,7 +832,7 @@ class ClassMethodInfo {
 	 * @param array<int, string> $responseDescription
 	 * @param string[] $description
 	 */
-	public function __construct(public array $parameters, public array $responses, public array $returns, public array $responseDescription, public array $description, public ?string $summary) {
+	public function __construct(public array $parameters, public array $responses, public array $returns, public array $responseDescription, public array $description, public ?string $summary, public bool $isDeprecated) {
 	}
 }
 
