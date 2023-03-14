@@ -175,10 +175,13 @@ if (file_exists($definitionsPath)) {
 					if (!str_starts_with($docNode->value->alias, $readableAppID)) {
 						throw new Exception("Type alias '" . $docNode->value->alias . "' has to start with '" . $readableAppID . "'");
 					}
-					$definitions[$docNode->value->alias] = resolveOpenApiType("Response definitions", $docNode->value->type)->toSchema();
+					$definitions[$docNode->value->alias] = $docNode->value->type;
 				}
 			}
 		}
+	}
+	foreach (array_keys($definitions) as $name) {
+		$definitions[$name] = resolveOpenApiType("Response definitions", $definitions[$name])->toSchema();
 	}
 } else {
 	print_r("No response definitions were loaded\n");
