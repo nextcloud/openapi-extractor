@@ -267,7 +267,7 @@ foreach ($parsedRoutes as $key => $value) {
 				$doc = $classMethod->getDocComment()?->getText();
 				if ($controllerClass->extends != "Controller" || ($doc != null && str_contains($doc, "@NoCSRFRequired"))) {
 					$methodFunction = $classMethod;
-					$isOCS = $controllerClass->extends != "Controller";
+					$isOCS = $controllerClass->extends != "Controller" && $controllerClass->extends != "ApiController";
 					$isAdmin = !str_contains($doc, "@NoAdminRequired") && !str_contains($doc, "@PublicPage");
 					break;
 				}
