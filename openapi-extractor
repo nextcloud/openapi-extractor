@@ -526,25 +526,54 @@ foreach ($routes as $route) {
 			)), $queryParameters),
 		] : []),
 	);
+	$path = $openapi->paths->getPath($route->url);
+	$alreadyDefined = false;
 	switch ($route->verb) {
 		case "DELETE":
-			$openapi->paths->getPath($route->url)->delete = $operation;
+			if ($path->delete == null) {
+				$path->delete = $operation;
+			} else {
+				$alreadyDefined = true;
+			}
 			break;
 		case "GET":
-			$openapi->paths->getPath($route->url)->get = $operation;
+			if ($path->get == null) {
+				$path->get = $operation;
+			} else {
+				$alreadyDefined = true;
+			}
 			break;
 		case "POST":
-			$openapi->paths->getPath($route->url)->post = $operation;
+			if ($path->post == null) {
+				$path->post = $operation;
+			} else {
+				$alreadyDefined = true;
+			}
 			break;
 		case "PUT":
-			$openapi->paths->getPath($route->url)->put = $operation;
+			if ($path->put == null) {
+				$path->put = $operation;
+			} else {
+				$alreadyDefined = true;
+			}
 			break;
 		case "PATCH":
-			$openapi->paths->getPath($route->url)->patch = $operation;
+			if ($path->patch == null) {
+				$path->patch = $operation;
+			} else {
+				$alreadyDefined = true;
+			}
 			break;
 		case "OPTIONS":
-			$openapi->paths->getPath($route->url)->options = $operation;
+			if ($path->options == null) {
+				$path->options = $operation;
+			} else {
+				$alreadyDefined = true;
+			}
 			break;
+	}
+	if ($alreadyDefined) {
+		throw new Exception($route->name . ": Operation '" . $route->verb . "' already set for path '" . $route->url . "'");
 	}
 }
 
