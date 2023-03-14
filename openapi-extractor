@@ -187,10 +187,6 @@ if (file_exists($definitionsPath)) {
 $parsedRoutes = parseRoutes(join("/", $appIsCore ? [$dir, "routes.php"] : [$dir, "appinfo", "routes.php"]));
 $seenRouteNames = [];
 
-if (array_key_exists("routes", $parsedRoutes) && array_key_exists("ocs", $parsedRoutes)) {
-	$parsedRoutes = ["ocs" => $parsedRoutes["ocs"]];
-}
-
 foreach ($parsedRoutes as $key => $value) {
 	if ($key != "routes" && $key != "ocs") {
 		continue;
