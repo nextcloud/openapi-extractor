@@ -260,6 +260,7 @@ foreach ($parsedRoutes as $key => $value) {
 		$methodFunction = null;
 		$isOCS = false;
 		$isAdmin = true;
+		$isIgnored = false;
 		/** @var ClassMethod $classMethod */
 		foreach ($nodeFinder->findInstanceOf($controllerClass->stmts, ClassMethod::class) as $classMethod) {
 			if ($classMethod->name == $methodName) {
@@ -269,11 +270,12 @@ foreach ($parsedRoutes as $key => $value) {
 					$isOCS = $controllerClass->extends != "Controller" && $controllerClass->extends != "ApiController";
 					$isAdmin = !str_contains($doc, "@NoAdminRequired") && !str_contains($doc, "@PublicPage");
 					$isDeprecated = str_contains($doc, "@deprecated");
+					$isIgnored = str_contains($doc, "@IgnoreAPI");
 					break;
 				}
 			}
 		}
-		if ($methodFunction == null) {
+		if ($methodFunction == null || $isIgnored) {
 			print_r($routeName . ": Route ignored\n");
 			continue;
 		}
