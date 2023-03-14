@@ -60,7 +60,7 @@ use PHPStan\PhpDocParser\Parser\PhpDocParser;
 use PHPStan\PhpDocParser\Parser\TokenIterator;
 use PHPStan\PhpDocParser\Parser\TypeParser;
 
-$responseTypePrefixes = ["JSON", "Data", "FileDisplay", "DataDisplay", "Redirect", "Template", "DataDownload"];
+$responseTypePrefixes = ["", "JSON", "Data", "FileDisplay", "DataDisplay", "Redirect", "Template", "DataDownload"];
 $responseTypes = [];
 foreach ($responseTypePrefixes as $responseTypePrefix) {
 	$responseTypes[] = $responseTypePrefix . "Response";
@@ -796,10 +796,15 @@ function resolveReturnType(string $context, &$responses, &$returns, $responseDes
 			null,
 		);
 	} else if ($type instanceof GenericTypeNode && in_array($type->type->name, $responseTypes)) {
-		if ($type->type->name == "FileDisplayResponse" || $type->type->name == "DataDisplayResponse" || $type->type->name == "TemplateResponse") {
+		if ($type->type->name == "Response" || $type->type->name == "FileDisplayResponse" || $type->type->name == "DataDisplayResponse" || $type->type->name == "TemplateResponse") {
 			$statusCodeNode = $type->genericTypes[0];
-			$realType = new OpenApiType(type: "string", format: $type->type->name == "FileDisplayResponse" ? "binary" : null);
-			if ($type->type->name == "TemplateResponse") {
+			$realType = new OpenApiType(
+				type: $type->type->name == "Response" ? null : "string",
+				format: $type->type->name == "FileDisplayResponse" ? "binary" : null,
+			);
+			if ($type->type->name == "Response") {
+				$contentType = null;
+			} else if ($type->type->name == "TemplateResponse") {
 				$contentType = "text/html";
 			} else {
 				// TODO: This is really annoying, because we need to match any content type since it's not possible to know which one will be returned
