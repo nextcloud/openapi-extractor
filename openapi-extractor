@@ -164,7 +164,7 @@ $schemas = [];
 $tags = [];
 
 $definitions = [];
-$definitionsPath = join("/", [$dir, "lib", "ResponseDefinitions.php"]);
+$definitionsPath = join("/", $appIsCore ? [$dir, "ResponseDefinitions.php"] : [$dir, "lib", "ResponseDefinitions.php"]);
 if (file_exists($definitionsPath)) {
 	foreach ($nodeFinder->findInstanceOf(loadAST($definitionsPath), Class_::class) as $node) {
 		$doc = $node->getDocComment()?->getText();
