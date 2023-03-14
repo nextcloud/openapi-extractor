@@ -479,7 +479,7 @@ foreach ($routes as $route) {
 		$mergedResponses[$statusCode] = new Response(
 			array_merge(
 				[
-					"description" => array_key_exists($statusCode, $route->classMethodInfo->responseDescription) != null ? $route->classMethodInfo->responseDescription[$statusCode] : "",
+					"description" => array_key_exists($statusCode, $route->classMethodInfo->responseDescription) ? $route->classMethodInfo->responseDescription[$statusCode] : "",
 				],
 				count($mergedContentTypeResponses) > 0 ? [
 					"content" => $mergedContentTypeResponses,
@@ -519,7 +519,7 @@ foreach ($routes as $route) {
 					"in" => "query",
 					"schema" => $parameter->type->toSchema(true),
 				],
-				!$parameter->type->nullable && $parameter->type->defaultValue == null ? ["required" => true] : [],
+				!$parameter->type->nullable && $parameter->type->defaultValue === null ? ["required" => true] : [],
 				$parameter->docParameter != null && $parameter->docParameter->description != "" ? ["description" => cleanDocComment($parameter->docParameter->description)] : [],
 			)), $queryParameters),
 		] : []),
@@ -1031,7 +1031,7 @@ class OpenApiType {
 			$this->ref != null ? ["\$ref" => $this->ref] : [],
 			$this->type != null ? ["type" => $isParameter && $this->type == "boolean" ? "integer" : $this->type] : [],
 			$this->format != null ? ["format" => $this->format] : [],
-			$this->defaultValue != null ? ["default" => $isParameter && $this->type == "boolean" ? $this->defaultValue == "true" ? 1 : 0 : $this->defaultValue] : [],
+			$this->defaultValue !== null ? ["default" => $isParameter && $this->type == "boolean" ? $this->defaultValue == "true" ? 1 : 0 : $this->defaultValue] : [],
 			$this->items != null ? ["items" => $this->items->toSchema($isParameter)] : [],
 			$this->properties != null ? ["properties" =>
 				array_combine(array_keys($this->properties),
