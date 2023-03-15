@@ -39,6 +39,7 @@ use PhpParser\NodeAbstract;
 use PhpParser\NodeFinder;
 use PhpParser\ParserFactory;
 use PHPStan\PhpDocParser\Ast\ConstExpr\ConstExprStringNode;
+use PHPStan\PhpDocParser\Ast\ConstExpr\ConstFetchNode;
 use PHPStan\PhpDocParser\Ast\PhpDoc\ParamTagValueNode;
 use PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocTagNode;
 use PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocTextNode;
@@ -181,7 +182,7 @@ if (file_exists($definitionsPath)) {
 		}
 	}
 	foreach (array_keys($definitions) as $name) {
-		$definitions[$name] = resolveOpenApiType("Response definitions", $definitions[$name])->toSchema();
+		$schemas[cleanSchemaName($name)] = resolveOpenApiType("Response definitions", $definitions[$name])->toSchema();
 	}
 } else {
 	print_r("No response definitions were loaded\n");
@@ -1013,7 +1014,7 @@ function exprToString(string $context, null|Expr $expr): mixed {
 }
 
 function resolveIdentifier(string $context, string $name): OpenApiType {
-	global $openapi, $definitions, $schemas, $dir, $readableAppID;
+	global $definitions;
 	return match ($name) {
 		"string" => new OpenApiType(type: "string", nullable: false),
 		"non-empty-string" => new OpenApiType(type: "string", nullable: false, minLength: 1),
@@ -1024,19 +1025,20 @@ function resolveIdentifier(string $context, string $name): OpenApiType {
 		"array" => new OpenApiType(type: "object", nullable: false),
 		"object" => new OpenApiType(type: "object", nullable: false, additionalProperties: true),
 		"null" => new OpenApiType(nullable: true),
-		default => (function () use ($context, $dir, $definitions, &$schemas, $openapi, $name, $readableAppID) {
+		default => (function () use ($context, $definitions, $name) {
 			if (array_key_exists($name, $definitions)) {
-				$cleanedName = str_replace($readableAppID, "", $name);
-				if (!array_key_exists($cleanedName, $schemas)) {
-					$schemas[$cleanedName] = $definitions[$name];
-				}
 				return new OpenApiType(
-					ref: "#/components/schemas/" . $cleanedName,
+					ref: "#/components/schemas/" . cleanSchemaName($name),
 				);
 			}
 			throw new Exception($context . ": Unable to resolve OpenAPI type for identifier '" . $name . "'");
 		})(),
 	};
+}
+
+function cleanSchemaName(string $name): string {
+    global $readableAppID;
+    return substr($name, strlen($readableAppID));
 }
 
 function resolveOpenApiType(string $context, ParamTagValueNode|NodeAbstract|TypeNode $node): OpenApiType {
