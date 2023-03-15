@@ -276,7 +276,9 @@ foreach ($parsedRoutes as $key => $value) {
 			}
 		}
 		if ($methodFunction == null || $isIgnored) {
-			print_r($routeName . ": Route ignored\n");
+			if (!$isIgnored) {
+				print_r($routeName . ": Route ignored\n");
+			}
 			continue;
 		}
 
