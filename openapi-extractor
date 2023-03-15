@@ -690,7 +690,7 @@ function extractMethodInfo(string $context, ClassMethod $method, bool $isOCS, bo
 				if ($docNode->value instanceof ReturnTagValueNode) {
 					$type = $docNode->value->type;
 
-					resolveReturnType($context, $responses, $returns, $responseDescriptions, $type);
+					$responses = array_merge($responses, resolveReturnTypes($context, $type));
 				}
 
 				if ($docNode->value instanceof ThrowsTagValueNode) {
@@ -767,7 +767,11 @@ function extractMethodInfo(string $context, ClassMethod $method, bool $isOCS, bo
 	return new ClassMethodInfo($parameters, array_values($responses), $returns, $responseDescriptions, $methodDescription, $methodSummary, $isDeprecated);
 }
 
-function resolveReturnType(string $context, &$responses, &$returns, $responseDescriptions, TypeNode $type): void {
+/**
+ * @return ClassMethodResponse[]
+ */
+function resolveReturnTypes(string $context, TypeNode $type): array {
+	$responses = [];
 	global $responseTypes, $isOCS;
 	if ($type instanceof IdentifierTypeNode && $type->name == "RedirectResponse") {
 		$responses[] = new ClassMethodResponse(
@@ -839,11 +843,13 @@ function resolveReturnType(string $context, &$responses, &$returns, $responseDes
 		}
 	} else if ($type instanceof UnionTypeNode) {
 		foreach ($type->types as $subType) {
-			resolveReturnType($context, $responses, $returns, $responseDescriptions, $subType);
+			$responses = array_merge($responses, resolveReturnTypes($context, $subType));
 		}
 	} else {
 		throw new Exception($context . ": Invalid return type '" . $type . "'");
 	}
+
+	return $responses;
 }
 
 function statusEnumToCode(string $context, string $name): int {
