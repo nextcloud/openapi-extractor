@@ -16,10 +16,10 @@ use cebe\openapi\spec\Schema;
 use cebe\openapi\spec\SecurityRequirement;
 use cebe\openapi\spec\Tag;
 use cebe\openapi\Writer;
+use PhpParser\Node\Arg;
 use PhpParser\Node\Expr;
 use PhpParser\Node\Expr\Array_;
 use PhpParser\Node\Expr\ArrayItem;
-use PhpParser\Node\Expr\ClassConstFetch;
 use PhpParser\Node\Expr\ConstFetch;
 use PhpParser\Node\Expr\New_;
 use PhpParser\Node\Expr\UnaryMinus;
@@ -309,14 +309,9 @@ foreach ($parsedRoutes as $key => $value) {
 		/* @var $returnStatement Return_ */
 		foreach ($nodeFinder->findInstanceOf($methodFunction->stmts, Return_::class) as $returnStatement) {
 			if ($returnStatement->expr instanceof New_ && $returnStatement->expr->class instanceof Name && in_array($returnStatement->expr->class->getLast(), $responseTypes)) {
-				if (count($returnStatement->expr->args) >= 2) {
-					if ($returnStatement->expr->args[1]->value instanceof ClassConstFetch) {
-						$codeStatusCodes[] = statusEnumToCode($routeName, $returnStatement->expr->args[1]->value->name->name);
-					} else {
-						print_r($routeName . ": Return statement could not be understood\n");
-					}
-				} else {
-					$codeStatusCodes[] = 200;
+				$responses = resolveReturnTypes($routeName, $returnStatement->expr);
+				foreach ($responses as $response) {
+					$codeStatusCodes[] = $response->statusCode;
 				}
 			}
 		}
@@ -337,7 +332,7 @@ foreach ($parsedRoutes as $key => $value) {
 		$missingCodeStatusCodes = array_unique(array_diff($docStatusCodes, $codeStatusCodes));
 
 		if (count($missingDocStatusCodes) > 0) {
-			print_r($routeName . ": Returns undocumented status codes: " . implode(", ", $missingDocStatusCodes) . "\n");
+			throw new Exception($routeName . ": Returns undocumented status codes: " . implode(", ", $missingDocStatusCodes) . "\n");
 		}
 		if (count($missingCodeStatusCodes) > 0) {
 			print_r($routeName . ": Documents status codes which are never returned: " . implode(", ", $missingCodeStatusCodes) . "\n");
@@ -770,10 +765,33 @@ function extractMethodInfo(string $context, ClassMethod $method, bool $isOCS, bo
 /**
  * @return ClassMethodResponse[]
  */
-function resolveReturnTypes(string $context, TypeNode $type): array {
-	$responses = [];
+function resolveReturnTypes(string $context, TypeNode|New_ $type): array {
 	global $responseTypes, $isOCS;
-	if ($type instanceof IdentifierTypeNode && $type->name == "RedirectResponse") {
+
+	$responses = [];
+	if ($type instanceof UnionTypeNode) {
+		foreach ($type->types as $subType) {
+			$responses = array_merge($responses, resolveReturnTypes($context, $subType));
+		}
+		return $responses;
+	}
+
+	if ($type instanceof IdentifierTypeNode) {
+		$className = $type->name;
+		$args = [];
+	} else if ($type instanceof GenericTypeNode) {
+		$className = $type->type->name;
+		$args = $type->genericTypes;
+	} else if ($type instanceof New_) {
+		$className = $type->class->getLast();
+		$args = $type->args;
+	} else {
+		throw new Exception($context . ": Failed to get class name for " . $type);
+	}
+
+	if ($className == "void") {
+		$responses[] = null;
+	} else if ($className == "RedirectResponse") {
 		$responses[] = new ClassMethodResponse(
 			303,
 			null,
@@ -781,7 +799,7 @@ function resolveReturnTypes(string $context, TypeNode $type): array {
 			$isOCS,
 			["Location" => new OpenApiType(type: "string")],
 		);
-	} else if ($type instanceof IdentifierTypeNode && $type->name == "NotFoundResponse") {
+	} else if ($className == "NotFoundResponse") {
 		$responses[] = new ClassMethodResponse(
 			404,
 			"text/html",
@@ -789,48 +807,43 @@ function resolveReturnTypes(string $context, TypeNode $type): array {
 			$isOCS,
 			null,
 		);
-	} else if ($type instanceof IdentifierTypeNode && $type->name == "void") {
-		$responses[] = null;
-	} else if ($type instanceof GenericTypeNode && $type->type->name == "DataDownloadResponse") {
+	} else if ($className == "DataDownloadResponse") {
 		$responses[] = new ClassMethodResponse(
 			200,
-			$type->genericTypes[0]->constExpr->value,
+			$type instanceof TypeNode && $args[0] instanceof Expr\ClassConstFetch ? $args[0]->constExpr->value : null,
 			new OpenApiType(type: "string"),
 			$isOCS,
 			null,
 		);
-	} else if ($type instanceof GenericTypeNode && in_array($type->type->name, $responseTypes)) {
-		if ($type->type->name == "Response" || $type->type->name == "FileDisplayResponse" || $type->type->name == "DataDisplayResponse" || $type->type->name == "TemplateResponse") {
-			$statusCodeNode = $type->genericTypes[0];
+	} else if (in_array($className, $responseTypes)) {
+		$statusCodes = [];
+		if (in_array($className, ["Response", "FileDisplayResponse", "DataDisplayResponse", "TemplateResponse"])) {
+			if ($type instanceof New_) {
+				if (in_array($className, ["FileDisplayResponse", "DataDisplayResponse"])) {
+					$statusCodes = resolveStatusCodesForArg($context, $type, $args, 1);
+				}
+			} else {
+				$statusCodes = resolveStatusCodes($context, $args[0]);
+			}
 			$realType = new OpenApiType(
-				type: $type->type->name == "Response" ? null : "string",
-				format: $type->type->name == "FileDisplayResponse" ? "binary" : null,
+				type: $className == "Response" ? null : "string",
+				format: $className == "FileDisplayResponse" ? "binary" : null,
 			);
-			if ($type->type->name == "Response") {
+			if ($className == "Response") {
 				$contentType = null;
-			} else if ($type->type->name == "TemplateResponse") {
+			} else if ($className == "TemplateResponse") {
 				$contentType = "text/html";
 			} else {
 				// TODO: This is really annoying, because we need to match any content type since it's not possible to know which one will be returned
 				$contentType = "*/*";
 			}
 		} else {
-			if (count($type->genericTypes) != 2) {
-				throw new Exception($context . ": '" . $type->type->name . "' needs two parameters");
+			if ($type instanceof TypeNode && count($args) != 2) {
+				throw new Exception($context . ": '" . $className . "' needs two parameters");
 			}
-			$statusCodeNode = $type->genericTypes[1];
-			$realType = resolveOpenApiType($context, $type->genericTypes[0]);
+			$statusCodes = resolveStatusCodesForArg($context, $type, $args, 1);
+			$realType = $type instanceof New_ ? null : resolveOpenApiType($context, $args[0]);
 			$contentType = "application/json";
-		}
-		$statusCodes = [];
-		$statusCodeNodes = [];
-		if ($statusCodeNode instanceof UnionTypeNode) {
-			$statusCodeNodes = $statusCodeNode->types;
-		} else {
-			$statusCodeNodes[] = $statusCodeNode;
-		}
-		foreach ($statusCodeNodes as $node) {
-			$statusCodes[] = statusEnumToCode($context, $node->constExpr->name);
 		}
 		foreach ($statusCodes as $statusCode) {
 			$responses[] = new ClassMethodResponse(
@@ -841,15 +854,49 @@ function resolveReturnTypes(string $context, TypeNode $type): array {
 				null,
 			);
 		}
-	} else if ($type instanceof UnionTypeNode) {
-		foreach ($type->types as $subType) {
-			$responses = array_merge($responses, resolveReturnTypes($context, $subType));
-		}
 	} else {
 		throw new Exception($context . ": Invalid return type '" . $type . "'");
 	}
 
 	return $responses;
+}
+
+function resolveStatusCodesForArg(string $context, TypeNode|New_ $type, array $args, int $index) {
+	if ($type instanceof New_) {
+		if (count($args) > $index) {
+			if ($args[$index]->value instanceof Expr\ClassConstFetch) {
+				return resolveStatusCodes($context, $args[$index]);
+			}
+		} else {
+			return [200];
+		}
+	} else {
+		return resolveStatusCodes($context, $args[$index]);
+	}
+
+	return [];
+}
+
+/**
+ * @return int[]
+ */
+function resolveStatusCodes(string $context, ConstTypeNode|UnionTypeNode|Arg $type): array {
+	$statusCodes = [];
+	if ($type instanceof TypeNode) {
+		$nodes = [];
+		if ($type instanceof UnionTypeNode) {
+			$nodes = $type->types;
+		} else {
+			$nodes[] = $type;
+		}
+		foreach ($nodes as $node) {
+			$statusCodes[] = statusEnumToCode($context, $node->constExpr->name);
+		}
+	} else {
+		$statusCodes[] = statusEnumToCode($context, $type->value->name->name);
+	}
+
+	return $statusCodes;
 }
 
 function statusEnumToCode(string $context, string $name): int {
