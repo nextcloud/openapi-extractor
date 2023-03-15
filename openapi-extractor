@@ -810,9 +810,14 @@ function resolveReturnTypes(string $context, TypeNode|New_ $type): array {
 			null,
 		);
 	} else if ($className == "DataDownloadResponse") {
+		if ($type instanceof New_) {
+			$contentType = $args[2]->value->value;
+		} else {
+			$contentType = $args[0]->constExpr->value;
+		}
 		$responses[] = new ClassMethodResponse(
 			200,
-			$type instanceof TypeNode && $args[0] instanceof Expr\ClassConstFetch ? $args[0]->constExpr->value : null,
+			$contentType,
 			new OpenApiType(type: "string"),
 			$isOCS,
 			null,
