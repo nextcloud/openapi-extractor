@@ -1034,15 +1034,12 @@ class ClassMethodParameter {
 			$this->type = resolveOpenApiType($context, $methodParameter->type);
 		}
 		if ($methodParameter->default != null) {
-			$this->type->defaultValue = exprToString($context, $methodParameter->default);
+			$this->type->defaultValue = exprToValue($context, $methodParameter->default);
 		}
 	}
 }
 
-function exprToString(string $context, null|Expr $expr): mixed {
-	if ($expr == null) {
-		return null;
-	}
+function exprToValue(string $context, Expr $expr): mixed {
 	if ($expr instanceof ConstFetch) {
 		$value = $expr->name->getLast();
 		switch ($value) {
@@ -1063,10 +1060,22 @@ function exprToString(string $context, null|Expr $expr): mixed {
 		return intval($expr->value);
 	}
 	if ($expr instanceof UnaryMinus) {
-		return exprToString($context, $expr->expr);
+		return exprToValue($context, $expr->expr);
 	}
 	if ($expr instanceof Array_) {
-		return array_map(fn(ArrayItem $item) => exprToString($context, $item), $expr->items);
+		$values = array_map(fn(ArrayItem $item) => exprToValue($context, $item), $expr->items);
+		$filteredValues = array_filter($values, fn(mixed $value) => $value !== null);
+		if (count($filteredValues) != count($values)) {
+			return null;
+		}
+		return $values;
+	}
+	if ($expr instanceof ArrayItem) {
+		return exprToValue($context, $expr->value);
+	}
+	if ($expr instanceof Expr\ClassConstFetch) {
+		// Not supported
+		return null;
 	}
 
 	throw new Exception($context . ": Unable to evaluate expression '" . get_class($expr) . "'");
