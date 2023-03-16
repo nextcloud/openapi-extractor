@@ -1090,7 +1090,7 @@ function resolveIdentifier(string $context, string $name): OpenApiType {
 		"bool", "boolean" => new OpenApiType(type: "boolean", nullable: false),
 		"double" => new OpenApiType(type: "number", format: "double", nullable: false),
 		"float" => new OpenApiType(type: "number", format: "float", nullable: false),
-		"array" => new OpenApiType(type: "object", nullable: false),
+		"array", "empty" => new OpenApiType(type: "object", nullable: false),
 		"object" => new OpenApiType(type: "object", nullable: false, additionalProperties: true),
 		"null" => new OpenApiType(nullable: true),
 		default => (function () use ($context, $definitions, $name) {
@@ -1124,6 +1124,9 @@ function resolveOpenApiType(string $context, ParamTagValueNode|NodeAbstract|Type
 
 	if ($node instanceof ArrayTypeNode) {
 		return new OpenApiType(type: "array", nullable: false, items: resolveOpenApiType($context, $node->type));
+	}
+	if ($node instanceof GenericTypeNode && $node->type->name == "array" && count($node->genericTypes) == 1) {
+		return new OpenApiType(type: "array", nullable: false, items: resolveOpenApiType($context, $node->genericTypes[0]));
 	}
 
 	if ($node instanceof ArrayShapeNode) {
