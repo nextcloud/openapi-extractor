@@ -39,7 +39,6 @@ use PhpParser\NodeAbstract;
 use PhpParser\NodeFinder;
 use PhpParser\ParserFactory;
 use PHPStan\PhpDocParser\Ast\ConstExpr\ConstExprStringNode;
-use PHPStan\PhpDocParser\Ast\ConstExpr\ConstFetchNode;
 use PHPStan\PhpDocParser\Ast\PhpDoc\ParamTagValueNode;
 use PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocTagNode;
 use PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocTextNode;
@@ -631,6 +630,66 @@ class Route {
 	}
 }
 
+
+if ($appIsCore) {
+	$schemas["Status"] = new Schema([
+		"type" => "object",
+		"required" => [
+			"installed",
+			"maintenance",
+			"needsDbUpgrade",
+			"version",
+			"versionstring",
+			"edition",
+			"productname",
+			"extendedSupport"
+		],
+		"properties" => [
+			"installed" => new Schema([
+				"type" => "boolean",
+			]),
+			"maintenance" => new Schema([
+				"type" => "boolean",
+			]),
+			"needsDbUpgrade" => new Schema([
+				"type" => "boolean",
+			]),
+			"version" => new Schema([
+				"type" => "string",
+			]),
+			"versionstring" => new Schema([
+				"type" => "string",
+			]),
+			"edition" => new Schema([
+				"type" => "string",
+			]),
+			"productname" => new Schema([
+				"type" => "string",
+			]),
+			"extendedSupport" => new Schema([
+				"type" => "boolean",
+			]),
+		],
+	]);
+	$openapi->paths->addPath("/status.php", new PathItem([
+		"get" => new Operation([
+			"operationId" => "get-status",
+			"responses" => [
+				200 => new Response([
+					"description" => "Status returned",
+					"content" => [
+						"application/json" => new MediaType([
+							"schema" => new Schema([
+								"\$ref" => "#/components/schemas/Status"
+							]),
+						]),
+					],
+				]),
+			],
+		]),
+	]));
+}
+
 ksort($schemas);
 $openapi->components->schemas = $schemas;
 
@@ -1037,8 +1096,8 @@ function resolveIdentifier(string $context, string $name): OpenApiType {
 }
 
 function cleanSchemaName(string $name): string {
-    global $readableAppID;
-    return substr($name, strlen($readableAppID));
+	global $readableAppID;
+	return substr($name, strlen($readableAppID));
 }
 
 function resolveOpenApiType(string $context, ParamTagValueNode|NodeAbstract|TypeNode $node): OpenApiType {
