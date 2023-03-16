@@ -104,7 +104,6 @@ if (file_exists($infoXMLPath)) {
 
 	$appIsCore = false;
 	$appID = (string)$xml->id;
-	$appName = (string)$xml->name;
 	$appSummary = (string)$xml->summary;
 	$appVersion = (string)$xml->version;
 	$appLicence = (string)$xml->licence;
@@ -123,7 +122,6 @@ if (file_exists($infoXMLPath)) {
 
 	$appIsCore = true;
 	$appID = "core";
-	$appName = "Core";
 	$appSummary = "Core functionality of Nextcloud";
 	$appVersion = $OC_VersionString;
 	$appLicence = "agpl";
@@ -136,7 +134,7 @@ $appinfoDir = $appIsCore ? $dir : $dir . "/appinfo";
 $openapi = new OpenApi([
 	"openapi" => "3.0.3",
 	"info" => new Info([
-		"title" => $appName,
+		"title" => $appID,
 		"version" => $appVersion,
 		"description" => $appSummary,
 		"license" => [
@@ -160,7 +158,7 @@ $openapi = new OpenApi([
 	"paths" => [],
 ]);
 
-print_r("Extracting OpenAPI spec for " . $appName . " " . $appVersion . "\n");
+print_r("Extracting OpenAPI spec for " . $appID . " " . $appVersion . "\n");
 
 $schemas = [];
 $tags = [];
