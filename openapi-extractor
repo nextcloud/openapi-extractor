@@ -187,6 +187,101 @@ if (file_exists($definitionsPath)) {
 	print_r("No response definitions were loaded\n");
 }
 
+$capabilities = null;
+$publicCapabilities = null;
+$iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($sourceDir));
+foreach ($iterator as $file) {
+	$path = $file->getPathname();
+	if (!str_ends_with($path, ".php")) {
+		continue;
+	}
+	/**
+	 * @var $node Class_
+	 */
+	foreach ($nodeFinder->findInstanceOf(loadAST($path), Class_::class) as $node) {
+		$implementsCapability = count(array_filter($node->implements, fn(Name $name) => $name->getLast() == "ICapability")) > 0;
+		$implementsPublicCapability = count(array_filter($node->implements, fn(Name $name) => $name->getLast() == "IPublicCapability")) > 0;
+		if (!$implementsCapability && !$implementsPublicCapability) {
+			continue;
+		}
+
+		$capabilitiesMethod = null;
+		/** @var ClassMethod $classMethod */
+		foreach ($nodeFinder->findInstanceOf($node->stmts, ClassMethod::class) as $classMethod) {
+			if ($classMethod->name == "getCapabilities") {
+				$capabilitiesMethod = $classMethod;
+				break;
+			}
+		}
+		if ($capabilitiesMethod == null) {
+			throw new Exception($path . ": Unable to read capabilities method");
+		}
+
+		$doc = $capabilitiesMethod->getDocComment()?->getText();
+		if ($doc == null) {
+			throw new Exception($path . ": Unable to read capabilities docs");
+		}
+
+		$type = null;
+		$docNodes = $phpDocParser->parse(new TokenIterator($lexer->tokenize($doc)))->children;
+		foreach ($docNodes as $docNode) {
+			if ($docNode instanceof PhpDocTagNode && $docNode->value instanceof ReturnTagValueNode) {
+				$type = resolveOpenApiType($path, $docNode->value->type);
+				break;
+			}
+		}
+		if ($type == null) {
+			throw new Exception($path . ": No return value");
+		}
+
+		$schema = $type->toSchema();
+		if ($schema->type != "object" || $schema->properties == null || count($schema->properties) == 0) {
+			throw new Exception($path . ": Invalid capabilities");
+		}
+
+		if ($implementsPublicCapability) {
+			$publicCapabilities = $publicCapabilities == null ? $schema : mergeCapabilities($path, [$publicCapabilities, $schema]);
+		} else {
+			$capabilities = $capabilities == null ? $schema : mergeCapabilities($path, [$capabilities, $schema]);
+		}
+	}
+}
+if ($capabilities != null) {
+	$schemas["Capabilities"] = $capabilities;
+}
+if ($publicCapabilities != null) {
+	$schemas["PublicCapabilities"] = $publicCapabilities;
+}
+if ($capabilities == null && $publicCapabilities == null) {
+	print_r("No capabilities were loaded\n");
+}
+
+/**
+ * @param Schema[] $schemas
+ * @return Schema
+ */
+function mergeCapabilities(string $context, array $schemas): Schema {
+	$required = [];
+	$properties = [];
+
+	foreach ($schemas as $schema) {
+		foreach (array_keys($schema->properties) as $propertyName) {
+			if (array_key_exists($propertyName, $properties)) {
+				throw new Exception($context . ": Overlapping capabilities key '" . $propertyName . "'");
+			}
+			$properties[$propertyName] = $schema->properties[$propertyName];
+		}
+		$required = array_merge($required, $schema->required ?? []);
+	}
+
+	return new Schema(array_merge([
+		"type" => "object",
+	],
+		count($properties) > 0 ? ["properties" => $properties] : [],
+		count($required) > 0 ? ["required" => $required] : [],
+	));
+}
+
 $parsedRoutes = parseRoutes($appinfoDir . "/routes.php");
 $seenRouteNames = [];
 
