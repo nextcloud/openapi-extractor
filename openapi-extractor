@@ -97,7 +97,7 @@ $constExprParser = new ConstExprParser();
 $typeParser = new TypeParser($constExprParser);
 $phpDocParser = new PhpDocParser($typeParser, $constExprParser);
 
-$infoXMLPath = join("/", [$dir, "appinfo", "info.xml"]);
+$infoXMLPath = $dir . "/appinfo/info.xml";
 
 if (file_exists($infoXMLPath)) {
 	$xml = simplexml_load_file($infoXMLPath);
@@ -109,14 +109,14 @@ if (file_exists($infoXMLPath)) {
 	$appVersion = (string)$xml->version;
 	$appLicence = (string)$xml->licence;
 } else {
-	$versionPHPPath = join("/", [$dir, "..", "version.php"]);
+	$versionPHPPath = $dir . "/../version.php";
 
 	if (!file_exists($versionPHPPath)) {
 		throw new Exception("Neither " . $infoXMLPath . " nor " . $versionPHPPath . " exists");
 	}
 
 	// Includes https://github.com/nextcloud/server/blob/master/version.php when running inside https://github.com/nextcloud/server/tree/master/core
-	include(join("/", [$dir, "..", "version.php"]));
+	include($versionPHPPath);
 	if (!isset($OC_VersionString)) {
 		throw new Exception("Unable to figure out core version");
 	}
@@ -130,6 +130,8 @@ if (file_exists($infoXMLPath)) {
 }
 
 $readableAppID = implode("", array_map(fn(string $s) => ucfirst($s), explode("_", $appID)));
+$sourceDir = $appIsCore ? $dir : $dir . "/lib";
+$appinfoDir = $appIsCore ? $dir : $dir . "/appinfo";
 
 $openapi = new OpenApi([
 	"openapi" => "3.0.3",
@@ -164,7 +166,7 @@ $schemas = [];
 $tags = [];
 
 $definitions = [];
-$definitionsPath = join("/", $appIsCore ? [$dir, "ResponseDefinitions.php"] : [$dir, "lib", "ResponseDefinitions.php"]);
+$definitionsPath = $sourceDir . "/ResponseDefinitions.php";
 if (file_exists($definitionsPath)) {
 	foreach ($nodeFinder->findInstanceOf(loadAST($definitionsPath), Class_::class) as $node) {
 		$doc = $node->getDocComment()?->getText();
@@ -187,7 +189,7 @@ if (file_exists($definitionsPath)) {
 	print_r("No response definitions were loaded\n");
 }
 
-$parsedRoutes = parseRoutes(join("/", $appIsCore ? [$dir, "routes.php"] : [$dir, "appinfo", "routes.php"]));
+$parsedRoutes = parseRoutes($appinfoDir . "/routes.php");
 $seenRouteNames = [];
 
 foreach ($parsedRoutes as $key => $value) {
@@ -223,7 +225,7 @@ foreach ($parsedRoutes as $key => $value) {
 		$controllerName = ucfirst(str_replace("_", "", ucwords(explode("#", $routeName)[0], "_")));
 		$controllerClass = null;
 		/** @var Class_ $class */
-		foreach ($nodeFinder->findInstanceOf(loadAST(join("/", $appIsCore ? [$dir, "Controller", $controllerName . "Controller.php"] : [$dir, "lib", "Controller", $controllerName . "Controller.php"])), Class_::class) as $class) {
+		foreach ($nodeFinder->findInstanceOf(loadAST($sourceDir . "/Controller/" . $controllerName . "Controller.php"), Class_::class) as $class) {
 			if ($class->name == $controllerName . "Controller") {
 				$controllerClass = $class;
 				break;
