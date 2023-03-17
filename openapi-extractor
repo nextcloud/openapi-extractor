@@ -989,7 +989,7 @@ function resolveReturnTypes(string $context, TypeNode|New_ $type): array {
 			}
 			$realType = new OpenApiType(
 				type: $className == "Response" ? null : "string",
-				format: $className == "FileDisplayResponse" ? "binary" : null,
+				format: in_array($className, ["FileDisplayResponse", "DataDisplayResponse"]) ? "binary" : null,
 			);
 			if ($className == "Response") {
 				$contentType = null;
