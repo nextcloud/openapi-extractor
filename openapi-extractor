@@ -1174,7 +1174,7 @@ function exprToValue(string $context, Expr $expr): mixed {
 	if ($expr instanceof ArrayItem) {
 		return exprToValue($context, $expr->value);
 	}
-	if ($expr instanceof Expr\ClassConstFetch) {
+	if ($expr instanceof Expr\ClassConstFetch || $expr instanceof Expr\BinaryOp) {
 		// Not supported
 		return null;
 	}
