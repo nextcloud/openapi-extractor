@@ -62,7 +62,7 @@ use PHPStan\PhpDocParser\Parser\TypeParser;
 use function OpenAPIExtractor\generateReadableAppID;
 use function OpenAPIExtractor\jsonFlags;
 
-$responseTypePrefixes = ["", "JSON", "Data", "FileDisplay", "DataDisplay", "Redirect", "Template", "DataDownload"];
+$responseTypePrefixes = ["", "JSON", "Data", "FileDisplay", "DataDisplay", "Redirect", "Template", "DataDownload", "Stream"];
 $responseTypes = [];
 foreach ($responseTypePrefixes as $responseTypePrefix) {
 	$responseTypes[] = $responseTypePrefix . "Response";
@@ -982,9 +982,10 @@ function resolveReturnTypes(string $context, TypeNode|New_ $type): array {
 		);
 	} else if (in_array($className, $responseTypes)) {
 		$statusCodes = [];
-		if (in_array($className, ["Response", "FileDisplayResponse", "DataDisplayResponse", "TemplateResponse"])) {
+		if (in_array($className, ["Response", "FileDisplayResponse", "DataDisplayResponse", "TemplateResponse", "StreamResponse"])) {
+			$isRawResponse = in_array($className, ["FileDisplayResponse", "DataDisplayResponse", "StreamResponse"]);
 			if ($type instanceof New_) {
-				if (in_array($className, ["FileDisplayResponse", "DataDisplayResponse"])) {
+				if ($isRawResponse) {
 					$statusCodes = resolveStatusCodesForArg($context, $type, $args, 1);
 				}
 			} else {
@@ -995,7 +996,7 @@ function resolveReturnTypes(string $context, TypeNode|New_ $type): array {
 			}
 			$realType = new OpenApiType(
 				type: $className == "Response" ? null : "string",
-				format: in_array($className, ["FileDisplayResponse", "DataDisplayResponse"]) ? "binary" : null,
+				format: $isRawResponse ? "binary" : null,
 			);
 			if ($className == "Response") {
 				$contentType = null;
