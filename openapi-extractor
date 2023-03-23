@@ -4,6 +4,7 @@
 require_once __DIR__ . "/vendor/autoload.php";
 
 use Ahc\Cli\Input\Command;
+use cebe\openapi\exceptions\TypeErrorException;
 use cebe\openapi\spec\Header;
 use cebe\openapi\spec\Info;
 use cebe\openapi\spec\MediaType;
@@ -77,8 +78,8 @@ $command
 	->option('--no-tags', 'Use no tags')
 	->parse($_SERVER["argv"]);
 
-$dir = $command->dir;
-$out = $command->out;
+$dir = $command->dir ?? "";
+$out = $command->out ?? "";
 $firstStatusCode = $command->firstStatusCode ?? false;
 $firstContentType = $command->firstContentType ?? false;
 $allowMissingDocs = $command->allowMissingDocs ?? false;
@@ -259,8 +260,10 @@ if ($capabilities == null && $publicCapabilities == null) {
 }
 
 /**
+ * @param string $context
  * @param Schema[] $schemas
  * @return Schema
+ * @throws TypeErrorException
  */
 function mergeCapabilities(string $context, array $schemas): Schema {
 	$required = [];
@@ -285,7 +288,6 @@ function mergeCapabilities(string $context, array $schemas): Schema {
 }
 
 $parsedRoutes = parseRoutes($appinfoDir . "/routes.php");
-$seenRouteNames = [];
 
 $routes = [];
 foreach ($parsedRoutes as $key => $value) {
@@ -358,6 +360,7 @@ foreach ($parsedRoutes as $key => $value) {
 		$methodFunction = null;
 		$isOCS = false;
 		$isAdmin = true;
+		$isDeprecated = false;
 		$isIgnored = false;
 		/** @var ClassMethod $classMethod */
 		foreach ($nodeFinder->findInstanceOf($controllerClass->stmts, ClassMethod::class) as $classMethod) {
@@ -923,7 +926,10 @@ function extractMethodInfo(string $context, ClassMethod $method, bool $isOCS, bo
 }
 
 /**
+ * @param string $context
+ * @param TypeNode|New_ $type
  * @return ClassMethodResponse[]
+ * @throws Exception
  */
 function resolveReturnTypes(string $context, TypeNode|New_ $type): array {
 	global $responseTypes, $isOCS;
@@ -1030,7 +1036,7 @@ function resolveReturnTypes(string $context, TypeNode|New_ $type): array {
 	return $responses;
 }
 
-function resolveStatusCodesForArg(string $context, TypeNode|New_ $type, array $args, int $index) {
+function resolveStatusCodesForArg(string $context, TypeNode|New_ $type, array $args, int $index): array {
 	if ($type instanceof New_) {
 		if (count($args) > $index) {
 			if ($args[$index]->value instanceof Expr\ClassConstFetch) {
@@ -1047,7 +1053,10 @@ function resolveStatusCodesForArg(string $context, TypeNode|New_ $type, array $a
 }
 
 /**
+ * @param string $context
+ * @param ConstTypeNode|UnionTypeNode|Arg $type
  * @return int[]
+ * @throws Exception
  */
 function resolveStatusCodes(string $context, ConstTypeNode|UnionTypeNode|Arg $type): array {
 	$statusCodes = [];
@@ -1144,16 +1153,12 @@ class ClassMethodParameter {
 function exprToValue(string $context, Expr $expr): mixed {
 	if ($expr instanceof ConstFetch) {
 		$value = $expr->name->getLast();
-		switch ($value) {
-			case "null":
-				return null;
-			case "true":
-				return true;
-			case "false":
-				return false;
-			default:
-				throw new Exception($context . ": Unable to evaluate constant value '" . $value . "'");
-		}
+		return match ($value) {
+			"null" => null,
+			"true" => true,
+			"false" => false,
+			default => throw new Exception($context . ": Unable to evaluate constant value '" . $value . "'"),
+		};
 	}
 	if ($expr instanceof String_) {
 		return $expr->value;
