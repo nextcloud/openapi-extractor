@@ -400,7 +400,7 @@ foreach ($parsedRoutes as $key => $value) {
 			];
 		}
 
-		$classMethodInfo = extractMethodInfo($routeName, $methodFunction, $isOCS, $isAdmin, $isDeprecated);
+		$classMethodInfo = extractMethodInfo($routeName, $methodFunction, $isAdmin, $isDeprecated);
 		if (count($classMethodInfo->returns) > 0) {
 			throw new Exception($routeName . ": Returns an invalid response");
 		}
@@ -451,6 +451,7 @@ foreach ($parsedRoutes as $key => $value) {
 			$url,
 			$requirements,
 			$classMethodInfo,
+			$isOCS,
 		);
 	}
 }
@@ -581,7 +582,7 @@ foreach ($routes as $route) {
 					$mergedContentTypeResponses[$contentType] = new MediaType([]);
 				} else {
 					$schema = $contentTypeResponses[0]->type->toSchema();
-					$mergedContentTypeResponses[$contentType] = new MediaType(["schema" => $uniqueResponses[0]->isOCS ? wrapOCSResponse($schema) : $schema]);
+					$mergedContentTypeResponses[$contentType] = new MediaType(["schema" => $route->isOCS ? wrapOCSResponse($schema) : $schema]);
 				}
 			} else {
 				$mergedContentTypeResponses[$contentType] = new MediaType([
@@ -629,16 +630,27 @@ foreach ($routes as $route) {
 		$route->classMethodInfo->summary != null ? ["summary" => $route->classMethodInfo->summary] : [],
 		count($route->classMethodInfo->description) > 0 ? ["description" => implode("\n", $route->classMethodInfo->description)] : [],
 		$route->classMethodInfo->isDeprecated ? ["deprecated" => true] : [],
-		count($queryParameters) > 0 ? [
-			"parameters" => array_map(fn(ClassMethodParameter $parameter) => new Parameter(array_merge(
-				[
-					"name" => $parameter->name,
-					"in" => "query",
-					"schema" => $parameter->type->toSchema(true),
-				],
-				!$parameter->type->nullable && $parameter->type->defaultValue === null ? ["required" => true] : [],
-				$parameter->docParameter != null && $parameter->docParameter->description != "" ? ["description" => cleanDocComment($parameter->docParameter->description)] : [],
-			)), $queryParameters),
+		count($queryParameters) > 0 || $route->isOCS ? [
+			"parameters" => array_merge(
+				array_map(fn(ClassMethodParameter $parameter) => new Parameter(array_merge(
+					[
+						"name" => $parameter->name,
+						"in" => "query",
+						"schema" => $parameter->type->toSchema(true),
+					],
+					!$parameter->type->nullable && $parameter->type->defaultValue === null ? ["required" => true] : [],
+					$parameter->docParameter != null && $parameter->docParameter->description != "" ? ["description" => cleanDocComment($parameter->docParameter->description)] : [],
+				)), $queryParameters),
+				$route->isOCS ? [[
+					"name" => "OCS-APIRequest",
+					"in" => "header",
+					"required" => true,
+					"schema" => [
+						"type" => "string",
+						"default" => "true",
+					],
+				]] : [],
+			),
 		] : []),
 	);
 	$path = $openapi->paths->getPath($route->url);
@@ -727,6 +739,7 @@ class Route {
 		public string $url,
 		public array $requirements,
 		public ClassMethodInfo $classMethodInfo,
+		public bool $isOCS,
 	) {
 	}
 }
@@ -803,7 +816,7 @@ if (!$openapi->validate()) {
 	throw new Exception("Invalid OpenAPI spec generated. Please review the output!");
 }
 
-function extractMethodInfo(string $context, ClassMethod $method, bool $isOCS, bool $isAdmin, bool $isDeprecated): ClassMethodInfo {
+function extractMethodInfo(string $context, ClassMethod $method, bool $isAdmin, bool $isDeprecated): ClassMethodInfo {
 	global $phpDocParser, $lexer, $allowMissingDocs;
 
 	$parameters = [];
@@ -859,7 +872,7 @@ function extractMethodInfo(string $context, ClassMethod $method, bool $isOCS, bo
 							throw new Exception($context . ": Missing description for exception '" . $type . "'");
 						}
 						$responseDescriptions[$statusCode] = $docNode->value->description;
-						$responses[] = new ClassMethodResponse($statusCode, "text/plain", new OpenApiType(type: "string"), $isOCS, null);
+						$responses[] = new ClassMethodResponse($statusCode, "text/plain", new OpenApiType(type: "string"), null);
 					}
 				}
 			}
@@ -932,7 +945,7 @@ function extractMethodInfo(string $context, ClassMethod $method, bool $isOCS, bo
  * @throws Exception
  */
 function resolveReturnTypes(string $context, TypeNode|New_ $type): array {
-	global $responseTypes, $isOCS;
+	global $responseTypes;
 
 	$responses = [];
 	if ($type instanceof UnionTypeNode) {
@@ -962,7 +975,6 @@ function resolveReturnTypes(string $context, TypeNode|New_ $type): array {
 			303,
 			null,
 			null,
-			$isOCS,
 			["Location" => new OpenApiType(type: "string")],
 		);
 	} else if ($className == "NotFoundResponse") {
@@ -970,7 +982,6 @@ function resolveReturnTypes(string $context, TypeNode|New_ $type): array {
 			404,
 			"text/html",
 			new OpenApiType(type: "string"),
-			$isOCS,
 			null,
 		);
 	} else if ($className == "DataDownloadResponse") {
@@ -983,7 +994,6 @@ function resolveReturnTypes(string $context, TypeNode|New_ $type): array {
 			200,
 			$contentType,
 			new OpenApiType(type: "string"),
-			$isOCS,
 			null,
 		);
 	} else if (in_array($className, $responseTypes)) {
@@ -1025,7 +1035,6 @@ function resolveReturnTypes(string $context, TypeNode|New_ $type): array {
 				$statusCode,
 				$contentType,
 				$realType,
-				$isOCS,
 				null,
 			);
 		}
@@ -1130,7 +1139,7 @@ class ClassMethodResponse {
 	/**
 	 * @param array<string, OpenApiType>|null $headers
 	 */
-	public function __construct(public int $statusCode, public ?string $contentType, public ?OpenApiType $type, public bool $isOCS, public ?array $headers) {
+	public function __construct(public int $statusCode, public ?string $contentType, public ?OpenApiType $type, public ?array $headers) {
 	}
 
 }
