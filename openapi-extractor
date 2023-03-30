@@ -14,7 +14,6 @@ use cebe\openapi\spec\Parameter;
 use cebe\openapi\spec\PathItem;
 use cebe\openapi\spec\Response;
 use cebe\openapi\spec\Schema;
-use cebe\openapi\spec\SecurityRequirement;
 use cebe\openapi\spec\Tag;
 use cebe\openapi\Writer;
 use PhpParser\Node\Arg;
@@ -62,6 +61,8 @@ use PHPStan\PhpDocParser\Parser\TokenIterator;
 use PHPStan\PhpDocParser\Parser\TypeParser;
 use function OpenAPIExtractor\generateReadableAppID;
 use function OpenAPIExtractor\jsonFlags;
+use function OpenAPIExtractor\securityRequirements;
+use function OpenAPIExtractor\securitySchemes;
 
 $responseTypePrefixes = ["", "JSON", "Data", "FileDisplay", "DataDisplay", "Redirect", "Template", "DataDownload", "Stream"];
 $responseTypes = [];
@@ -144,18 +145,9 @@ $openapi = new OpenApi([
 			"name" => $appLicence,
 		],
 	]),
-	"security" => [
-		new SecurityRequirement([
-			"basic_auth" => [],
-		]),
-	],
+	"security" => securityRequirements(),
 	"components" => [
-		"securitySchemes" => [
-			"basic_auth" => [
-				"type" => "http",
-				"scheme" => "basic",
-			]
-		],
+		"securitySchemes" => securitySchemes(),
 		"schemas" => [],
 	],
 	"paths" => [],

@@ -6,6 +6,8 @@ require_once __DIR__ . "/vendor/autoload.php";
 use Ahc\Cli\Input\Command;
 use function OpenAPIExtractor\generateReadableAppID;
 use function OpenAPIExtractor\jsonFlags;
+use function OpenAPIExtractor\securityRequirements;
+use function OpenAPIExtractor\securitySchemes;
 
 $command = new Command("merge-specs", "Merge multiple Nextcloud OpenAPI specs into one");
 $command
@@ -41,19 +43,10 @@ $data = [
 		],
 		"version" => "0.0.1",
 	],
-	"security" => [
-		[
-			"basic_auth" => [],
-		]
-	],
+	"security" => securityRequirements(),
 	"tags" => rewriteTags($coreSpec),
 	"components" => [
-		"securitySchemes" => [
-			"basic_auth" => [
-				"type" => "http",
-				"scheme" => "basic",
-			],
-		],
+		"securitySchemes" => securitySchemes(),
 		"schemas" => rewriteSchemaNames($coreSpec),
 	],
 	"paths" => rewriteOperations($coreSpec),
