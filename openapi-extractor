@@ -1194,7 +1194,7 @@ function resolveIdentifier(string $context, string $name): OpenApiType {
 	return match ($name) {
 		"string" => new OpenApiType(type: "string", nullable: false),
 		"non-empty-string" => new OpenApiType(type: "string", nullable: false, minLength: 1),
-		"int", "integer" => new OpenApiType(type: "integer", nullable: false),
+		"int", "integer" => new OpenApiType(type: "integer", format: "int64", nullable: false),
 		"bool", "boolean" => new OpenApiType(type: "boolean", nullable: false),
 		"double" => new OpenApiType(type: "number", format: "double", nullable: false),
 		"float" => new OpenApiType(type: "number", format: "float", nullable: false),
