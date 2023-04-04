@@ -6,7 +6,6 @@ require_once __DIR__ . "/vendor/autoload.php";
 use Ahc\Cli\Input\Command;
 use function OpenAPIExtractor\generateReadableAppID;
 use function OpenAPIExtractor\jsonFlags;
-use function OpenAPIExtractor\securityRequirements;
 use function OpenAPIExtractor\securitySchemes;
 
 $command = new Command("merge-specs", "Merge multiple Nextcloud OpenAPI specs into one");
@@ -43,7 +42,14 @@ $data = [
 		],
 		"version" => "0.0.1",
 	],
-	"security" => securityRequirements(),
+	"security" => [
+		[
+			"basic_auth" => [],
+		],
+		[
+			"bearer_auth" => [],
+		],
+	],
 	"tags" => rewriteTags($coreSpec),
 	"components" => [
 		"securitySchemes" => securitySchemes(),
@@ -134,6 +140,13 @@ function rewriteOperations(array $spec): array {
 				$operation["tags"] = array_map(fn(string $tag) => $spec["info"]["title"] . "/" . $tag, $operation["tags"]);
 			} else {
 				$operation["tags"] = [$spec["info"]["title"]];
+			}
+			if (array_key_exists("security", $operation)) {
+				for ($i = 0; $i < count($operation["security"]); $i++) {
+					if (count($operation["security"][$i]) == 0) {
+						$operation["security"][$i] = new stdClass(); // When reading {} will be converted to [], so we have to fix it
+					}
+				}
 			}
 		}
 	}

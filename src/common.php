@@ -2,8 +2,6 @@
 
 namespace OpenAPIExtractor;
 
-use cebe\openapi\spec\SecurityRequirement;
-
 function generateReadableAppID(string $appID): string {
 	return implode("", array_map(fn(string $s) => ucfirst($s), explode("_", $appID)));
 }
@@ -17,17 +15,6 @@ function securitySchemes(): array {
 		"bearer_auth" => [
 			"type" => "http",
 			"scheme" => "bearer",
-		],
-	];
-}
-
-function securityRequirements(): array {
-	return [
-		[
-			"basic_auth" => [],
-		],
-		[
-			"bearer_auth" => [],
 		],
 	];
 }

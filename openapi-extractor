@@ -61,7 +61,6 @@ use PHPStan\PhpDocParser\Parser\TokenIterator;
 use PHPStan\PhpDocParser\Parser\TypeParser;
 use function OpenAPIExtractor\generateReadableAppID;
 use function OpenAPIExtractor\jsonFlags;
-use function OpenAPIExtractor\securityRequirements;
 use function OpenAPIExtractor\securitySchemes;
 
 $responseTypePrefixes = ["", "JSON", "Data", "FileDisplay", "DataDisplay", "Redirect", "Template", "DataDownload", "Stream"];
@@ -145,7 +144,6 @@ $openapi = new OpenApi([
 			"name" => $appLicence,
 		],
 	]),
-	"security" => securityRequirements(),
 	"components" => [
 		"securitySchemes" => securitySchemes(),
 		"schemas" => [],
@@ -351,6 +349,8 @@ foreach ($parsedRoutes as $key => $value) {
 
 		$methodFunction = null;
 		$isOCS = false;
+		$isCORS = false;
+		$isPublic = false;
 		$isAdmin = true;
 		$isDeprecated = false;
 		$isIgnored = false;
@@ -361,7 +361,9 @@ foreach ($parsedRoutes as $key => $value) {
 				if ($controllerClass->extends != "Controller" || ($doc != null && str_contains($doc, "@NoCSRFRequired"))) {
 					$methodFunction = $classMethod;
 					$isOCS = $controllerClass->extends != "Controller" && $controllerClass->extends != "ApiController";
-					$isAdmin = !str_contains($doc, "@NoAdminRequired") && !str_contains($doc, "@PublicPage");
+					$isCORS = str_contains($doc, "@CORS");
+					$isPublic = str_contains($doc, "@PublicPage");
+					$isAdmin = !str_contains($doc, "@NoAdminRequired") && !$isPublic;
 					$isDeprecated = str_contains($doc, "@deprecated");
 					$isIgnored = str_contains($doc, "@IgnoreAPI");
 					break;
@@ -444,6 +446,8 @@ foreach ($parsedRoutes as $key => $value) {
 			$requirements,
 			$classMethodInfo,
 			$isOCS,
+			$isCORS,
+			$isPublic,
 		);
 	}
 }
@@ -614,10 +618,23 @@ foreach ($routes as $route) {
 		$operationId[] = $route->postfix;
 	}
 
+	$security = [];
+	if ($route->isPublic) {
+		// Add empty authentication, meaning that it's optional. We can't know if there is a difference in behaviour for authenticated vs. unauthenticated access on public pages (e.g. capabilities)
+		$security[] = [];
+	}
+	if (!$route->isCORS) {
+		// Bearer auth is not allowed on CORS routes
+		$security[] = ["bearer_auth" => []];
+	}
+	// Add basic auth last, so it's only fallback if bearer is available
+	$security[] = ["basic_auth" => []];
+
 	$operation = new Operation(array_merge([
 		"operationId" => implode("-", $operationId),
 		"responses" => $mergedResponses,
 	],
+		count($security) > 0 ? ["security" => $security] : [],
 		$useTags ? ["tags" => [$route->tag]] : [],
 		$route->classMethodInfo->summary != null ? ["summary" => $route->classMethodInfo->summary] : [],
 		count($route->classMethodInfo->description) > 0 ? ["description" => implode("\n", $route->classMethodInfo->description)] : [],
@@ -732,6 +749,8 @@ class Route {
 		public array $requirements,
 		public ClassMethodInfo $classMethodInfo,
 		public bool $isOCS,
+		public bool $isCORS,
+		public bool $isPublic,
 	) {
 	}
 }
