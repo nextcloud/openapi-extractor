@@ -532,12 +532,10 @@ foreach ($routes as $route) {
 
 		$openapi->paths->addPath(
 			$route->url,
-			new PathItem([
-				"parameters" => $pathParameters,
-			]),
+			new PathItem([]),
 		);
 	} else {
-		$pathParameters = $openapi->paths->getPath($route->url)->parameters;
+		$pathParameters = [];
 	}
 
 	$queryParameters = [];
@@ -639,7 +637,7 @@ foreach ($routes as $route) {
 		$route->classMethodInfo->summary != null ? ["summary" => $route->classMethodInfo->summary] : [],
 		count($route->classMethodInfo->description) > 0 ? ["description" => implode("\n", $route->classMethodInfo->description)] : [],
 		$route->classMethodInfo->isDeprecated ? ["deprecated" => true] : [],
-		count($queryParameters) > 0 || $route->isOCS ? [
+		count($queryParameters) > 0 || count($pathParameters) > 0 || $route->isOCS ? [
 			"parameters" => array_merge(
 				array_map(fn(ClassMethodParameter $parameter) => new Parameter(array_merge(
 					[
@@ -650,6 +648,7 @@ foreach ($routes as $route) {
 					!$parameter->type->nullable && $parameter->type->defaultValue === null ? ["required" => true] : [],
 					$parameter->docParameter != null && $parameter->docParameter->description != "" ? ["description" => cleanDocComment($parameter->docParameter->description)] : [],
 				)), $queryParameters),
+				$pathParameters,
 				$route->isOCS ? [[
 					"name" => "OCS-APIRequest",
 					"in" => "header",
