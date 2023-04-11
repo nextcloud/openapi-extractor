@@ -473,34 +473,32 @@ foreach ($routes as $route) {
 			$matchingParameters = array_filter($route->classMethodInfo->parameters, function (ClassMethodParameter $param) use ($urlParameter) {
 				return $param->name == $urlParameter;
 			});
+			$requirement = array_key_exists($urlParameter, $route->requirements) ? $route->requirements[$urlParameter] : null;
 			if (count($matchingParameters) == 1) {
 				$parameter = $matchingParameters[array_keys($matchingParameters)[0]];
 				if ($parameter?->methodParameter == null && ($route->requirements == null || !array_key_exists($urlParameter, $route->requirements))) {
 					throw new Exception($route->name . ": Unable to find parameter for '" . $urlParameter . "'");
 				}
 
-				$pathParameters[] = new Parameter(array_merge(
-					[
-						"name" => $urlParameter,
-						"in" => "path",
-						"required" => true,
-						"schema" => $parameter->type->toSchema(true),
-					],
-					$parameter?->docParameter != null && $parameter->docParameter->description != "" ? ["description" => cleanDocComment($parameter->docParameter->description)] : [],
-				));
+				$schema = $parameter->type->toArray(true);
+				$description = $parameter?->docParameter != null && $parameter->docParameter->description != "" ? cleanDocComment($parameter->docParameter->description) : null;
 			} else {
-				$requirement = array_key_exists($urlParameter, $route->requirements) ? $route->requirements[$urlParameter] : null;
-				if ($requirement != null) {
-					if (!str_starts_with($requirement, "^")) {
-						$requirement = "^" . $requirement;
-					}
-					if (!str_ends_with($requirement, "$")) {
-						$requirement = $requirement . "$";
-					}
-				}
 				$schema = [
 					"type" => "string",
 				];
+				$description = null;
+			}
+
+			if ($requirement != null) {
+				if (!str_starts_with($requirement, "^")) {
+					$requirement = "^" . $requirement;
+				}
+				if (!str_ends_with($requirement, "$")) {
+					$requirement = $requirement . "$";
+				}
+			}
+
+			if ($schema["type"] == "string") {
 				if ($urlParameter == "apiVersion") {
 					if ($requirement == null) {
 						throw new Exception($route->name . ": Missing requirement for apiVersion");
@@ -519,15 +517,17 @@ foreach ($routes as $route) {
 				} else if ($requirement != null) {
 					$schema["pattern"] = $requirement;
 				}
-				$pathParameters[] = new Parameter(array_merge(
-					[
-						"name" => $urlParameter,
-						"in" => "path",
-						"required" => true,
-						"schema" => $schema,
-					],
-				));
 			}
+
+			$pathParameters[] = new Parameter(array_merge(
+				[
+					"name" => $urlParameter,
+					"in" => "path",
+					"required" => true,
+					"schema" => $schema,
+				],
+				$description != null ? ["description" => $description] : [],
+			));
 		}
 
 		$openapi->paths->addPath(
@@ -1348,36 +1348,40 @@ class OpenApiType {
 	}
 
 	public function toSchema(bool $isParameter = false): Schema {
-		return new Schema(array_merge(
+		return new Schema($this->toArray($isParameter));
+	}
+
+	public function toArray(bool $isParameter = false): array {
+		return array_merge(
 			$this->ref != null ? ["\$ref" => $this->ref] : [],
 			$this->type != null ? ["type" => $isParameter && $this->type == "boolean" ? "integer" : $this->type] : [],
 			$this->format != null ? ["format" => $this->format] : [],
 			$this->defaultValue !== null ? ["default" => $isParameter && $this->type == "boolean" ? $this->defaultValue == "true" ? 1 : 0 : $this->defaultValue] : [],
-			$this->items != null ? ["items" => $this->items->toSchema($isParameter)] : [],
+			$this->items != null ? ["items" => $this->items->toArray($isParameter)] : [],
 			$this->properties != null ? ["properties" =>
 				array_combine(array_keys($this->properties),
 					array_map(function (OpenApiType $property) use ($isParameter) {
-						return $property->toSchema($isParameter);
+						return $property->toArray($isParameter);
 					}, array_values($this->properties)),
 				)] : [],
 			$this->oneOf != null ? ["oneOf" => array_map(function (OpenApiType $type) use ($isParameter) {
-				return $type->toSchema($isParameter);
+				return $type->toArray($isParameter);
 			}, $this->oneOf)] : [],
 			$this->anyOf != null ? ["anyOf" => array_map(function (OpenApiType $type) use ($isParameter) {
-				return $type->toSchema($isParameter);
+				return $type->toArray($isParameter);
 			}, $this->anyOf)] : [],
 			$this->allOf != null ? ["allOf" => array_map(function (OpenApiType $type) use ($isParameter) {
-				return $type->toSchema($isParameter);
+				return $type->toArray($isParameter);
 			}, $this->allOf)] : [],
 			$this->additionalProperties != null ? [
-				"additionalProperties" => $this->additionalProperties instanceof OpenApiType ? $this->additionalProperties->toSchema() : $this->additionalProperties,
+				"additionalProperties" => $this->additionalProperties instanceof OpenApiType ? $this->additionalProperties->toArray() : $this->additionalProperties,
 			] : [],
 			$this->required != null && count($this->required) > 0 ? ["required" => $this->required] : [],
 			$this->description != null && $this->description != "" && !$isParameter ? ["description" => $this->description] : [],
 			$this->minLength != null && $this->minLength != 0 ? ["minLength" => $this->minLength] : [],
 			$this->maxLength != null && $this->maxLength != 0 ? ["maxLength" => $this->maxLength] : [],
 			$this->enum != null && count($this->enum) > 0 ? ["enum" => $this->enum] : [],
-		));
+		);
 	}
 }
 
