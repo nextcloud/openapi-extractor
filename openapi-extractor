@@ -468,74 +468,65 @@ foreach ($routes as $route) {
 	preg_match_all("/{[^}]*}/", $route->url, $urlParameters);
 	$urlParameters = array_map(fn(string $name) => substr($name, 1, -1), $urlParameters[0]);
 
-	if (!$openapi->paths->hasPath($route->url)) {
-		foreach ($urlParameters as $urlParameter) {
-			$matchingParameters = array_filter($route->classMethodInfo->parameters, function (ClassMethodParameter $param) use ($urlParameter) {
-				return $param->name == $urlParameter;
-			});
-			$requirement = array_key_exists($urlParameter, $route->requirements) ? $route->requirements[$urlParameter] : null;
-			if (count($matchingParameters) == 1) {
-				$parameter = $matchingParameters[array_keys($matchingParameters)[0]];
-				if ($parameter?->methodParameter == null && ($route->requirements == null || !array_key_exists($urlParameter, $route->requirements))) {
-					throw new Exception($route->name . ": Unable to find parameter for '" . $urlParameter . "'");
-				}
-
-				$schema = $parameter->type->toArray(true);
-				$description = $parameter?->docParameter != null && $parameter->docParameter->description != "" ? cleanDocComment($parameter->docParameter->description) : null;
-			} else {
-				$schema = [
-					"type" => "string",
-				];
-				$description = null;
+	foreach ($urlParameters as $urlParameter) {
+		$matchingParameters = array_filter($route->classMethodInfo->parameters, function (ClassMethodParameter $param) use ($urlParameter) {
+			return $param->name == $urlParameter;
+		});
+		$requirement = array_key_exists($urlParameter, $route->requirements) ? $route->requirements[$urlParameter] : null;
+		if (count($matchingParameters) == 1) {
+			$parameter = $matchingParameters[array_keys($matchingParameters)[0]];
+			if ($parameter?->methodParameter == null && ($route->requirements == null || !array_key_exists($urlParameter, $route->requirements))) {
+				throw new Exception($route->name . ": Unable to find parameter for '" . $urlParameter . "'");
 			}
 
-			if ($requirement != null) {
-				if (!str_starts_with($requirement, "^")) {
-					$requirement = "^" . $requirement;
-				}
-				if (!str_ends_with($requirement, "$")) {
-					$requirement = $requirement . "$";
-				}
-			}
-
-			if ($schema["type"] == "string") {
-				if ($urlParameter == "apiVersion") {
-					if ($requirement == null) {
-						throw new Exception($route->name . ": Missing requirement for apiVersion");
-					}
-					preg_match("/^\^\(([v0-9.|]*)\)\\$$/m", $requirement, $multipleMatches);
-					preg_match("/^\^([v0-9.]*)\\$$/m", $requirement, $singleMatches);
-					if (count($multipleMatches) == 2) {
-						$enum = explode("|", $multipleMatches[1]);
-					} else if (count($singleMatches) == 2) {
-						$enum = [$singleMatches[1]];
-					} else {
-						throw new Exception($route->name . ": Invalid requirement for apiVersion");
-					}
-					$schema["enum"] = $enum;
-					$schema["default"] = end($enum);
-				} else if ($requirement != null) {
-					$schema["pattern"] = $requirement;
-				}
-			}
-
-			$pathParameters[] = new Parameter(array_merge(
-				[
-					"name" => $urlParameter,
-					"in" => "path",
-					"required" => true,
-					"schema" => $schema,
-				],
-				$description != null ? ["description" => $description] : [],
-			));
+			$schema = $parameter->type->toArray(true);
+			$description = $parameter?->docParameter != null && $parameter->docParameter->description != "" ? cleanDocComment($parameter->docParameter->description) : null;
+		} else {
+			$schema = [
+				"type" => "string",
+			];
+			$description = null;
 		}
 
-		$openapi->paths->addPath(
-			$route->url,
-			new PathItem([]),
-		);
-	} else {
-		$pathParameters = [];
+		if ($requirement != null) {
+			if (!str_starts_with($requirement, "^")) {
+				$requirement = "^" . $requirement;
+			}
+			if (!str_ends_with($requirement, "$")) {
+				$requirement = $requirement . "$";
+			}
+		}
+
+		if ($schema["type"] == "string") {
+			if ($urlParameter == "apiVersion") {
+				if ($requirement == null) {
+					throw new Exception($route->name . ": Missing requirement for apiVersion");
+				}
+				preg_match("/^\^\(([v0-9.|]*)\)\\$$/m", $requirement, $multipleMatches);
+				preg_match("/^\^([v0-9.]*)\\$$/m", $requirement, $singleMatches);
+				if (count($multipleMatches) == 2) {
+					$enum = explode("|", $multipleMatches[1]);
+				} else if (count($singleMatches) == 2) {
+					$enum = [$singleMatches[1]];
+				} else {
+					throw new Exception($route->name . ": Invalid requirement for apiVersion");
+				}
+				$schema["enum"] = $enum;
+				$schema["default"] = end($enum);
+			} else if ($requirement != null) {
+				$schema["pattern"] = $requirement;
+			}
+		}
+
+		$pathParameters[] = new Parameter(array_merge(
+			[
+				"name" => $urlParameter,
+				"in" => "path",
+				"required" => true,
+				"schema" => $schema,
+			],
+			$description != null ? ["description" => $description] : [],
+		));
 	}
 
 	$queryParameters = [];
@@ -661,6 +652,12 @@ foreach ($routes as $route) {
 			),
 		] : []),
 	);
+	if (!$openapi->paths->hasPath($route->url)) {
+		$openapi->paths->addPath(
+			$route->url,
+			new PathItem([]),
+		);
+	}
 	$path = $openapi->paths->getPath($route->url);
 	$alreadyDefined = false;
 	switch ($route->verb) {
