@@ -1208,14 +1208,14 @@ function exprToValue(string $context, Expr $expr): mixed {
 function resolveIdentifier(string $context, string $name): OpenApiType {
 	global $definitions;
 	return match ($name) {
-		"string" => new OpenApiType(type: "string", nullable: false),
-		"non-empty-string" => new OpenApiType(type: "string", nullable: false, minLength: 1),
-		"int", "integer" => new OpenApiType(type: "integer", format: "int64", nullable: false),
-		"bool", "boolean" => new OpenApiType(type: "boolean", nullable: false),
-		"double" => new OpenApiType(type: "number", format: "double", nullable: false),
-		"float" => new OpenApiType(type: "number", format: "float", nullable: false),
-		"array", "empty" => new OpenApiType(type: "object", nullable: false),
-		"object" => new OpenApiType(type: "object", nullable: false, additionalProperties: true),
+		"string" => new OpenApiType(type: "string"),
+		"non-empty-string" => new OpenApiType(type: "string", minLength: 1),
+		"int", "integer" => new OpenApiType(type: "integer", format: "int64"),
+		"bool", "boolean" => new OpenApiType(type: "boolean"),
+		"double" => new OpenApiType(type: "number", format: "double"),
+		"float" => new OpenApiType(type: "number", format: "float"),
+		"array", "empty" => new OpenApiType(type: "object"),
+		"object" => new OpenApiType(type: "object", additionalProperties: true),
 		"null" => new OpenApiType(nullable: true),
 		default => (function () use ($context, $definitions, $name) {
 			if (array_key_exists($name, $definitions)) {
@@ -1247,10 +1247,10 @@ function resolveOpenApiType(string $context, ParamTagValueNode|NodeAbstract|Type
 	}
 
 	if ($node instanceof ArrayTypeNode) {
-		return new OpenApiType(type: "array", nullable: false, items: resolveOpenApiType($context, $node->type));
+		return new OpenApiType(type: "array", items: resolveOpenApiType($context, $node->type));
 	}
 	if ($node instanceof GenericTypeNode && $node->type->name == "array" && count($node->genericTypes) == 1) {
-		return new OpenApiType(type: "array", nullable: false, items: resolveOpenApiType($context, $node->genericTypes[0]));
+		return new OpenApiType(type: "array", items: resolveOpenApiType($context, $node->genericTypes[0]));
 	}
 
 	if ($node instanceof ArrayShapeNode) {
@@ -1263,11 +1263,11 @@ function resolveOpenApiType(string $context, ParamTagValueNode|NodeAbstract|Type
 			$type = resolveOpenApiType($context, $item->valueType);
 			$name = $item->keyName instanceof ConstExprStringNode ? $item->keyName->value : $item->keyName->name;
 			$properties[$name] = $type;
-			if (!$type->nullable) {
+			if (!$item->optional) {
 				$required[] = $name;
 			}
 		}
-		return new OpenApiType(type: "object", nullable: false, properties: $properties, required: count($required) > 0 ? $required : null);
+		return new OpenApiType(type: "object", properties: $properties, required: count($required) > 0 ? $required : null);
 	}
 
 	if ($node instanceof GenericTypeNode && $node->type->name == "array" && count($node->genericTypes) == 2 && $node->genericTypes[0] instanceof IdentifierTypeNode && $node->genericTypes[0]->name == "string") {
@@ -1328,7 +1328,7 @@ class OpenApiType {
 		public ?string $ref = null,
 		public ?string $type = null,
 		public ?string $format = null,
-		public ?bool $nullable = null,
+		public bool $nullable = false,
 		public mixed $defaultValue = null,
 		public ?OpenApiType $items = null,
 		public ?array $properties = null,
@@ -1352,6 +1352,7 @@ class OpenApiType {
 		return array_merge(
 			$this->ref != null ? ["\$ref" => $this->ref] : [],
 			$this->type != null ? ["type" => $isParameter && $this->type == "boolean" ? "integer" : $this->type] : [],
+			$this->nullable ? ["nullable" => true] : [],
 			$this->format != null ? ["format" => $this->format] : [],
 			$this->defaultValue !== null ? ["default" => $isParameter && $this->type == "boolean" ? $this->defaultValue == "true" ? 1 : 0 : $this->defaultValue] : [],
 			$this->items != null ? ["items" => $this->items->toArray($isParameter)] : [],
