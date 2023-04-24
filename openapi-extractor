@@ -820,6 +820,7 @@ if ($useTags) {
 
 file_put_contents($out, Writer::writeToJson($openapi, jsonFlags()));
 if (!$openapi->validate()) {
+	print_r(implode("\n", array_map(fn(string $error) => "Error: " . $error, $openapi->getErrors())) . "\n");
 	throw new Exception("Invalid OpenAPI spec generated. Please review the output!");
 }
 
