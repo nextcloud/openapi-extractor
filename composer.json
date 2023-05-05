@@ -13,6 +13,13 @@
     "cebe/php-openapi": "dev-fix/assume-reference"
   },
   "autoload": {
-    "files": ["src/common.php"]
+    "files": [
+      "src/controller.php",
+      "src/helpers.php",
+      "src/openapi_type.php",
+      "src/return_type.php",
+      "src/route.php",
+      "src/status_code.php"
+    ]
   }
 }

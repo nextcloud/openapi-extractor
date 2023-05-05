@@ -4,7 +4,6 @@
 require_once __DIR__ . "/vendor/autoload.php";
 
 use Ahc\Cli\Input\Command;
-use cebe\openapi\exceptions\TypeErrorException;
 use cebe\openapi\spec\Header;
 use cebe\openapi\spec\Info;
 use cebe\openapi\spec\MediaType;
@@ -16,53 +15,40 @@ use cebe\openapi\spec\Response;
 use cebe\openapi\spec\Schema;
 use cebe\openapi\spec\Tag;
 use cebe\openapi\Writer;
-use PhpParser\Node\Arg;
-use PhpParser\Node\Expr;
-use PhpParser\Node\Expr\Array_;
-use PhpParser\Node\Expr\ArrayItem;
-use PhpParser\Node\Expr\ConstFetch;
+use OpenAPIExtractor\ControllerMethodParameter;
+use OpenAPIExtractor\ControllerMethodResponse;
+use OpenAPIExtractor\OpenApiType;
+use OpenAPIExtractor\Route;
 use PhpParser\Node\Expr\New_;
-use PhpParser\Node\Expr\UnaryMinus;
-use PhpParser\Node\Identifier;
-use PhpParser\Node\IntersectionType;
 use PhpParser\Node\Name;
-use PhpParser\Node\NullableType;
-use PhpParser\Node\Param;
-use PhpParser\Node\Scalar\LNumber;
-use PhpParser\Node\Scalar\String_;
 use PhpParser\Node\Stmt\Class_;
 use PhpParser\Node\Stmt\ClassMethod;
 use PhpParser\Node\Stmt\Return_;
 use PhpParser\Node\Stmt\Throw_;
-use PhpParser\Node\UnionType;
-use PhpParser\NodeAbstract;
 use PhpParser\NodeFinder;
 use PhpParser\ParserFactory;
-use PHPStan\PhpDocParser\Ast\ConstExpr\ConstExprStringNode;
-use PHPStan\PhpDocParser\Ast\ConstExpr\ConstFetchNode;
-use PHPStan\PhpDocParser\Ast\PhpDoc\ParamTagValueNode;
 use PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocTagNode;
 use PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocTextNode;
 use PHPStan\PhpDocParser\Ast\PhpDoc\ReturnTagValueNode;
-use PHPStan\PhpDocParser\Ast\PhpDoc\ThrowsTagValueNode;
 use PHPStan\PhpDocParser\Ast\PhpDoc\TypeAliasTagValueNode;
-use PHPStan\PhpDocParser\Ast\Type\ArrayShapeNode;
-use PHPStan\PhpDocParser\Ast\Type\ArrayTypeNode;
-use PHPStan\PhpDocParser\Ast\Type\ConstTypeNode;
-use PHPStan\PhpDocParser\Ast\Type\GenericTypeNode;
-use PHPStan\PhpDocParser\Ast\Type\IdentifierTypeNode;
-use PHPStan\PhpDocParser\Ast\Type\IntersectionTypeNode;
-use PHPStan\PhpDocParser\Ast\Type\NullableTypeNode;
-use PHPStan\PhpDocParser\Ast\Type\TypeNode;
-use PHPStan\PhpDocParser\Ast\Type\UnionTypeNode;
 use PHPStan\PhpDocParser\Lexer\Lexer;
 use PHPStan\PhpDocParser\Parser\ConstExprParser;
 use PHPStan\PhpDocParser\Parser\PhpDocParser;
 use PHPStan\PhpDocParser\Parser\TokenIterator;
 use PHPStan\PhpDocParser\Parser\TypeParser;
+use function OpenAPIExtractor\cleanDocComment;
+use function OpenAPIExtractor\exceptionToStatusCode;
+use function OpenAPIExtractor\extractControllerMethod;
 use function OpenAPIExtractor\generateReadableAppID;
 use function OpenAPIExtractor\jsonFlags;
+use function OpenAPIExtractor\mapVerb;
+use function OpenAPIExtractor\mergeCapabilities;
+use function OpenAPIExtractor\parseRoutes;
+use function OpenAPIExtractor\resolveOpenApiType;
+use function OpenAPIExtractor\resolveReturnTypes;
 use function OpenAPIExtractor\securitySchemes;
+use function OpenAPIExtractor\splitOnUppercaseFollowedByNonUppercase;
+use function OpenAPIExtractor\wrapOCSResponse;
 
 $responseTypePrefixes = ["", "JSON", "Data", "FileDisplay", "DataDisplay", "Redirect", "Template", "DataDownload", "Stream"];
 $responseTypes = [];
@@ -175,7 +161,7 @@ if (file_exists($definitionsPath)) {
 		}
 	}
 	foreach (array_keys($definitions) as $name) {
-		$schemas[cleanSchemaName($name)] = resolveOpenApiType("Response definitions", $definitions[$name])->toSchema();
+		$schemas[cleanSchemaName($name)] = resolveOpenApiType("Response definitions", $definitions, $definitions[$name])->toSchema();
 	}
 } else {
 	print_r("No response definitions were loaded\n");
@@ -220,7 +206,7 @@ foreach ($iterator as $file) {
 		$docNodes = $phpDocParser->parse(new TokenIterator($lexer->tokenize($doc)))->children;
 		foreach ($docNodes as $docNode) {
 			if ($docNode instanceof PhpDocTagNode && $docNode->value instanceof ReturnTagValueNode) {
-				$type = resolveOpenApiType($path, $docNode->value->type);
+				$type = resolveOpenApiType($path, $definitions, $docNode->value->type);
 				break;
 			}
 		}
@@ -248,34 +234,6 @@ if ($publicCapabilities != null) {
 }
 if ($capabilities == null && $publicCapabilities == null) {
 	print_r("No capabilities were loaded\n");
-}
-
-/**
- * @param string $context
- * @param Schema[] $schemas
- * @return Schema
- * @throws TypeErrorException
- */
-function mergeCapabilities(string $context, array $schemas): Schema {
-	$required = [];
-	$properties = [];
-
-	foreach ($schemas as $schema) {
-		foreach (array_keys($schema->properties) as $propertyName) {
-			if (array_key_exists($propertyName, $properties)) {
-				throw new Exception($context . ": Overlapping capabilities key '" . $propertyName . "'");
-			}
-			$properties[$propertyName] = $schema->properties[$propertyName];
-		}
-		$required = array_merge($required, $schema->required ?? []);
-	}
-
-	return new Schema(array_merge([
-		"type" => "object",
-	],
-		count($properties) > 0 ? ["properties" => $properties] : [],
-		count($required) > 0 ? ["required" => $required] : [],
-	));
 }
 
 $parsedRoutes = parseRoutes($appinfoDir . "/routes.php");
@@ -395,7 +353,7 @@ foreach ($parsedRoutes as $key => $value) {
 			];
 		}
 
-		$classMethodInfo = extractMethodInfo($routeName, $methodFunction, $isAdmin, $isDeprecated);
+		$classMethodInfo = extractControllerMethod($routeName, $definitions, $methodFunction, $isAdmin, $isDeprecated);
 		if (count($classMethodInfo->returns) > 0) {
 			throw new Exception($routeName . ": Returns an invalid response");
 		}
@@ -425,7 +383,7 @@ foreach ($parsedRoutes as $key => $value) {
 			}
 		}
 
-		$docStatusCodes = array_map(fn(ClassMethodResponse $response) => $response->statusCode, array_filter($classMethodInfo->responses, fn(?ClassMethodResponse $response) => $response != null));
+		$docStatusCodes = array_map(fn(ControllerMethodResponse $response) => $response->statusCode, array_filter($classMethodInfo->responses, fn(?ControllerMethodResponse $response) => $response != null));
 		$missingDocStatusCodes = array_unique(array_filter(array_diff($codeStatusCodes, $docStatusCodes), fn(int $code) => $code < 500));
 		$missingCodeStatusCodes = array_unique(array_diff($docStatusCodes, $codeStatusCodes));
 
@@ -470,7 +428,7 @@ foreach ($routes as $route) {
 	$urlParameters = array_map(fn(string $name) => substr($name, 1, -1), $urlParameters[0]);
 
 	foreach ($urlParameters as $urlParameter) {
-		$matchingParameters = array_filter($route->classMethodInfo->parameters, function (ClassMethodParameter $param) use ($urlParameter) {
+		$matchingParameters = array_filter($route->controllerMethod->parameters, function (ControllerMethodParameter $param) use ($urlParameter) {
 			return $param->name == $urlParameter;
 		});
 		$requirement = array_key_exists($urlParameter, $route->requirements) ? $route->requirements[$urlParameter] : null;
@@ -531,7 +489,7 @@ foreach ($routes as $route) {
 	}
 
 	$queryParameters = [];
-	foreach ($route->classMethodInfo->parameters as $parameter) {
+	foreach ($route->controllerMethod->parameters as $parameter) {
 		$alreadyInPath = false;
 		foreach ($pathParameters as $pathParameter) {
 			if ($pathParameter->name == $parameter->name) {
@@ -545,24 +503,24 @@ foreach ($routes as $route) {
 	}
 
 	$mergedResponses = [];
-	foreach (array_unique(array_map(fn(ClassMethodResponse $response) => $response->statusCode, array_filter($route->classMethodInfo->responses, fn(?ClassMethodResponse $response) => $response != null))) as $statusCode) {
+	foreach (array_unique(array_map(fn(ControllerMethodResponse $response) => $response->statusCode, array_filter($route->controllerMethod->responses, fn(?ControllerMethodResponse $response) => $response != null))) as $statusCode) {
 		if ($firstStatusCode && count($mergedResponses) > 0) {
 			break;
 		}
 
-		$statusCodeResponses = array_filter($route->classMethodInfo->responses, fn(?ClassMethodResponse $response) => $response != null && $response->statusCode == $statusCode);
-		$headers = array_merge(...array_map(fn(ClassMethodResponse $response) => $response->headers ?? [], $statusCodeResponses));
+		$statusCodeResponses = array_filter($route->controllerMethod->responses, fn(?ControllerMethodResponse $response) => $response != null && $response->statusCode == $statusCode);
+		$headers = array_merge(...array_map(fn(ControllerMethodResponse $response) => $response->headers ?? [], $statusCodeResponses));
 
 		$mergedContentTypeResponses = [];
-		foreach (array_unique(array_map(fn(ClassMethodResponse $response) => $response->contentType, array_filter($statusCodeResponses, fn(ClassMethodResponse $response) => $response->contentType != null))) as $contentType) {
+		foreach (array_unique(array_map(fn(ControllerMethodResponse $response) => $response->contentType, array_filter($statusCodeResponses, fn(ControllerMethodResponse $response) => $response->contentType != null))) as $contentType) {
 			if ($firstContentType && count($mergedContentTypeResponses) > 0) {
 				break;
 			}
 
-			$contentTypeResponses = array_values(array_filter($statusCodeResponses, fn(ClassMethodResponse $response) => $response->contentType == $contentType));
+			$contentTypeResponses = array_values(array_filter($statusCodeResponses, fn(ControllerMethodResponse $response) => $response->contentType == $contentType));
 
-			$hasEmpty = count(array_filter($contentTypeResponses, fn(ClassMethodResponse $response) => $response->type == null)) > 0;
-			$uniqueResponses = array_values(array_intersect_key($contentTypeResponses, array_unique(array_map(fn(ClassMethodResponse $response) => $response->type->toSchema(), array_filter($contentTypeResponses, fn(ClassMethodResponse $response) => $response->type != null)), SORT_REGULAR)));
+			$hasEmpty = count(array_filter($contentTypeResponses, fn(ControllerMethodResponse $response) => $response->type == null)) > 0;
+			$uniqueResponses = array_values(array_intersect_key($contentTypeResponses, array_unique(array_map(fn(ControllerMethodResponse $response) => $response->type->toSchema(), array_filter($contentTypeResponses, fn(ControllerMethodResponse $response) => $response->type != null)), SORT_REGULAR)));
 			if (count($uniqueResponses) == 1) {
 				if ($hasEmpty) {
 					$mergedContentTypeResponses[$contentType] = new MediaType([]);
@@ -573,7 +531,7 @@ foreach ($routes as $route) {
 			} else {
 				$mergedContentTypeResponses[$contentType] = new MediaType([
 					"schema" => [
-						$hasEmpty ? "anyOf" : "oneOf" => array_map(fn(ClassMethodResponse $response) => $response->type->toSchema(), $uniqueResponses),
+						$hasEmpty ? "anyOf" : "oneOf" => array_map(fn(ControllerMethodResponse $response) => $response->type->toSchema(), $uniqueResponses),
 					],
 				]);
 			}
@@ -582,7 +540,7 @@ foreach ($routes as $route) {
 		$mergedResponses[$statusCode] = new Response(
 			array_merge(
 				[
-					"description" => array_key_exists($statusCode, $route->classMethodInfo->responseDescription) ? $route->classMethodInfo->responseDescription[$statusCode] : "",
+					"description" => array_key_exists($statusCode, $route->controllerMethod->responseDescription) ? $route->controllerMethod->responseDescription[$statusCode] : "",
 				],
 				count($mergedContentTypeResponses) > 0 ? [
 					"content" => $mergedContentTypeResponses,
@@ -626,12 +584,12 @@ foreach ($routes as $route) {
 	],
 		count($security) > 0 ? ["security" => $security] : [],
 		$useTags ? ["tags" => [$route->tag]] : [],
-		$route->classMethodInfo->summary != null ? ["summary" => $route->classMethodInfo->summary] : [],
-		count($route->classMethodInfo->description) > 0 ? ["description" => implode("\n", $route->classMethodInfo->description)] : [],
-		$route->classMethodInfo->isDeprecated ? ["deprecated" => true] : [],
+		$route->controllerMethod->summary != null ? ["summary" => $route->controllerMethod->summary] : [],
+		count($route->controllerMethod->description) > 0 ? ["description" => implode("\n", $route->controllerMethod->description)] : [],
+		$route->controllerMethod->isDeprecated ? ["deprecated" => true] : [],
 		count($queryParameters) > 0 || count($pathParameters) > 0 || $route->isOCS ? [
 			"parameters" => array_merge(
-				array_map(fn(ClassMethodParameter $parameter) => new Parameter(array_merge(
+				array_map(fn(ControllerMethodParameter $parameter) => new Parameter(array_merge(
 					[
 						"name" => $parameter->name,
 						"in" => "query",
@@ -710,49 +668,6 @@ foreach ($routes as $route) {
 	}
 }
 
-function wrapOCSResponse(Schema $schema): array {
-	return [
-		"type" => "object",
-		"required" => [
-			"ocs",
-		],
-		"properties" => [
-			"ocs" => [
-				"type" => "object",
-				"required" => [
-					"meta",
-					"data",
-				],
-				"properties" => [
-					"meta" => [
-						"\$ref" => "#/components/schemas/OCSMeta",
-					],
-					"data" => $schema,
-				],
-			],
-		],
-	];
-}
-
-class Route {
-	public function __construct(
-		public string $name,
-		public string $tag,
-		public string $controllerName,
-		public string $methodName,
-		public ?string $postfix,
-		public string $verb,
-		public string $url,
-		public array $requirements,
-		public ClassMethodInfo $classMethodInfo,
-		public bool $isOCS,
-		public bool $isCORS,
-		public bool $isPublic,
-	) {
-	}
-}
-
-
 if ($appIsCore) {
 	$schemas["Status"] = new Schema([
 		"type" => "object",
@@ -825,608 +740,12 @@ if (!$openapi->validate()) {
 	throw new Exception("Invalid OpenAPI spec generated. Please review the output!");
 }
 
-function extractMethodInfo(string $context, ClassMethod $method, bool $isAdmin, bool $isDeprecated): ClassMethodInfo {
-	global $phpDocParser, $lexer, $allowMissingDocs;
-
-	$parameters = [];
-	$responses = [];
-	$responseDescriptions = [];
-	$returns = [];
-
-	$methodDescription = [];
-	$methodSummary = null;
-	$methodParameters = $method->getParams();
-	$docParameters = [];
-
-	$doc = $method->getDocComment()?->getText();
-	if ($doc != null) {
-		$docNodes = $phpDocParser->parse(new TokenIterator($lexer->tokenize($doc)))->children;
-
-		foreach ($docNodes as $docNode) {
-			if ($docNode instanceof PhpDocTextNode) {
-				$block = cleanDocComment($docNode->text);
-				if ($block == "") {
-					continue;
-				}
-				$pattern = "/([0-9]{3}): /";
-				if (preg_match($pattern, $block)) {
-					$parts = preg_split($pattern, $block, -1, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY);
-					for ($i = 0; $i < count($parts); $i += 2) {
-						$statusCode = intval($parts[$i]);
-						$responseDescriptions[$statusCode] = trim($parts[$i + 1]);
-					}
-				} else {
-					$methodDescription[] = $block;
-				}
-			}
-		}
-
-		foreach ($docNodes as $docNode) {
-			if ($docNode instanceof PhpDocTagNode) {
-				if ($docNode->value instanceof ParamTagValueNode) {
-					$docParameters[] = $docNode->value;
-				}
-
-				if ($docNode->value instanceof ReturnTagValueNode) {
-					$type = $docNode->value->type;
-
-					$responses = array_merge($responses, resolveReturnTypes($context, $type));
-				}
-
-				if ($docNode->value instanceof ThrowsTagValueNode) {
-					$type = $docNode->value->type;
-					$statusCode = exceptionToStatusCode($context, $type);
-					if ($statusCode != null) {
-						if (!$allowMissingDocs && $docNode->value->description == "" && $statusCode < 500) {
-							throw new Exception($context . ": Missing description for exception '" . $type . "'");
-						}
-						$responseDescriptions[$statusCode] = $docNode->value->description;
-						$responses[] = new ClassMethodResponse($statusCode, "text/plain", new OpenApiType(type: "string"), null);
-					}
-				}
-			}
-		}
-	}
-
-	if (!$allowMissingDocs && count($responses) > 1) {
-		foreach (array_unique(array_map(fn(ClassMethodResponse $response) => $response->statusCode, array_filter($responses, fn(?ClassMethodResponse $response) => $response != null))) as $statusCode) {
-			if ($statusCode < 500 && (!array_key_exists($statusCode, $responseDescriptions) || $responseDescriptions[$statusCode] == "")) {
-				throw new Exception($context . ": Missing description for status code " . $statusCode);
-			}
-		}
-	}
-
-	foreach ($methodParameters as $methodParameter) {
-		$param = null;
-		$methodParameterName = $methodParameter->var->name;
-
-		foreach ($docParameters as $docParameter) {
-			$docParameterName = substr($docParameter->parameterName, 1);
-
-			if ($docParameterName == $methodParameterName) {
-				$param = new ClassMethodParameter($context, $methodParameterName, $methodParameter, $docParameter);
-				break;
-			}
-		}
-
-		if ($param == null) {
-			if ($allowMissingDocs) {
-				$param = new ClassMethodParameter($context, $methodParameterName, $methodParameter, null);
-			} else {
-				throw new Exception($context . ": Missing doc parameter for '" . $methodParameterName . "'");
-			}
-		}
-
-		if (!$allowMissingDocs && $param->type->description == "") {
-			throw new Exception($context . ": Missing description for parameter '" . $methodParameterName . "'");
-		}
-
-		$parameters[] = $param;
-	}
-
-	if (!$allowMissingDocs && count($methodDescription) == 0) {
-		throw new Exception($context . ": Missing method description");
-	}
-
-	if ($isAdmin) {
-		$methodDescription[] = "This endpoint requires admin access";
-	}
-
-	if (count($methodDescription) == 1) {
-		$methodSummary = $methodDescription[0];
-		$methodDescription = [];
-	} else if (count($methodDescription) > 1) {
-		$methodSummary = $methodDescription[0];
-		$methodDescription = array_slice($methodDescription, 1);
-	}
-
-	if (preg_match("/[.,!?:-]$/", $methodSummary)) {
-		throw new Exception($context . ": Summary ends with a punctuation mark");
-	}
-
-	return new ClassMethodInfo($parameters, array_values($responses), $returns, $responseDescriptions, $methodDescription, $methodSummary, $isDeprecated);
-}
-
-/**
- * @param string $context
- * @param TypeNode|New_ $type
- * @return ClassMethodResponse[]
- * @throws Exception
- */
-function resolveReturnTypes(string $context, TypeNode|New_ $type): array {
-	global $responseTypes;
-
-	$responses = [];
-	if ($type instanceof UnionTypeNode) {
-		foreach ($type->types as $subType) {
-			$responses = array_merge($responses, resolveReturnTypes($context, $subType));
-		}
-		return $responses;
-	}
-
-	if ($type instanceof IdentifierTypeNode) {
-		$className = $type->name;
-		$args = [];
-	} else if ($type instanceof GenericTypeNode) {
-		$className = $type->type->name;
-		$args = $type->genericTypes;
-	} else if ($type instanceof New_) {
-		$className = $type->class->getLast();
-		$args = $type->args;
-	} else {
-		throw new Exception($context . ": Failed to get class name for " . $type);
-	}
-
-	if ($className == "void") {
-		$responses[] = null;
-	} else if ($className == "RedirectResponse") {
-		$responses[] = new ClassMethodResponse(
-			303,
-			null,
-			null,
-			["Location" => new OpenApiType(type: "string")],
-		);
-	} else if ($className == "NotFoundResponse") {
-		$responses[] = new ClassMethodResponse(
-			404,
-			"text/html",
-			new OpenApiType(type: "string"),
-			null,
-		);
-	} else if ($className == "DataDownloadResponse") {
-		if ($type instanceof New_) {
-			$contentType = $args[2]->value->value;
-		} else {
-			$contentType = $args[0]->constExpr->value;
-		}
-		$responses[] = new ClassMethodResponse(
-			200,
-			$contentType,
-			new OpenApiType(type: "string"),
-			null,
-		);
-	} else if (in_array($className, $responseTypes)) {
-		$statusCodes = [];
-		if (in_array($className, ["Response", "FileDisplayResponse", "DataDisplayResponse", "TemplateResponse", "StreamResponse"])) {
-			$isRawResponse = in_array($className, ["FileDisplayResponse", "DataDisplayResponse", "StreamResponse"]);
-			if ($type instanceof New_) {
-				if ($isRawResponse) {
-					$statusCodes = resolveStatusCodesForArg($context, $type, $args, 1);
-				}
-			} else {
-				if (count($args) != 1) {
-					throw new Exception($context . ": '" . $className . "' needs one parameter");
-				}
-				$statusCodes = resolveStatusCodes($context, $args[0]);
-			}
-			$realType = new OpenApiType(
-				type: $className == "Response" ? null : "string",
-				format: $isRawResponse ? "binary" : null,
-			);
-			if ($className == "Response") {
-				$contentType = null;
-			} else if ($className == "TemplateResponse") {
-				$contentType = "text/html";
-			} else {
-				// TODO: This is really annoying, because we need to match any content type since it's not possible to know which one will be returned
-				$contentType = "*/*";
-			}
-		} else {
-			if ($type instanceof TypeNode && count($args) != 2) {
-				throw new Exception($context . ": '" . $className . "' needs two parameters");
-			}
-			$statusCodes = resolveStatusCodesForArg($context, $type, $args, 1);
-			$realType = $type instanceof New_ ? null : resolveOpenApiType($context, $args[0]);
-			$contentType = "application/json";
-		}
-		foreach ($statusCodes as $statusCode) {
-			$responses[] = new ClassMethodResponse(
-				$statusCode,
-				$contentType,
-				$realType,
-				null,
-			);
-		}
-	} else {
-		throw new Exception($context . ": Invalid return type '" . $type . "'");
-	}
-
-	return $responses;
-}
-
-function resolveStatusCodesForArg(string $context, TypeNode|New_ $type, array $args, int $index): array {
-	if ($type instanceof New_) {
-		if (count($args) > $index) {
-			if ($args[$index]->value instanceof Expr\ClassConstFetch) {
-				return resolveStatusCodes($context, $args[$index]);
-			}
-		} else {
-			return [200];
-		}
-	} else {
-		return resolveStatusCodes($context, $args[$index]);
-	}
-
-	return [];
-}
-
-/**
- * @param string $context
- * @param ConstTypeNode|UnionTypeNode|Arg $type
- * @return int[]
- * @throws Exception
- */
-function resolveStatusCodes(string $context, ConstTypeNode|UnionTypeNode|Arg $type): array {
-	$statusCodes = [];
-	if ($type instanceof TypeNode) {
-		$nodes = [];
-		if ($type instanceof UnionTypeNode) {
-			$nodes = $type->types;
-		} else {
-			$nodes[] = $type;
-		}
-		foreach ($nodes as $node) {
-			$statusCodes[] = statusEnumToCode($context, $node->constExpr->name);
-		}
-	} else {
-		$statusCodes[] = statusEnumToCode($context, $type->value->name->name);
-	}
-
-	return $statusCodes;
-}
-
-function statusEnumToCode(string $context, string $name): int {
-	return match ($name) {
-		"STATUS_OK" => 200,
-		"STATUS_CREATED" => 201,
-		"STATUS_ACCEPTED" => 202,
-		"STATUS_NO_CONTENT" => 204,
-		"STATUS_NOT_MODIFIED" => 304,
-		"STATUS_BAD_REQUEST" => 400,
-		"STATUS_UNAUTHORIZED" => 401,
-		"STATUS_FORBIDDEN" => 403,
-		"STATUS_NOT_FOUND" => 404,
-		"STATUS_METHOD_NOT_ALLOWED" => 405,
-		"STATUS_NOT_ACCEPTABLE" => 406,
-		"STATUS_CONFLICT" => 409,
-		"STATUS_PRECONDITION_FAILED" => 412,
-		"STATUS_REQUEST_ENTITY_TOO_LARGE" => 413,
-		"STATUS_LOCKED" => 423,
-		"STATUS_INTERNAL_SERVER_ERROR" => 500,
-		"STATUS_NOT_IMPLEMENTED" => 501,
-		"STATUS_INSUFFICIENT_STORAGE" => 507,
-		default => throw new Exception($context . ": Unknown status code '" . $name . "'"),
-	};
-}
-
-function exceptionToStatusCode(string $context, string $name): ?int {
-	if (!str_starts_with($name, "OCS")) {
-		return 500;
-	}
-	return match ($name) {
-		"OCSException" => null,
-		"OCSBadRequestException" => 400,
-		"OCSForbiddenException" => 403,
-		"OCSNotFoundException" => 404,
-		default => throw new Exception($context . ": Unknown exception '" . $name . "'"),
-	};
-}
-
-class ClassMethodInfo {
-	/**
-	 * @param ClassMethodParameter[] $parameters
-	 * @param ClassMethodResponse[] $responses
-	 * @param OpenApiType[] $returns
-	 * @param array<int, string> $responseDescription
-	 * @param string[] $description
-	 */
-	public function __construct(public array $parameters, public array $responses, public array $returns, public array $responseDescription, public array $description, public ?string $summary, public bool $isDeprecated) {
-	}
-}
-
-class ClassMethodResponse {
-	/**
-	 * @param array<string, OpenApiType>|null $headers
-	 */
-	public function __construct(public int $statusCode, public ?string $contentType, public ?OpenApiType $type, public ?array $headers) {
-	}
-
-}
-
-class ClassMethodParameter {
-	public OpenApiType $type;
-
-	public function __construct(string $context, public string $name, public Param $methodParameter, public ?ParamTagValueNode $docParameter) {
-		if ($docParameter != null) {
-			$this->type = resolveOpenApiType($context, $docParameter);
-		} else {
-			$this->type = resolveOpenApiType($context, $methodParameter->type);
-		}
-		if ($methodParameter->default != null) {
-			$this->type->hasDefaultValue = true;
-			$this->type->defaultValue = exprToValue($context, $methodParameter->default);
-		}
-	}
-}
-
-function exprToValue(string $context, Expr $expr): mixed {
-	if ($expr instanceof ConstFetch) {
-		$value = $expr->name->getLast();
-		return match ($value) {
-			"null" => null,
-			"true" => true,
-			"false" => false,
-			default => throw new Exception($context . ": Unable to evaluate constant value '" . $value . "'"),
-		};
-	}
-	if ($expr instanceof String_) {
-		return $expr->value;
-	}
-	if ($expr instanceof LNumber) {
-		return intval($expr->value);
-	}
-	if ($expr instanceof UnaryMinus) {
-		return exprToValue($context, $expr->expr);
-	}
-	if ($expr instanceof Array_) {
-		$values = array_map(fn(ArrayItem $item) => exprToValue($context, $item), $expr->items);
-		$filteredValues = array_filter($values, fn(mixed $value) => $value !== null);
-		if (count($filteredValues) != count($values)) {
-			return null;
-		}
-		return $values;
-	}
-	if ($expr instanceof ArrayItem) {
-		return exprToValue($context, $expr->value);
-	}
-	if ($expr instanceof Expr\ClassConstFetch || $expr instanceof Expr\BinaryOp) {
-		// Not supported
-		return null;
-	}
-
-	throw new Exception($context . ": Unable to evaluate expression '" . get_class($expr) . "'");
-}
-
-function resolveIdentifier(string $context, string $name): OpenApiType {
-	if ($name == "array") {
-		throw new Exception($context . ": Instead of 'array' use '\stdClass::class' for empty objects, 'array<string, mixed>' for non-empty objects and 'array<mixed>' for lists");
-	}
-	global $definitions;
-	return match ($name) {
-		"string" => new OpenApiType(type: "string"),
-		"non-empty-string" => new OpenApiType(type: "string", minLength: 1),
-		"int", "integer" => new OpenApiType(type: "integer", format: "int64"),
-		"bool", "boolean" => new OpenApiType(type: "boolean"),
-		"double" => new OpenApiType(type: "number", format: "double"),
-		"float" => new OpenApiType(type: "number", format: "float"),
-		"mixed", "empty" => new OpenApiType(type: "object"),
-		"object" => new OpenApiType(type: "object", additionalProperties: true),
-		"null" => new OpenApiType(nullable: true),
-		default => (function () use ($context, $definitions, $name) {
-			if (array_key_exists($name, $definitions)) {
-				return new OpenApiType(
-					ref: "#/components/schemas/" . cleanSchemaName($name),
-				);
-			}
-			throw new Exception($context . ": Unable to resolve OpenAPI type for identifier '" . $name . "'");
-		})(),
-	};
-}
-
 function cleanSchemaName(string $name): string {
 	global $readableAppID;
 	return substr($name, strlen($readableAppID));
 }
 
-function resolveOpenApiType(string $context, ParamTagValueNode|NodeAbstract|TypeNode $node): OpenApiType {
-	if ($node instanceof ParamTagValueNode) {
-		$type = resolveOpenApiType($context, $node->type);
-		$type->description = $node->description;
-		return $type;
-	}
-	if ($node instanceof PhpParser\Node\Name) {
-		return resolveIdentifier($context, $node->getLast());
-	}
-	if ($node instanceof IdentifierTypeNode || $node instanceof Identifier) {
-		return resolveIdentifier($context, $node->name);
-	}
-
-	if ($node instanceof ArrayTypeNode) {
-		return new OpenApiType(type: "array", items: resolveOpenApiType($context, $node->type));
-	}
-	if ($node instanceof GenericTypeNode && ($node->type->name == "array" || $node->type->name == "list") && count($node->genericTypes) == 1) {
-		return new OpenApiType(type: "array", items: resolveOpenApiType($context, $node->genericTypes[0]));
-	}
-
-	if ($node instanceof ArrayShapeNode) {
-		if (count($node->items) == 0) {
-			throw new Exception($context . ": Instead of 'array{}' use 'array<string, mixed>' for objects");
-		}
-		$properties = [];
-		$required = [];
-		foreach ($node->items as $item) {
-			$type = resolveOpenApiType($context, $item->valueType);
-			$name = $item->keyName instanceof ConstExprStringNode ? $item->keyName->value : $item->keyName->name;
-			$properties[$name] = $type;
-			if (!$item->optional) {
-				$required[] = $name;
-			}
-		}
-		return new OpenApiType(type: "object", properties: $properties, required: count($required) > 0 ? $required : null);
-	}
-
-	if ($node instanceof GenericTypeNode && $node->type->name == "array" && count($node->genericTypes) == 2 && $node->genericTypes[0] instanceof IdentifierTypeNode && $node->genericTypes[0]->name == "string") {
-		return new OpenApiType(type: "object", additionalProperties: resolveOpenApiType($context, $node->genericTypes[1]));
-	}
-
-	if ($node instanceof NullableTypeNode || $node instanceof NullableType) {
-		$type = resolveOpenApiType($context, $node->type);
-		$type->nullable = true;
-		return $type;
-	}
-
-	if (($node instanceof UnionTypeNode || $node instanceof UnionType) && count($node->types) == count(array_filter($node->types, fn($type) => $type instanceof ConstTypeNode && $type->constExpr instanceof ConstExprStringNode))) {
-		$values = [];
-		/** @var ConstTypeNode $type */
-		foreach ($node->types as $type) {
-			$values[] = $type->constExpr->value;
-		}
-
-		return new OpenApiType(type: "string", enum: $values);
-	}
-
-	if ($node instanceof UnionTypeNode || $node instanceof IntersectionTypeNode || $node instanceof UnionType || $node instanceof IntersectionType) {
-		$nullable = false;
-		$types = [];
-
-		foreach ($node->types as $type) {
-			if (($type instanceof IdentifierTypeNode || $type instanceof Identifier) && $type->name == "null") {
-				$nullable = true;
-			} else {
-				$types[] = resolveOpenApiType($context, $type);
-			}
-		}
-
-		if (count($types) == 1) {
-			$type = $types[0];
-			$type->nullable = true;
-			return $type;
-		}
-
-		return new OpenApiType(
-			nullable: $nullable,
-			oneOf: $node instanceof UnionTypeNode || $node instanceof UnionType ? $types : null,
-			allOf: $node instanceof IntersectionTypeNode || $node instanceof IntersectionType ? $types : null,
-		);
-	}
-
-	if ($node instanceof ConstTypeNode && $node->constExpr instanceof ConstFetchNode && $node->constExpr->className == "\stdClass" && $node->constExpr->name == "class") {
-		return new OpenApiType(type: "object", additionalProperties: true);
-	}
-
-	throw new Exception($context . ": Unable to resolve OpenAPI type for type '" . get_class($node) . "'");
-}
-
-class OpenApiType {
-	/**
-	 * @param OpenApiType[]|null $oneOf
-	 * @param OpenApiType[]|null $anyOf
-	 * @param OpenApiType[]|null $allOf
-	 */
-	public function __construct(
-		public ?string $ref = null,
-		public ?string $type = null,
-		public ?string $format = null,
-		public bool $nullable = false,
-		public bool $hasDefaultValue = false,
-		public mixed $defaultValue = null,
-		public ?OpenApiType $items = null,
-		public ?array $properties = null,
-		public ?array $oneOf = null,
-		public ?array $anyOf = null,
-		public ?array $allOf = null,
-		public bool|OpenApiType|null $additionalProperties = null,
-		public ?array $required = null,
-		public ?string $description = null,
-		public ?int $minLength = null,
-		public ?int $maxLength = null,
-		public ?array $enum = null,
-	) {
-	}
-
-	public function toSchema(bool $isParameter = false): Schema {
-		return new Schema($this->toArray($isParameter));
-	}
-
-	public function toArray(bool $isParameter = false): array {
-		return array_merge(
-			$this->ref != null ? ["\$ref" => $this->ref] : [],
-			$this->type != null ? ["type" => $isParameter && $this->type == "boolean" ? "integer" : $this->type] : [],
-			$this->nullable ? ["nullable" => true] : [],
-			$this->format != null ? ["format" => $this->format] : [],
-			$this->hasDefaultValue ? ["default" => $isParameter && $this->type == "boolean" ? $this->defaultValue === true ? 1 : 0 : $this->defaultValue] : [],
-			$this->items != null ? ["items" => $this->items->toArray($isParameter)] : [],
-			$this->properties != null ? ["properties" =>
-				array_combine(array_keys($this->properties),
-					array_map(function (OpenApiType $property) use ($isParameter) {
-						return $property->toArray($isParameter);
-					}, array_values($this->properties)),
-				)] : [],
-			$this->oneOf != null ? ["oneOf" => array_map(function (OpenApiType $type) use ($isParameter) {
-				return $type->toArray($isParameter);
-			}, $this->oneOf)] : [],
-			$this->anyOf != null ? ["anyOf" => array_map(function (OpenApiType $type) use ($isParameter) {
-				return $type->toArray($isParameter);
-			}, $this->anyOf)] : [],
-			$this->allOf != null ? ["allOf" => array_map(function (OpenApiType $type) use ($isParameter) {
-				return $type->toArray($isParameter);
-			}, $this->allOf)] : [],
-			$this->additionalProperties != null ? [
-				"additionalProperties" => $this->additionalProperties instanceof OpenApiType ? $this->additionalProperties->toArray() : $this->additionalProperties,
-			] : [],
-			$this->required != null && count($this->required) > 0 ? ["required" => $this->required] : [],
-			$this->description != null && $this->description != "" && !$isParameter ? ["description" => $this->description] : [],
-			$this->minLength != null && $this->minLength != 0 ? ["minLength" => $this->minLength] : [],
-			$this->maxLength != null && $this->maxLength != 0 ? ["maxLength" => $this->maxLength] : [],
-			$this->enum != null && count($this->enum) > 0 ? ["enum" => $this->enum] : [],
-		);
-	}
-}
-
 function loadAST(string $filename): array {
 	global $astParser;
 	return $astParser->parse(file_get_contents($filename));
-}
-
-function parseRoutes(string $path): array {
-	$content = file_get_contents($path);
-	if (str_contains($content, "return ")) {
-		return include($path);
-	} elseif (str_contains($content, "registerRoutes")) {
-		preg_match("/registerRoutes\(\\\$this, (\[[^;]*)\);/", $content, $matches);
-
-		$tmpPath = tempnam(sys_get_temp_dir(), "routes-");
-		file_put_contents($tmpPath, "<?php\nreturn " . $matches[1] . ";");
-		$routes = include($tmpPath);
-		unlink($tmpPath);
-
-		return $routes;
-	} else {
-		throw new Exception("Unknown routes.php format");
-	}
-}
-
-function cleanDocComment(string $comment): string {
-	return trim(preg_replace("/\s+/", " ", $comment));
-}
-
-function splitOnUppercaseFollowedByNonUppercase(string $str): array {
-	return preg_split('/(?=[A-Z][^A-Z])/', $str, -1, PREG_SPLIT_NO_EMPTY);
-}
-
-function mapVerb(string $verb): string {
-	return match ($verb) {
-		"index" => "list",
-		default => $verb,
-	};
 }
