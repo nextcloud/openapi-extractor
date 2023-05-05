@@ -39,6 +39,7 @@ use PhpParser\NodeAbstract;
 use PhpParser\NodeFinder;
 use PhpParser\ParserFactory;
 use PHPStan\PhpDocParser\Ast\ConstExpr\ConstExprStringNode;
+use PHPStan\PhpDocParser\Ast\ConstExpr\ConstFetchNode;
 use PHPStan\PhpDocParser\Ast\PhpDoc\ParamTagValueNode;
 use PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocTagNode;
 use PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocTextNode;
@@ -1317,6 +1318,10 @@ function resolveOpenApiType(string $context, ParamTagValueNode|NodeAbstract|Type
 			oneOf: $node instanceof UnionTypeNode || $node instanceof UnionType ? $types : null,
 			allOf: $node instanceof IntersectionTypeNode || $node instanceof IntersectionType ? $types : null,
 		);
+	}
+
+	if ($node instanceof ConstTypeNode && $node->constExpr instanceof ConstFetchNode && $node->constExpr->className == "\stdClass" && $node->constExpr->name == "class") {
+		return new OpenApiType(type: "object", additionalProperties: true);
 	}
 
 	throw new Exception($context . ": Unable to resolve OpenAPI type for type '" . get_class($node) . "'");
