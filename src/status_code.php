@@ -5,27 +5,9 @@ namespace OpenAPIExtractor;
 
 use Exception;
 use PhpParser\Node\Arg;
-use PhpParser\Node\Expr\ClassConstFetch;
-use PhpParser\Node\Expr\New_;
 use PHPStan\PhpDocParser\Ast\Type\ConstTypeNode;
 use PHPStan\PhpDocParser\Ast\Type\TypeNode;
 use PHPStan\PhpDocParser\Ast\Type\UnionTypeNode;
-
-function resolveStatusCodesForArg(string $context, TypeNode|New_ $type, array $args, int $index): array {
-	if ($type instanceof New_) {
-		if (count($args) > $index) {
-			if ($args[$index]->value instanceof ClassConstFetch) {
-				return resolveStatusCodes($context, $args[$index]);
-			}
-		} else {
-			return [200];
-		}
-	} else {
-		return resolveStatusCodes($context, $args[$index]);
-	}
-
-	return [];
-}
 
 /**
  * @param string $context

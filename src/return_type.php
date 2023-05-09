@@ -2,116 +2,272 @@
 
 namespace OpenAPIExtractor;
 
-
 use Exception;
-use PhpParser\Node\Expr\New_;
 use PHPStan\PhpDocParser\Ast\Type\GenericTypeNode;
 use PHPStan\PhpDocParser\Ast\Type\IdentifierTypeNode;
 use PHPStan\PhpDocParser\Ast\Type\TypeNode;
 use PHPStan\PhpDocParser\Ast\Type\UnionTypeNode;
 
+class ResponseType {
+	public function __construct(
+		public string $className,
+		public bool $hasTypeTemplate,
+		public bool $hasContentTypeTemplate,
+		public bool $hasStatusCodeTemplate,
+		public ?OpenApiType $defaultType,
+		public ?string $defaultContentType,
+		public ?int $defaultStatusCode,
+		public ?array $defaultHeaders,
+	) {
+	}
+}
+
+/** @return ResponseType[] */
+function getResponseTypes(): array {
+	$stringType = new OpenApiType(type: "string");
+	$binaryType = new OpenApiType(type: "string", format: "binary");
+	return [
+		new ResponseType(
+			"DataDisplayResponse",
+			false,
+			false,
+			true,
+			$binaryType,
+			null,
+			null,
+			null,
+		),
+		new ResponseType(
+			"DataDownloadResponse",
+			false,
+			true,
+			false,
+			$binaryType,
+			null,
+			200,
+			null,
+		),
+		new ResponseType(
+			"DataResponse",
+			true,
+			false,
+			true,
+			null,
+			"application/json",
+			null,
+			null,
+		),
+		new ResponseType(
+			"DownloadResponse",
+			false,
+			true,
+			false,
+			$binaryType,
+			null,
+			200,
+			null,
+		),
+		new ResponseType(
+			"FileDisplayResponse",
+			false,
+			false,
+			true,
+			$binaryType,
+			null,
+			null,
+			null,
+		),
+		new ResponseType(
+			"JSONResponse",
+			true,
+			false,
+			true,
+			null,
+			"application/json",
+			null,
+			null,
+		),
+		new ResponseType(
+			"NotFoundResponse",
+			false,
+			false,
+			false,
+			$stringType,
+			"text/html",
+			404,
+			null,
+		),
+		new ResponseType(
+			"RedirectResponse",
+			false,
+			false,
+			false,
+			null,
+			null,
+			303,
+			["Location" => $stringType],
+		),
+		new ResponseType(
+			"RedirectToDefaultAppResponse",
+			false,
+			false,
+			false,
+			null,
+			null,
+			303,
+			["Location" => $stringType],
+		),
+		new ResponseType(
+			"Response",
+			false,
+			false,
+			true,
+			null,
+			null,
+			null,
+			null,
+		),
+		new ResponseType(
+			"StandaloneTemplateResponse",
+			false,
+			false,
+			false,
+			$stringType,
+			"text/html",
+			200,
+			null,
+		),
+		new ResponseType(
+			"StreamResponse",
+			false,
+			false,
+			false,
+			$binaryType,
+			"*/*",
+			200,
+			null,
+		),
+		new ResponseType(
+			"TemplateResponse",
+			false,
+			false,
+			false,
+			$stringType,
+			"text/html",
+			200,
+			null,
+		),
+		new ResponseType(
+			"TextPlainResponse",
+			false,
+			false,
+			true,
+			$stringType,
+			"text/plain",
+			null,
+			null,
+		),
+		new ResponseType(
+			"TooManyRequestsResponse",
+			false,
+			false,
+			false,
+			$stringType,
+			"text/html",
+			429,
+			null,
+		),
+		new ResponseType(
+			"ZipResponse",
+			false,
+			false,
+			false,
+			$binaryType,
+			null,
+			200,
+			null,
+		),
+	];
+}
+
 /**
  * @param string $context
- * @param TypeNode|New_ $type
+ * @param TypeNode $obj
  * @return ControllerMethodResponse[]
  * @throws Exception
  */
-function resolveReturnTypes(string $context, TypeNode|New_ $type): array {
-	global $responseTypes, $definitions;
+function resolveReturnTypes(string $context, TypeNode $obj): array {
+	global $definitions;
+	$responseTypes = getResponseTypes();
 
 	$responses = [];
-	if ($type instanceof UnionTypeNode) {
-		foreach ($type->types as $subType) {
+	if ($obj instanceof UnionTypeNode) {
+		foreach ($obj->types as $subType) {
 			$responses = array_merge($responses, resolveReturnTypes($context, $subType));
 		}
 		return $responses;
 	}
 
-	if ($type instanceof IdentifierTypeNode) {
-		$className = $type->name;
+	if ($obj instanceof IdentifierTypeNode) {
+		$className = $obj->name;
 		$args = [];
-	} else if ($type instanceof GenericTypeNode) {
-		$className = $type->type->name;
-		$args = $type->genericTypes;
-	} else if ($type instanceof New_) {
-		$className = $type->class->getLast();
-		$args = $type->args;
+	} else if ($obj instanceof GenericTypeNode) {
+		$className = $obj->type->name;
+		$args = $obj->genericTypes;
 	} else {
-		throw new Exception($context . ": Failed to get class name for " . $type);
+		throw new Exception($context . ": Failed to get class name for " . $obj);
 	}
 
 	if ($className == "void") {
 		$responses[] = null;
-	} else if ($className == "RedirectResponse") {
-		$responses[] = new ControllerMethodResponse(
-			303,
-			null,
-			null,
-			["Location" => new OpenApiType(type: "string")],
-		);
-	} else if ($className == "NotFoundResponse") {
-		$responses[] = new ControllerMethodResponse(
-			404,
-			"text/html",
-			new OpenApiType(type: "string"),
-			null,
-		);
-	} else if ($className == "DataDownloadResponse") {
-		if ($type instanceof New_) {
-			$contentType = $args[2]->value->value;
-		} else {
-			$contentType = $args[0]->constExpr->value;
-		}
-		$responses[] = new ControllerMethodResponse(
-			200,
-			$contentType,
-			new OpenApiType(type: "string"),
-			null,
-		);
-	} else if (in_array($className, $responseTypes)) {
-		$statusCodes = [];
-		if (in_array($className, ["Response", "FileDisplayResponse", "DataDisplayResponse", "TemplateResponse", "StreamResponse"])) {
-			$isRawResponse = in_array($className, ["FileDisplayResponse", "DataDisplayResponse", "StreamResponse"]);
-			if ($type instanceof New_) {
-				if ($isRawResponse) {
-					$statusCodes = resolveStatusCodesForArg($context, $type, $args, 1);
-				}
-			} else {
-				if (count($args) != 1) {
-					throw new Exception($context . ": '" . $className . "' needs one parameter");
-				}
-				$statusCodes = resolveStatusCodes($context, $args[0]);
-			}
-			$realType = new OpenApiType(
-				type: $className == "Response" ? null : "string",
-				format: $isRawResponse ? "binary" : null,
-			);
-			if ($className == "Response") {
-				$contentType = null;
-			} else if ($className == "TemplateResponse") {
-				$contentType = "text/html";
-			} else {
-				// TODO: This is really annoying, because we need to match any content type since it's not possible to know which one will be returned
-				$contentType = "*/*";
-			}
-		} else {
-			if ($type instanceof TypeNode && count($args) != 2) {
-				throw new Exception($context . ": '" . $className . "' needs two parameters");
-			}
-			$statusCodes = resolveStatusCodesForArg($context, $type, $args, 1);
-			$realType = $type instanceof New_ ? null : resolveOpenApiType($context, $definitions, $args[0]);
-			$contentType = "application/json";
-		}
-		foreach ($statusCodes as $statusCode) {
-			$responses[] = new ControllerMethodResponse(
-				$statusCode,
-				$contentType,
-				$realType,
-				null,
-			);
-		}
 	} else {
-		throw new Exception($context . ": Invalid return type '" . $type . "'");
+		if (count(array_filter($responseTypes, fn($responseType) => $responseType->className == $className)) == 0) {
+			throw new Exception($context . ": Invalid return type '" . $obj . "'");
+		}
+		foreach ($responseTypes as $responseType) {
+			if ($responseType->className == $className) {
+				$expectedArgs = count(array_filter([$responseType->hasTypeTemplate, $responseType->hasContentTypeTemplate, $responseType->hasStatusCodeTemplate], fn($value) => $value));
+				if (count($args) != $expectedArgs) {
+					throw new Exception($context . ": '" . $className . "' needs " . $expectedArgs . " parameters");
+				}
+
+				$type = null;
+				$contentType = null;
+				$statusCodes = null;
+
+				$i = 0;
+				if ($responseType->hasTypeTemplate) {
+					$type = resolveOpenApiType($context, $definitions, $args[$i]);
+					$i++;
+				}
+				if ($responseType->hasContentTypeTemplate) {
+					$contentType = $args[$i]->constExpr->value;
+					$i++;
+				}
+				if ($responseType->hasStatusCodeTemplate) {
+					$statusCodes = resolveStatusCodes($context, $args[$i]);
+				}
+
+				$type = $responseType->defaultType ?? $type;
+				$contentType = $responseType->defaultContentType ?? $contentType;
+				$statusCodes = $statusCodes ?? [200];
+				if ($type != null && $contentType == null) {
+					$contentType = "*/*";
+				}
+
+				foreach ($statusCodes as $statusCode) {
+					$statusCode = $responseType->defaultStatusCode ?? $statusCode;
+					$responses[] = new ControllerMethodResponse(
+						$responseType->defaultStatusCode ?? $statusCode,
+						$responseType->defaultContentType ?? $contentType,
+						$responseType->defaultType ?? $type,
+						$responseType->defaultHeaders,
+					);
+				}
+
+				break;
+			}
+		}
 	}
 
 	return $responses;

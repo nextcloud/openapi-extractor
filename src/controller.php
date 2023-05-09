@@ -35,7 +35,12 @@ class ControllerMethodResponse {
 	/**
 	 * @param array<string, OpenApiType>|null $headers
 	 */
-	public function __construct(public int $statusCode, public ?string $contentType, public ?OpenApiType $type, public ?array $headers) {
+	public function __construct(
+		public int $statusCode,
+		public ?string $contentType = null,
+		public ?OpenApiType $type = null,
+		public ?array $headers = null,
+	) {
 	}
 
 }

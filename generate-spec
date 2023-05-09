@@ -23,7 +23,6 @@ use PhpParser\Node\Expr\New_;
 use PhpParser\Node\Name;
 use PhpParser\Node\Stmt\Class_;
 use PhpParser\Node\Stmt\ClassMethod;
-use PhpParser\Node\Stmt\Return_;
 use PhpParser\Node\Stmt\Throw_;
 use PhpParser\NodeFinder;
 use PhpParser\ParserFactory;
@@ -45,16 +44,9 @@ use function OpenAPIExtractor\mapVerb;
 use function OpenAPIExtractor\mergeCapabilities;
 use function OpenAPIExtractor\parseRoutes;
 use function OpenAPIExtractor\resolveOpenApiType;
-use function OpenAPIExtractor\resolveReturnTypes;
 use function OpenAPIExtractor\securitySchemes;
 use function OpenAPIExtractor\splitOnUppercaseFollowedByNonUppercase;
 use function OpenAPIExtractor\wrapOCSResponse;
-
-$responseTypePrefixes = ["", "JSON", "Data", "FileDisplay", "DataDisplay", "Redirect", "Template", "DataDownload", "Stream"];
-$responseTypes = [];
-foreach ($responseTypePrefixes as $responseTypePrefix) {
-	$responseTypes[] = $responseTypePrefix . "Response";
-}
 
 $command = new Command("generate-spec", "Extract OpenAPI specs from the Nextcloud source code");
 $command
@@ -362,16 +354,6 @@ foreach ($parsedRoutes as $key => $value) {
 		}
 
 		$codeStatusCodes = [];
-		/* @var $returnStatement Return_ */
-		foreach ($nodeFinder->findInstanceOf($methodFunction->stmts, Return_::class) as $returnStatement) {
-			if ($returnStatement->expr instanceof New_ && $returnStatement->expr->class instanceof Name && in_array($returnStatement->expr->class->getLast(), $responseTypes)) {
-				$responses = resolveReturnTypes($routeName, $returnStatement->expr);
-				foreach ($responses as $response) {
-					$codeStatusCodes[] = $response->statusCode;
-				}
-			}
-		}
-
 		/* @var $throwStatement Throw_ */
 		foreach ($nodeFinder->findInstanceOf($methodFunction->stmts, Throw_::class) as $throwStatement) {
 			if ($throwStatement->expr instanceof New_ && $throwStatement->expr->class instanceof Name) {
