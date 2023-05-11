@@ -111,9 +111,6 @@ function resolveOpenApiType(string $context, array $definitions, ParamTagValueNo
 	}
 
 	if ($node instanceof ArrayShapeNode) {
-		if (count($node->items) == 0) {
-			throw new Exception($context . ": Instead of 'array{}' use 'array<string, mixed>' for objects");
-		}
 		$properties = [];
 		$required = [];
 		foreach ($node->items as $item) {
@@ -185,7 +182,7 @@ function resolveIdentifier(string $context, array $definitions, string $name): O
 		throw new Exception($context . ": Instead of 'array' use '\stdClass::class' for empty objects, 'array<string, mixed>' for non-empty objects and 'array<mixed>' for lists");
 	}
 	return match ($name) {
-		"string" => new OpenApiType(type: "string"),
+		"string", "non-falsy-string" => new OpenApiType(type: "string"),
 		"non-empty-string" => new OpenApiType(type: "string", minLength: 1),
 		"int", "integer" => new OpenApiType(type: "integer", format: "int64"),
 		"bool", "boolean" => new OpenApiType(type: "boolean"),

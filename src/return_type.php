@@ -3,6 +3,7 @@
 namespace OpenAPIExtractor;
 
 use Exception;
+use PHPStan\PhpDocParser\Ast\Type\ConstTypeNode;
 use PHPStan\PhpDocParser\Ast\Type\GenericTypeNode;
 use PHPStan\PhpDocParser\Ast\Type\IdentifierTypeNode;
 use PHPStan\PhpDocParser\Ast\Type\TypeNode;
@@ -11,12 +12,12 @@ use PHPStan\PhpDocParser\Ast\Type\UnionTypeNode;
 class ResponseType {
 	public function __construct(
 		public string $className,
-		public bool $hasTypeTemplate,
-		public bool $hasContentTypeTemplate,
 		public bool $hasStatusCodeTemplate,
-		public ?OpenApiType $defaultType,
-		public ?string $defaultContentType,
+		public bool $hasContentTypeTemplate,
+		public bool $hasTypeTemplate,
 		public ?int $defaultStatusCode,
+		public ?string $defaultContentType,
+		public ?OpenApiType $defaultType,
 		public ?array $defaultHeaders,
 	) {
 	}
@@ -29,23 +30,23 @@ function getResponseTypes(): array {
 	return [
 		new ResponseType(
 			"DataDisplayResponse",
-			false,
-			false,
 			true,
+			true,
+			false,
+			null,
+			null,
 			$binaryType,
-			null,
-			null,
-			null,
+			["Content-Disposition" => $stringType],
 		),
 		new ResponseType(
 			"DataDownloadResponse",
-			false,
+			true,
 			true,
 			false,
+			null,
+			null,
 			$binaryType,
-			null,
-			200,
-			null,
+			["Content-Disposition" => $stringType],
 		),
 		new ResponseType(
 			"DataResponse",
@@ -54,28 +55,28 @@ function getResponseTypes(): array {
 			true,
 			null,
 			"application/json",
-			null,
+			$stringType,
 			null,
 		),
 		new ResponseType(
 			"DownloadResponse",
-			false,
+			true,
 			true,
 			false,
+			null,
+			null,
 			$binaryType,
-			null,
-			200,
-			null,
+			["Content-Disposition" => $stringType],
 		),
 		new ResponseType(
 			"FileDisplayResponse",
-			false,
-			false,
 			true,
+			true,
+			false,
+			null,
+			null,
 			$binaryType,
-			null,
-			null,
-			null,
+			["Content-Disposition" => $stringType],
 		),
 		new ResponseType(
 			"JSONResponse",
@@ -84,7 +85,7 @@ function getResponseTypes(): array {
 			true,
 			null,
 			"application/json",
-			null,
+			$stringType,
 			null,
 		),
 		new ResponseType(
@@ -92,9 +93,9 @@ function getResponseTypes(): array {
 			false,
 			false,
 			false,
-			$stringType,
-			"text/html",
 			404,
+			"text/html",
+			$stringType,
 			null,
 		),
 		new ResponseType(
@@ -102,9 +103,9 @@ function getResponseTypes(): array {
 			false,
 			false,
 			false,
-			null,
-			null,
 			303,
+			null,
+			null,
 			["Location" => $stringType],
 		),
 		new ResponseType(
@@ -112,16 +113,16 @@ function getResponseTypes(): array {
 			false,
 			false,
 			false,
-			null,
-			null,
 			303,
+			null,
+			null,
 			["Location" => $stringType],
 		),
 		new ResponseType(
 			"Response",
-			false,
-			false,
 			true,
+			false,
+			false,
 			null,
 			null,
 			null,
@@ -129,42 +130,42 @@ function getResponseTypes(): array {
 		),
 		new ResponseType(
 			"StandaloneTemplateResponse",
+			true,
 			false,
 			false,
-			false,
-			$stringType,
+			null,
 			"text/html",
-			200,
+			$stringType,
 			null,
 		),
 		new ResponseType(
 			"StreamResponse",
+			true,
+			true,
 			false,
-			false,
-			false,
+			null,
+			null,
 			$binaryType,
-			"*/*",
-			200,
 			null,
 		),
 		new ResponseType(
 			"TemplateResponse",
+			true,
 			false,
 			false,
-			false,
-			$stringType,
+			null,
 			"text/html",
-			200,
+			$stringType,
 			null,
 		),
 		new ResponseType(
 			"TextPlainResponse",
-			false,
-			false,
 			true,
-			$stringType,
-			"text/plain",
+			false,
+			false,
 			null,
+			"text/plain",
+			$stringType,
 			null,
 		),
 		new ResponseType(
@@ -172,19 +173,19 @@ function getResponseTypes(): array {
 			false,
 			false,
 			false,
-			$stringType,
-			"text/html",
 			429,
+			"text/html",
+			$stringType,
 			null,
 		),
 		new ResponseType(
 			"ZipResponse",
+			true,
 			false,
 			false,
-			false,
-			$binaryType,
 			null,
-			200,
+			null,
+			$binaryType,
 			null,
 		),
 	];
@@ -226,43 +227,58 @@ function resolveReturnTypes(string $context, TypeNode $obj): array {
 		}
 		foreach ($responseTypes as $responseType) {
 			if ($responseType->className == $className) {
-				$expectedArgs = count(array_filter([$responseType->hasTypeTemplate, $responseType->hasContentTypeTemplate, $responseType->hasStatusCodeTemplate], fn($value) => $value));
+				$expectedArgs = count(array_filter([$responseType->hasStatusCodeTemplate, $responseType->hasContentTypeTemplate, $responseType->hasTypeTemplate, true /* Headers */], fn($value) => $value));
 				if (count($args) != $expectedArgs) {
 					throw new Exception($context . ": '" . $className . "' needs " . $expectedArgs . " parameters");
 				}
 
-				$type = null;
-				$contentType = null;
-				$statusCodes = null;
-
 				$i = 0;
+
+				if ($responseType->hasStatusCodeTemplate) {
+					$statusCodes = resolveStatusCodes($context, $args[$i]);
+					$i++;
+				} else {
+					$statusCodes = [$responseType->defaultStatusCode != null ? $responseType->defaultStatusCode : 200];
+				}
+
+				if ($responseType->hasContentTypeTemplate) {
+					if ($args[$i] instanceof ConstTypeNode) {
+						$contentTypes = [$args[$i]->constExpr->value];
+					} else if ($args[$i] instanceof IdentifierTypeNode && $args[$i]->name == "string") {
+						$contentTypes = ["*/*"];
+					} else if ($args[$i] instanceof UnionTypeNode) {
+						$contentTypes = array_map(fn($arg) => $arg->constExpr->value, $args[$i]->types);
+					} else {
+						throw new Exception($context . ": Unable to parse content type from " . get_class($args[$i]));
+					}
+					$i++;
+				} else {
+					$contentTypes = $responseType->defaultContentType != null ? [$responseType->defaultContentType] : [];
+				}
+
 				if ($responseType->hasTypeTemplate) {
 					$type = resolveOpenApiType($context, $definitions, $args[$i]);
 					$i++;
-				}
-				if ($responseType->hasContentTypeTemplate) {
-					$contentType = $args[$i]->constExpr->value;
-					$i++;
-				}
-				if ($responseType->hasStatusCodeTemplate) {
-					$statusCodes = resolveStatusCodes($context, $args[$i]);
+				} else {
+					$type = $responseType->defaultType;
 				}
 
-				$type = $responseType->defaultType ?? $type;
-				$contentType = $responseType->defaultContentType ?? $contentType;
-				$statusCodes = $statusCodes ?? [200];
-				if ($type != null && $contentType == null) {
-					$contentType = "*/*";
+				$headers = resolveOpenApiType($context, $definitions, $args[$i])->properties;
+				if ($responseType->defaultHeaders != null) {
+					$headers = array_merge($responseType->defaultHeaders, $headers);
 				}
+
+				$contentTypes = $contentTypes !== [] ? $contentTypes : [$type != null ? "*/*" : null];
 
 				foreach ($statusCodes as $statusCode) {
-					$statusCode = $responseType->defaultStatusCode ?? $statusCode;
-					$responses[] = new ControllerMethodResponse(
-						$responseType->defaultStatusCode ?? $statusCode,
-						$responseType->defaultContentType ?? $contentType,
-						$responseType->defaultType ?? $type,
-						$responseType->defaultHeaders,
-					);
+					foreach ($contentTypes as $contentType) {
+						$responses[] = new ControllerMethodResponse(
+							$statusCode,
+							$contentType,
+							$type,
+							$headers,
+						);
+					}
 				}
 
 				break;
