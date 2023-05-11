@@ -367,13 +367,9 @@ foreach ($parsedRoutes as $key => $value) {
 
 		$docStatusCodes = array_map(fn(ControllerMethodResponse $response) => $response->statusCode, array_filter($classMethodInfo->responses, fn(?ControllerMethodResponse $response) => $response != null));
 		$missingDocStatusCodes = array_unique(array_filter(array_diff($codeStatusCodes, $docStatusCodes), fn(int $code) => $code < 500));
-		$missingCodeStatusCodes = array_unique(array_diff($docStatusCodes, $codeStatusCodes));
 
 		if (count($missingDocStatusCodes) > 0) {
 			throw new Exception($routeName . ": Returns undocumented status codes: " . implode(", ", $missingDocStatusCodes) . "\n");
-		}
-		if (count($missingCodeStatusCodes) > 0) {
-			print_r($routeName . ": Documents status codes which are never returned: " . implode(", ", $missingCodeStatusCodes) . "\n");
 		}
 
 		$routes[] = new Route(
