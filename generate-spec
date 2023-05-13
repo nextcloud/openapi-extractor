@@ -35,6 +35,7 @@ use PHPStan\PhpDocParser\Parser\ConstExprParser;
 use PHPStan\PhpDocParser\Parser\PhpDocParser;
 use PHPStan\PhpDocParser\Parser\TokenIterator;
 use PHPStan\PhpDocParser\Parser\TypeParser;
+use function OpenAPIExtractor\classMethodHasAnnotationOrAttribute;
 use function OpenAPIExtractor\cleanDocComment;
 use function OpenAPIExtractor\exceptionToStatusCode;
 use function OpenAPIExtractor\extractControllerMethod;
@@ -309,14 +310,15 @@ foreach ($parsedRoutes as $key => $value) {
 		foreach ($nodeFinder->findInstanceOf($controllerClass->stmts, ClassMethod::class) as $classMethod) {
 			if ($classMethod->name == $methodName) {
 				$doc = $classMethod->getDocComment()?->getText();
-				if ($controllerClass->extends != "Controller" || ($doc != null && str_contains($doc, "@NoCSRFRequired"))) {
+				$isCSRFRequired = !classMethodHasAnnotationOrAttribute($classMethod, "NoCSRFRequired");;
+				if ($controllerClass->extends != "Controller" || ($doc != null && !$isCSRFRequired)) {
 					$methodFunction = $classMethod;
 					$isOCS = $controllerClass->extends != "Controller" && $controllerClass->extends != "ApiController";
-					$isCORS = str_contains($doc, "@CORS");
-					$isPublic = str_contains($doc, "@PublicPage");
-					$isAdmin = !str_contains($doc, "@NoAdminRequired") && !$isPublic;
-					$isDeprecated = str_contains($doc, "@deprecated");
-					$isIgnored = str_contains($doc, "@IgnoreAPI");
+					$isCORS = classMethodHasAnnotationOrAttribute($classMethod, "CORS");
+					$isPublic = classMethodHasAnnotationOrAttribute($classMethod, "PublicPage");
+					$isAdmin = !classMethodHasAnnotationOrAttribute($classMethod, "NoAdminRequired") && !$isPublic;
+					$isDeprecated = classMethodHasAnnotationOrAttribute($classMethod, "deprecated");
+					$isIgnored = classMethodHasAnnotationOrAttribute($classMethod, "IgnoreAPI");
 					break;
 				}
 			}

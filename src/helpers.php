@@ -4,6 +4,8 @@ namespace OpenAPIExtractor;
 
 use cebe\openapi\spec\Schema;
 use Exception;
+use PhpParser\Node;
+use PHPUnit\Event\Code\ClassMethod;
 
 function generateReadableAppID(string $appID): string {
 	return implode("", array_map(fn(string $s) => ucfirst($s), explode("_", $appID)));
@@ -90,4 +92,22 @@ function wrapOCSResponse(Schema $schema): array {
 			],
 		],
 	];
+}
+
+function classMethodHasAnnotationOrAttribute(ClassMethod|Node $classMethod, string $annotation): bool {
+	$doc = $classMethod->getDocComment()?->getText();
+	if (str_contains($doc, "@" . $annotation)) {
+		return true;
+	}
+
+	/** @var Node\AttributeGroup $attrGroup */
+	foreach ($classMethod->getAttrGroups() as $attrGroup) {
+		foreach ($attrGroup->attrs as $attr) {
+			if ($attr->name->getLast() == $annotation) {
+				return true;
+			}
+		}
+	}
+
+	return false;
 }
