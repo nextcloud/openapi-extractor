@@ -50,35 +50,45 @@ class OpenApiType {
 	) {
 	}
 
-	public function toSchema(bool $isParameter = false): Schema {
-		return new Schema($this->toArray($isParameter));
+	public function toSchema(string $openapiVersion, bool $isParameter = false): Schema {
+		return new Schema($this->toArray($openapiVersion, $isParameter));
 	}
 
-	public function toArray(bool $isParameter = false): array {
+	public function toArray(string $openapiVersion, bool $isParameter = false): array {
+		$asContentString = $isParameter && (
+				$this->type == "object" ||
+				$this->type == "array" ||
+				$this->ref !== null ||
+				$this->oneOf !== null ||
+				$this->anyOf !== null ||
+				$this->allOf !== null);
+		if ($asContentString) {
+			return array_merge([
+				"type" => "string",
+			],
+				$this->nullable ? ["nullable" => true] : [],
+				version_compare($openapiVersion, "3.1.0", ">=") ? [
+					"contentMediaType" => "application/json",
+					"contentSchema" => $this->toArray($openapiVersion),
+				] : [],
+			);
+		}
 		return array_merge(
 			$this->ref != null ? ["\$ref" => $this->ref] : [],
 			$this->type != null ? ["type" => $isParameter && $this->type == "boolean" ? "integer" : $this->type] : [],
 			$this->nullable ? ["nullable" => true] : [],
 			$this->format != null ? ["format" => $this->format] : [],
 			$this->hasDefaultValue && $this->defaultValue !== null ? ["default" => $isParameter && $this->type == "boolean" ? $this->defaultValue === true ? 1 : 0 : $this->defaultValue] : [],
-			$this->items != null ? ["items" => $this->items->toArray($isParameter)] : [],
+			$this->items != null ? ["items" => $this->items->toArray($openapiVersion)] : [],
 			$this->properties != null ? ["properties" =>
 				array_combine(array_keys($this->properties),
-					array_map(function (OpenApiType $property) use ($isParameter) {
-						return $property->toArray($isParameter);
-					}, array_values($this->properties)),
+					array_map(fn(OpenApiType $property) => $property->toArray($openapiVersion), array_values($this->properties)),
 				)] : [],
-			$this->oneOf != null ? ["oneOf" => array_map(function (OpenApiType $type) use ($isParameter) {
-				return $type->toArray($isParameter);
-			}, $this->oneOf)] : [],
-			$this->anyOf != null ? ["anyOf" => array_map(function (OpenApiType $type) use ($isParameter) {
-				return $type->toArray($isParameter);
-			}, $this->anyOf)] : [],
-			$this->allOf != null ? ["allOf" => array_map(function (OpenApiType $type) use ($isParameter) {
-				return $type->toArray($isParameter);
-			}, $this->allOf)] : [],
+			$this->oneOf != null ? ["oneOf" => array_map(fn(OpenApiType $type) => $type->toArray($openapiVersion), $this->oneOf)] : [],
+			$this->anyOf != null ? ["anyOf" => array_map(fn(OpenApiType $type) => $type->toArray($openapiVersion), $this->anyOf)] : [],
+			$this->allOf != null ? ["allOf" => array_map(fn(OpenApiType $type) => $type->toArray($openapiVersion), $this->allOf)] : [],
 			$this->additionalProperties != null ? [
-				"additionalProperties" => $this->additionalProperties instanceof OpenApiType ? $this->additionalProperties->toArray() : $this->additionalProperties,
+				"additionalProperties" => $this->additionalProperties instanceof OpenApiType ? $this->additionalProperties->toArray($openapiVersion) : $this->additionalProperties,
 			] : [],
 			$this->required != null && count($this->required) > 0 ? ["required" => $this->required] : [],
 			$this->description != null && $this->description != "" && !$isParameter ? ["description" => $this->description] : [],

@@ -155,7 +155,7 @@ if (file_exists($definitionsPath)) {
 		}
 	}
 	foreach (array_keys($definitions) as $name) {
-		$schemas[cleanSchemaName($name)] = resolveOpenApiType("Response definitions", $definitions, $definitions[$name])->toSchema();
+		$schemas[cleanSchemaName($name)] = resolveOpenApiType("Response definitions", $definitions, $definitions[$name])->toSchema($openapiVersion);
 	}
 } else {
 	print_r("No response definitions were loaded\n");
@@ -208,7 +208,7 @@ foreach ($iterator as $file) {
 			throw new Exception($path . ": No return value");
 		}
 
-		$schema = $type->toSchema();
+		$schema = $type->toSchema($openapiVersion);
 		if ($schema->type != "object" || $schema->properties == null || count($schema->properties) == 0) {
 			throw new Exception($path . ": Invalid capabilities");
 		}
@@ -419,7 +419,7 @@ foreach ($routes as $route) {
 				throw new Exception($route->name . ": Unable to find parameter for '" . $urlParameter . "'");
 			}
 
-			$schema = $parameter->type->toArray(true);
+			$schema = $parameter->type->toArray($openapiVersion, true);
 			$description = $parameter?->docParameter != null && $parameter->docParameter->description != "" ? cleanDocComment($parameter->docParameter->description) : null;
 		} else {
 			$schema = [
@@ -501,18 +501,18 @@ foreach ($routes as $route) {
 			$contentTypeResponses = array_values(array_filter($statusCodeResponses, fn(ControllerMethodResponse $response) => $response->contentType == $contentType));
 
 			$hasEmpty = count(array_filter($contentTypeResponses, fn(ControllerMethodResponse $response) => $response->type == null)) > 0;
-			$uniqueResponses = array_values(array_intersect_key($contentTypeResponses, array_unique(array_map(fn(ControllerMethodResponse $response) => $response->type->toSchema(), array_filter($contentTypeResponses, fn(ControllerMethodResponse $response) => $response->type != null)), SORT_REGULAR)));
+			$uniqueResponses = array_values(array_intersect_key($contentTypeResponses, array_unique(array_map(fn(ControllerMethodResponse $response) => $response->type->toSchema($openapiVersion), array_filter($contentTypeResponses, fn(ControllerMethodResponse $response) => $response->type != null)), SORT_REGULAR)));
 			if (count($uniqueResponses) == 1) {
 				if ($hasEmpty) {
 					$mergedContentTypeResponses[$contentType] = new MediaType([]);
 				} else {
-					$schema = $contentTypeResponses[0]->type->toSchema();
+					$schema = $contentTypeResponses[0]->type->toSchema($openapiVersion);
 					$mergedContentTypeResponses[$contentType] = new MediaType(["schema" => $route->isOCS ? wrapOCSResponse($schema) : $schema]);
 				}
 			} else {
 				$mergedContentTypeResponses[$contentType] = new MediaType([
 					"schema" => [
-						$hasEmpty ? "anyOf" : "oneOf" => array_map(fn(ControllerMethodResponse $response) => $response->type->toSchema(), $uniqueResponses),
+						$hasEmpty ? "anyOf" : "oneOf" => array_map(fn(ControllerMethodResponse $response) => $response->type->toSchema($openapiVersion), $uniqueResponses),
 					],
 				]);
 			}
@@ -531,7 +531,7 @@ foreach ($routes as $route) {
 						array_keys($headers),
 						array_map(
 							fn(OpenApiType $type) => new Header([
-								"schema" => $type->toSchema(),
+								"schema" => $type->toSchema($openapiVersion),
 							]),
 							array_values($headers),
 						),
@@ -574,7 +574,7 @@ foreach ($routes as $route) {
 					[
 						"name" => $parameter->name,
 						"in" => "query",
-						"schema" => $parameter->type->toSchema(true),
+						"schema" => $parameter->type->toSchema($openapiVersion, true),
 					],
 					!$parameter->type->nullable && !$parameter->type->hasDefaultValue ? ["required" => true] : [],
 					$parameter->docParameter != null && $parameter->docParameter->description != "" ? ["description" => cleanDocComment($parameter->docParameter->description)] : [],
