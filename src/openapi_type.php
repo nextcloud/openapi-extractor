@@ -60,7 +60,7 @@ class OpenApiType {
 			$this->type != null ? ["type" => $isParameter && $this->type == "boolean" ? "integer" : $this->type] : [],
 			$this->nullable ? ["nullable" => true] : [],
 			$this->format != null ? ["format" => $this->format] : [],
-			$this->hasDefaultValue ? ["default" => $isParameter && $this->type == "boolean" ? $this->defaultValue === true ? 1 : 0 : $this->defaultValue] : [],
+			$this->hasDefaultValue && $this->defaultValue !== null ? ["default" => $isParameter && $this->type == "boolean" ? $this->defaultValue === true ? 1 : 0 : $this->defaultValue] : [],
 			$this->items != null ? ["items" => $this->items->toArray($isParameter)] : [],
 			$this->properties != null ? ["properties" =>
 				array_combine(array_keys($this->properties),
