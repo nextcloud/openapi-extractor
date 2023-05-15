@@ -134,7 +134,9 @@ function resolveOpenApiType(string $context, array $definitions, ParamTagValueNo
 		return $type;
 	}
 
-	if (($node instanceof UnionTypeNode || $node instanceof UnionType) && count($node->types) == count(array_filter($node->types, fn($type) => $type instanceof ConstTypeNode && $type->constExpr instanceof ConstExprStringNode))) {
+	$isUnion = $node instanceof UnionTypeNode || $node instanceof UnionType;
+	$isIntersection = $node instanceof IntersectionTypeNode || $node instanceof IntersectionType;
+	if ($isUnion && count($node->types) == count(array_filter($node->types, fn($type) => $type instanceof ConstTypeNode && $type->constExpr instanceof ConstExprStringNode))) {
 		$values = [];
 		/** @var ConstTypeNode $type */
 		foreach ($node->types as $type) {
@@ -144,28 +146,28 @@ function resolveOpenApiType(string $context, array $definitions, ParamTagValueNo
 		return new OpenApiType(type: "string", enum: $values);
 	}
 
-	if ($node instanceof UnionTypeNode || $node instanceof IntersectionTypeNode || $node instanceof UnionType || $node instanceof IntersectionType) {
+	if ($isUnion || $isIntersection) {
 		$nullable = false;
-		$types = [];
+		$items = [];
 
 		foreach ($node->types as $type) {
 			if (($type instanceof IdentifierTypeNode || $type instanceof Identifier) && $type->name == "null") {
 				$nullable = true;
-			} else {
-				$types[] = resolveOpenApiType($context, $definitions, $type);
+				continue;
 			}
+			$items[] = resolveOpenApiType($context, $definitions, $type);
 		}
 
-		if (count($types) == 1) {
-			$type = $types[0];
+		if (count($items) == 1) {
+			$type = $items[0];
 			$type->nullable = true;
 			return $type;
 		}
 
 		return new OpenApiType(
 			nullable: $nullable,
-			oneOf: $node instanceof UnionTypeNode || $node instanceof UnionType ? $types : null,
-			allOf: $node instanceof IntersectionTypeNode || $node instanceof IntersectionType ? $types : null,
+			oneOf: $isUnion ? $items : null,
+			allOf: $isIntersection ? $items : null,
 		);
 	}
 
