@@ -6,12 +6,14 @@ require_once __DIR__ . "/vendor/autoload.php";
 use Ahc\Cli\Input\Command;
 use function OpenAPIExtractor\generateReadableAppID;
 use function OpenAPIExtractor\jsonFlags;
+use function OpenAPIExtractor\license;
 use function OpenAPIExtractor\securitySchemes;
 
 $command = new Command("merge-specs", "Merge multiple Nextcloud OpenAPI specs into one");
 $command
 	->option("--merged <merged>")
 	->option("--core <core>")
+	->option('--openapi-version', 'OpenAPI version to use', null, '3.0.3')
 	->argument("<[specs...]>")
 	->parse($_SERVER["argv"]);
 
@@ -23,6 +25,7 @@ $mergedSpecPath = $command->values()["<merged>"];
  * @var $coreSpecPath string
  */
 $coreSpecPath = $command->values()["<core>"];
+$openapiVersion = $command->openapiVersion ?? '3.0.3';
 /**
  * @var $otherSpecPaths string[]
  */
@@ -33,13 +36,11 @@ $coreSpec = loadSpec($coreSpecPath);
 $capabilities = collectCapabilities($coreSpec);
 
 $data = [
-	"openapi" => "3.0.3",
+	"openapi" => $openapiVersion,
 	"info" => [
 		"title" => "nextcloud",
 		"description" => "Nextcloud APIs",
-		"license" => [
-			"name" => "agpl",
-		],
+		"license" => license($openapiVersion, "agpl"),
 		"version" => "0.0.1",
 	],
 	"security" => [

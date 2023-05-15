@@ -41,6 +41,7 @@ use function OpenAPIExtractor\exceptionToStatusCode;
 use function OpenAPIExtractor\extractControllerMethod;
 use function OpenAPIExtractor\generateReadableAppID;
 use function OpenAPIExtractor\jsonFlags;
+use function OpenAPIExtractor\license;
 use function OpenAPIExtractor\mapVerb;
 use function OpenAPIExtractor\mergeCapabilities;
 use function OpenAPIExtractor\parseRoutes;
@@ -56,6 +57,7 @@ $command
 	->option('--first-content-type', 'Only output the first content type')
 	->option('--allow-missing-docs', 'Allow missing documentation fields')
 	->option('--no-tags', 'Use no tags')
+	->option('--openapi-version', 'OpenAPI version to use', null, '3.0.3')
 	->parse($_SERVER["argv"]);
 
 $dir = $command->dir ?? "";
@@ -64,6 +66,7 @@ $firstStatusCode = $command->firstStatusCode ?? false;
 $firstContentType = $command->firstContentType ?? false;
 $allowMissingDocs = $command->allowMissingDocs ?? false;
 $useTags = $command->tags ?? true;
+$openapiVersion = $command->openapiVersion ?? '3.0.3';
 
 if ($dir == "") {
 	$dir = ".";
@@ -115,14 +118,12 @@ $sourceDir = $appIsCore ? $dir : $dir . "/lib";
 $appinfoDir = $appIsCore ? $dir : $dir . "/appinfo";
 
 $openapi = new OpenApi([
-	"openapi" => "3.0.3",
+	"openapi" => $openapiVersion,
 	"info" => new Info([
 		"title" => $appID,
 		"version" => $appVersion,
 		"description" => $appSummary,
-		"license" => [
-			"name" => $appLicence,
-		],
+		"license" => license($openapiVersion, $appLicence),
 	]),
 	"components" => [
 		"securitySchemes" => securitySchemes(),
@@ -310,7 +311,7 @@ foreach ($parsedRoutes as $key => $value) {
 		foreach ($nodeFinder->findInstanceOf($controllerClass->stmts, ClassMethod::class) as $classMethod) {
 			if ($classMethod->name == $methodName) {
 				$doc = $classMethod->getDocComment()?->getText();
-				$isCSRFRequired = !classMethodHasAnnotationOrAttribute($classMethod, "NoCSRFRequired");;
+				$isCSRFRequired = !classMethodHasAnnotationOrAttribute($classMethod, "NoCSRFRequired");
 				if ($controllerClass->extends != "Controller" || ($doc != null && !$isCSRFRequired)) {
 					$methodFunction = $classMethod;
 					$isOCS = $controllerClass->extends != "Controller" && $controllerClass->extends != "ApiController";
@@ -716,8 +717,11 @@ if ($useTags) {
 
 file_put_contents($out, Writer::writeToJson($openapi, jsonFlags()));
 if (!$openapi->validate()) {
-	print_r(implode("\n", array_map(fn(string $error) => "Error: " . $error, $openapi->getErrors())) . "\n");
-	throw new Exception("Invalid OpenAPI spec generated. Please review the output!");
+	$errors = array_filter($openapi->getErrors(), fn(string $error) => !str_contains($error, "Unsupported openapi version"));
+	if (count($errors) != 0) {
+		print_r(implode("\n", array_map(fn(string $error) => "Error: " . $error, $errors)) . "\n");
+		throw new Exception("Invalid OpenAPI spec generated. Please review the output!");
+	}
 }
 
 function cleanSchemaName(string $name): string {

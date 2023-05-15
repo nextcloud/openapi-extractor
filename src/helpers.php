@@ -24,6 +24,18 @@ function securitySchemes(): array {
 	];
 }
 
+function license(string $openapiVersion, string $license): array {
+	$identifier = match ($license) {
+		"agpl" => "AGPL-3.0-only",
+		default => throw new Exception("Unable to convert " . $license . " to SPDX identifier"),
+	};
+	return array_merge([
+		"name" => "agpl",
+	],
+		version_compare($openapiVersion, "3.1.0", ">=") ? ["identifier" => $identifier] : [],
+	);
+}
+
 function jsonFlags(): int {
 	return JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES;
 }
