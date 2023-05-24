@@ -110,7 +110,7 @@ $openapi = [
 	"openapi" => $openapiVersion,
 	"info" => [
 		"title" => $appID,
-		"version" => $appVersion,
+		"version" => "0.0.1", // This marks the document version and not the implementation version
 		"description" => $appSummary,
 		"license" => license($openapiVersion, $appLicence),
 	],
