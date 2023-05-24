@@ -451,10 +451,12 @@ foreach ($routes as $route) {
 			[
 				"name" => $urlParameter,
 				"in" => "path",
+			],
+			$description != null ? ["description" => $description] : [],
+			[
 				"required" => true,
 				"schema" => $schema,
 			],
-			$description != null ? ["description" => $description] : [],
 		);
 	}
 
@@ -511,9 +513,6 @@ foreach ($routes as $route) {
 			[
 				"description" => array_key_exists($statusCode, $route->controllerMethod->responseDescription) ? $route->controllerMethod->responseDescription[$statusCode] : "",
 			],
-			count($mergedContentTypeResponses) > 0 ? [
-				"content" => $mergedContentTypeResponses,
-			] : [],
 			count($headers) > 0 ? [
 				"headers" => array_combine(
 					array_keys($headers),
@@ -524,6 +523,9 @@ foreach ($routes as $route) {
 						array_values($headers),
 					),
 				),
+			] : [],
+			count($mergedContentTypeResponses) > 0 ? [
+				"content" => $mergedContentTypeResponses,
 			] : [],
 		);
 	}
@@ -537,7 +539,7 @@ foreach ($routes as $route) {
 	$security = [];
 	if ($route->isPublic) {
 		// Add empty authentication, meaning that it's optional. We can't know if there is a difference in behaviour for authenticated vs. unauthenticated access on public pages (e.g. capabilities)
-		$security[] = new \stdClass();
+		$security[] = new stdClass();
 	}
 	if (!$route->isCORS) {
 		// Bearer auth is not allowed on CORS routes
@@ -546,25 +548,23 @@ foreach ($routes as $route) {
 	// Add basic auth last, so it's only fallback if bearer is available
 	$security[] = ["basic_auth" => []];
 
-	$operation = array_merge([
-		"operationId" => implode("-", $operationId),
-		"responses" => $mergedResponses,
-	],
-		count($security) > 0 ? ["security" => $security] : [],
-		$useTags ? ["tags" => [$route->tag]] : [],
+	$operation = array_merge(
+		["operationId" => implode("-", $operationId)],
 		$route->controllerMethod->summary != null ? ["summary" => $route->controllerMethod->summary] : [],
 		count($route->controllerMethod->description) > 0 ? ["description" => implode("\n", $route->controllerMethod->description)] : [],
 		$route->controllerMethod->isDeprecated ? ["deprecated" => true] : [],
+		$useTags ? ["tags" => [$route->tag]] : [],
+		count($security) > 0 ? ["security" => $security] : [],
 		count($queryParameters) > 0 || count($pathParameters) > 0 || $route->isOCS ? [
 			"parameters" => array_merge(
 				array_map(fn(ControllerMethodParameter $parameter) => array_merge(
 					[
 						"name" => $parameter->name,
 						"in" => "query",
-						"schema" => $parameter->type->toArray($openapiVersion, true),
 					],
-					!$parameter->type->nullable && !$parameter->type->hasDefaultValue ? ["required" => true] : [],
 					$parameter->docParameter != null && $parameter->docParameter->description != "" ? ["description" => cleanDocComment($parameter->docParameter->description)] : [],
+					!$parameter->type->nullable && !$parameter->type->hasDefaultValue ? ["required" => true] : [],
+					["schema" => $parameter->type->toArray($openapiVersion, true),],
 				), $queryParameters),
 				$pathParameters,
 				$route->isOCS ? [[
@@ -578,6 +578,7 @@ foreach ($routes as $route) {
 				]] : [],
 			),
 		] : [],
+		["responses" => $mergedResponses],
 	);
 	if (!array_key_exists($route->url, $openapi["paths"])) {
 		$openapi["paths"][$route->url] = [];

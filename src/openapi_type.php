@@ -70,25 +70,25 @@ class OpenApiType {
 		return array_merge(
 			$this->ref != null ? ["\$ref" => $this->ref] : [],
 			$this->type != null ? ["type" => $isParameter && $this->type == "boolean" ? "integer" : $this->type] : [],
-			$this->nullable ? ["nullable" => true] : [],
 			$this->format != null ? ["format" => $this->format] : [],
+			$this->nullable ? ["nullable" => true] : [],
 			$this->hasDefaultValue && $this->defaultValue !== null ? ["default" => $isParameter && $this->type == "boolean" ? $this->defaultValue === true ? 1 : 0 : $this->defaultValue] : [],
+			$this->enum != null && count($this->enum) > 0 ? ["enum" => $this->enum] : [],
+			$this->description != null && $this->description != "" && !$isParameter ? ["description" => $this->description] : [],
 			$this->items != null ? ["items" => $this->items->toArray($openapiVersion)] : [],
+			$this->minLength != null && $this->minLength != 0 ? ["minLength" => $this->minLength] : [],
+			$this->maxLength != null && $this->maxLength != 0 ? ["maxLength" => $this->maxLength] : [],
+			$this->required != null && count($this->required) > 0 ? ["required" => $this->required] : [],
 			$this->properties != null ? ["properties" =>
 				array_combine(array_keys($this->properties),
 					array_map(fn(OpenApiType $property) => $property->toArray($openapiVersion), array_values($this->properties)),
 				)] : [],
-			$this->oneOf != null ? ["oneOf" => array_map(fn(OpenApiType $type) => $type->toArray($openapiVersion), $this->oneOf)] : [],
-			$this->anyOf != null ? ["anyOf" => array_map(fn(OpenApiType $type) => $type->toArray($openapiVersion), $this->anyOf)] : [],
-			$this->allOf != null ? ["allOf" => array_map(fn(OpenApiType $type) => $type->toArray($openapiVersion), $this->allOf)] : [],
 			$this->additionalProperties != null ? [
 				"additionalProperties" => $this->additionalProperties instanceof OpenApiType ? $this->additionalProperties->toArray($openapiVersion) : $this->additionalProperties,
 			] : [],
-			$this->required != null && count($this->required) > 0 ? ["required" => $this->required] : [],
-			$this->description != null && $this->description != "" && !$isParameter ? ["description" => $this->description] : [],
-			$this->minLength != null && $this->minLength != 0 ? ["minLength" => $this->minLength] : [],
-			$this->maxLength != null && $this->maxLength != 0 ? ["maxLength" => $this->maxLength] : [],
-			$this->enum != null && count($this->enum) > 0 ? ["enum" => $this->enum] : [],
+			$this->oneOf != null ? ["oneOf" => array_map(fn(OpenApiType $type) => $type->toArray($openapiVersion), $this->oneOf)] : [],
+			$this->anyOf != null ? ["anyOf" => array_map(fn(OpenApiType $type) => $type->toArray($openapiVersion), $this->anyOf)] : [],
+			$this->allOf != null ? ["allOf" => array_map(fn(OpenApiType $type) => $type->toArray($openapiVersion), $this->allOf)] : [],
 		);
 	}
 }
