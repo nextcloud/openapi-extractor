@@ -181,10 +181,6 @@ function resolveOpenApiType(string $context, array $definitions, ParamTagValueNo
 		);
 	}
 
-	if ($node instanceof ConstTypeNode && $node->constExpr instanceof ConstFetchNode && $node->constExpr->className == "\stdClass" && $node->constExpr->name == "class") {
-		return new OpenApiType(type: "object", additionalProperties: true);
-	}
-
 	throw new Exception($context . ": Unable to resolve OpenAPI type for type '" . get_class($node) . "'");
 }
 
@@ -192,6 +188,9 @@ function resolveOpenApiType(string $context, array $definitions, ParamTagValueNo
 function resolveIdentifier(string $context, array $definitions, string $name): OpenApiType {
 	if ($name == "array") {
 		throw new Exception($context . ": Instead of 'array' use '\stdClass::class' for empty objects, 'array<string, mixed>' for non-empty objects and 'array<mixed>' for lists");
+	}
+	if (str_starts_with($name, "\\")) {
+		$name = substr($name, 1);
 	}
 	return match ($name) {
 		"string", "non-falsy-string" => new OpenApiType(type: "string"),
@@ -201,7 +200,7 @@ function resolveIdentifier(string $context, array $definitions, string $name): O
 		"double" => new OpenApiType(type: "number", format: "double"),
 		"float" => new OpenApiType(type: "number", format: "float"),
 		"mixed", "empty" => new OpenApiType(type: "object"),
-		"object" => new OpenApiType(type: "object", additionalProperties: true),
+		"object", "stdClass" => new OpenApiType(type: "object", additionalProperties: true),
 		"null" => new OpenApiType(nullable: true),
 		default => (function () use ($context, $definitions, $name) {
 			if (array_key_exists($name, $definitions)) {
