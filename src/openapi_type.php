@@ -2,7 +2,6 @@
 
 namespace OpenAPIExtractor;
 
-use cebe\openapi\spec\Schema;
 use Exception;
 use PhpParser\Node\Identifier;
 use PhpParser\Node\IntersectionType;
@@ -11,7 +10,6 @@ use PhpParser\Node\NullableType;
 use PhpParser\Node\UnionType;
 use PhpParser\NodeAbstract;
 use PHPStan\PhpDocParser\Ast\ConstExpr\ConstExprStringNode;
-use PHPStan\PhpDocParser\Ast\ConstExpr\ConstFetchNode;
 use PHPStan\PhpDocParser\Ast\PhpDoc\ParamTagValueNode;
 use PHPStan\PhpDocParser\Ast\Type\ArrayShapeNode;
 use PHPStan\PhpDocParser\Ast\Type\ArrayTypeNode;
@@ -48,10 +46,6 @@ class OpenApiType {
 		public ?int $maxLength = null,
 		public ?array $enum = null,
 	) {
-	}
-
-	public function toSchema(string $openapiVersion, bool $isParameter = false): Schema {
-		return new Schema($this->toArray($openapiVersion, $isParameter));
 	}
 
 	public function toArray(string $openapiVersion, bool $isParameter = false): array {

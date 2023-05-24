@@ -2,7 +2,6 @@
 
 namespace OpenAPIExtractor;
 
-use cebe\openapi\spec\Schema;
 use Exception;
 use PhpParser\Node;
 use PHPUnit\Event\Code\ClassMethod;
@@ -57,32 +56,32 @@ function mapVerb(string $verb): string {
 
 /**
  * @param string $context
- * @param Schema[] $schemas
- * @return Schema
+ * @param array[] $schemas
+ * @return array
  */
-function mergeCapabilities(string $context, array $schemas): Schema {
+function mergeCapabilities(string $context, array $schemas): array {
 	$required = [];
 	$properties = [];
 
 	foreach ($schemas as $schema) {
-		foreach (array_keys($schema->properties) as $propertyName) {
+		foreach (array_keys($schema["properties"]) as $propertyName) {
 			if (array_key_exists($propertyName, $properties)) {
 				throw new Exception($context . ": Overlapping capabilities key '" . $propertyName . "'");
 			}
-			$properties[$propertyName] = $schema->properties[$propertyName];
+			$properties[$propertyName] = $schema["properties"][$propertyName];
 		}
 		$required = array_merge($required, $schema->required ?? []);
 	}
 
-	return new Schema(array_merge([
+	return array_merge([
 		"type" => "object",
 	],
 		count($properties) > 0 ? ["properties" => $properties] : [],
 		count($required) > 0 ? ["required" => $required] : [],
-	));
+	);
 }
 
-function wrapOCSResponse(Schema $schema): array {
+function wrapOCSResponse(array $schema): array {
 	return [
 		"type" => "object",
 		"required" => [

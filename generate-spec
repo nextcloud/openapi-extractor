@@ -4,17 +4,6 @@
 require_once __DIR__ . "/vendor/autoload.php";
 
 use Ahc\Cli\Input\Command;
-use cebe\openapi\spec\Header;
-use cebe\openapi\spec\Info;
-use cebe\openapi\spec\MediaType;
-use cebe\openapi\spec\OpenApi;
-use cebe\openapi\spec\Operation;
-use cebe\openapi\spec\Parameter;
-use cebe\openapi\spec\PathItem;
-use cebe\openapi\spec\Response;
-use cebe\openapi\spec\Schema;
-use cebe\openapi\spec\Tag;
-use cebe\openapi\Writer;
 use OpenAPIExtractor\ControllerMethodParameter;
 use OpenAPIExtractor\ControllerMethodResponse;
 use OpenAPIExtractor\OpenApiType;
@@ -117,20 +106,20 @@ $readableAppID = generateReadableAppID($appID);
 $sourceDir = $appIsCore ? $dir : $dir . "/lib";
 $appinfoDir = $appIsCore ? $dir : $dir . "/appinfo";
 
-$openapi = new OpenApi([
+$openapi = [
 	"openapi" => $openapiVersion,
-	"info" => new Info([
+	"info" => [
 		"title" => $appID,
 		"version" => $appVersion,
 		"description" => $appSummary,
 		"license" => license($openapiVersion, $appLicence),
-	]),
+	],
 	"components" => [
 		"securitySchemes" => securitySchemes(),
 		"schemas" => [],
 	],
 	"paths" => [],
-]);
+];
 
 print_r("Extracting OpenAPI spec for " . $appID . " " . $appVersion . "\n");
 
@@ -155,7 +144,7 @@ if (file_exists($definitionsPath)) {
 		}
 	}
 	foreach (array_keys($definitions) as $name) {
-		$schemas[cleanSchemaName($name)] = resolveOpenApiType("Response definitions", $definitions, $definitions[$name])->toSchema($openapiVersion);
+		$schemas[cleanSchemaName($name)] = resolveOpenApiType("Response definitions", $definitions, $definitions[$name])->toArray($openapiVersion);
 	}
 } else {
 	print_r("No response definitions were loaded\n");
@@ -208,8 +197,8 @@ foreach ($iterator as $file) {
 			throw new Exception($path . ": No return value");
 		}
 
-		$schema = $type->toSchema($openapiVersion);
-		if ($schema->type != "object" || $schema->properties == null || count($schema->properties) == 0) {
+		$schema = $type->toArray($openapiVersion);
+		if ($schema["type"] != "object" || $schema["properties"] == null || count($schema["properties"]) == 0) {
 			throw new Exception($path . ": Invalid capabilities");
 		}
 
@@ -278,7 +267,7 @@ foreach ($parsedRoutes as $key => $value) {
 
 		$tagName = implode("_", array_map(fn(string $s) => strtolower($s), splitOnUppercaseFollowedByNonUppercase($controllerName)));
 		$doc = $controllerClass->getDocComment()?->getText();
-		if ($doc != null && count(array_filter($tags, fn(Tag $tag) => $tag->name == $tagName)) == 0) {
+		if ($doc != null && count(array_filter($tags, fn(array $tag) => $tag["name"] == $tagName)) == 0) {
 			$classDescription = [];
 
 			$docNodes = $phpDocParser->parse(new TokenIterator($lexer->tokenize($doc)))->children;
@@ -293,10 +282,10 @@ foreach ($parsedRoutes as $key => $value) {
 			}
 
 			if (count($classDescription) > 0) {
-				$tags[] = new Tag([
+				$tags[] = [
 					"name" => $tagName,
 					"description" => join("\n", $classDescription),
-				]);
+				];
 			}
 		}
 
@@ -458,7 +447,7 @@ foreach ($routes as $route) {
 			}
 		}
 
-		$pathParameters[] = new Parameter(array_merge(
+		$pathParameters[] = array_merge(
 			[
 				"name" => $urlParameter,
 				"in" => "path",
@@ -466,14 +455,14 @@ foreach ($routes as $route) {
 				"schema" => $schema,
 			],
 			$description != null ? ["description" => $description] : [],
-		));
+		);
 	}
 
 	$queryParameters = [];
 	foreach ($route->controllerMethod->parameters as $parameter) {
 		$alreadyInPath = false;
 		foreach ($pathParameters as $pathParameter) {
-			if ($pathParameter->name == $parameter->name) {
+			if ($pathParameter["name"] == $parameter->name) {
 				$alreadyInPath = true;
 				break;
 			}
@@ -501,43 +490,41 @@ foreach ($routes as $route) {
 			$contentTypeResponses = array_values(array_filter($statusCodeResponses, fn(ControllerMethodResponse $response) => $response->contentType == $contentType));
 
 			$hasEmpty = count(array_filter($contentTypeResponses, fn(ControllerMethodResponse $response) => $response->type == null)) > 0;
-			$uniqueResponses = array_values(array_intersect_key($contentTypeResponses, array_unique(array_map(fn(ControllerMethodResponse $response) => $response->type->toSchema($openapiVersion), array_filter($contentTypeResponses, fn(ControllerMethodResponse $response) => $response->type != null)), SORT_REGULAR)));
+			$uniqueResponses = array_values(array_intersect_key($contentTypeResponses, array_unique(array_map(fn(ControllerMethodResponse $response) => $response->type->toArray($openapiVersion), array_filter($contentTypeResponses, fn(ControllerMethodResponse $response) => $response->type != null)), SORT_REGULAR)));
 			if (count($uniqueResponses) == 1) {
 				if ($hasEmpty) {
-					$mergedContentTypeResponses[$contentType] = new MediaType([]);
+					$mergedContentTypeResponses[$contentType] = [];
 				} else {
-					$schema = $contentTypeResponses[0]->type->toSchema($openapiVersion);
-					$mergedContentTypeResponses[$contentType] = new MediaType(["schema" => $route->isOCS ? wrapOCSResponse($schema) : $schema]);
+					$schema = $contentTypeResponses[0]->type->toArray($openapiVersion);
+					$mergedContentTypeResponses[$contentType] = ["schema" => $route->isOCS ? wrapOCSResponse($schema) : $schema];
 				}
 			} else {
-				$mergedContentTypeResponses[$contentType] = new MediaType([
+				$mergedContentTypeResponses[$contentType] = [
 					"schema" => [
-						$hasEmpty ? "anyOf" : "oneOf" => array_map(fn(ControllerMethodResponse $response) => $response->type->toSchema($openapiVersion), $uniqueResponses),
+						$hasEmpty ? "anyOf" : "oneOf" => array_map(fn(ControllerMethodResponse $response) => $response->type->toArray($openapiVersion), $uniqueResponses),
 					],
-				]);
+				];
 			}
 		}
 
-		$mergedResponses[$statusCode] = new Response(
-			array_merge(
-				[
-					"description" => array_key_exists($statusCode, $route->controllerMethod->responseDescription) ? $route->controllerMethod->responseDescription[$statusCode] : "",
-				],
-				count($mergedContentTypeResponses) > 0 ? [
-					"content" => $mergedContentTypeResponses,
-				] : [],
-				count($headers) > 0 ? [
-					"headers" => array_combine(
-						array_keys($headers),
-						array_map(
-							fn(OpenApiType $type) => new Header([
-								"schema" => $type->toSchema($openapiVersion),
-							]),
-							array_values($headers),
-						),
+		$mergedResponses[$statusCode] = array_merge(
+			[
+				"description" => array_key_exists($statusCode, $route->controllerMethod->responseDescription) ? $route->controllerMethod->responseDescription[$statusCode] : "",
+			],
+			count($mergedContentTypeResponses) > 0 ? [
+				"content" => $mergedContentTypeResponses,
+			] : [],
+			count($headers) > 0 ? [
+				"headers" => array_combine(
+					array_keys($headers),
+					array_map(
+						fn(OpenApiType $type) => [
+							"schema" => $type->toArray($openapiVersion),
+						],
+						array_values($headers),
 					),
-				] : [],
-			),
+				),
+			] : [],
 		);
 	}
 
@@ -550,7 +537,7 @@ foreach ($routes as $route) {
 	$security = [];
 	if ($route->isPublic) {
 		// Add empty authentication, meaning that it's optional. We can't know if there is a difference in behaviour for authenticated vs. unauthenticated access on public pages (e.g. capabilities)
-		$security[] = [];
+		$security[] = new \stdClass();
 	}
 	if (!$route->isCORS) {
 		// Bearer auth is not allowed on CORS routes
@@ -559,7 +546,7 @@ foreach ($routes as $route) {
 	// Add basic auth last, so it's only fallback if bearer is available
 	$security[] = ["basic_auth" => []];
 
-	$operation = new Operation(array_merge([
+	$operation = array_merge([
 		"operationId" => implode("-", $operationId),
 		"responses" => $mergedResponses,
 	],
@@ -570,15 +557,15 @@ foreach ($routes as $route) {
 		$route->controllerMethod->isDeprecated ? ["deprecated" => true] : [],
 		count($queryParameters) > 0 || count($pathParameters) > 0 || $route->isOCS ? [
 			"parameters" => array_merge(
-				array_map(fn(ControllerMethodParameter $parameter) => new Parameter(array_merge(
+				array_map(fn(ControllerMethodParameter $parameter) => array_merge(
 					[
 						"name" => $parameter->name,
 						"in" => "query",
-						"schema" => $parameter->type->toSchema($openapiVersion, true),
+						"schema" => $parameter->type->toArray($openapiVersion, true),
 					],
 					!$parameter->type->nullable && !$parameter->type->hasDefaultValue ? ["required" => true] : [],
 					$parameter->docParameter != null && $parameter->docParameter->description != "" ? ["description" => cleanDocComment($parameter->docParameter->description)] : [],
-				)), $queryParameters),
+				), $queryParameters),
 				$pathParameters,
 				$route->isOCS ? [[
 					"name" => "OCS-APIRequest",
@@ -590,67 +577,24 @@ foreach ($routes as $route) {
 					],
 				]] : [],
 			),
-		] : []),
+		] : [],
 	);
-	if (!$openapi->paths->hasPath($route->url)) {
-		$openapi->paths->addPath(
-			$route->url,
-			new PathItem([]),
-		);
+	if (!array_key_exists($route->url, $openapi["paths"])) {
+		$openapi["paths"][$route->url] = [];
 	}
-	$path = $openapi->paths->getPath($route->url);
+	$path = &$openapi["paths"][$route->url];
 	$alreadyDefined = false;
-	switch ($route->verb) {
-		case "DELETE":
-			if ($path->delete == null) {
-				$path->delete = $operation;
-			} else {
-				$alreadyDefined = true;
-			}
-			break;
-		case "GET":
-			if ($path->get == null) {
-				$path->get = $operation;
-			} else {
-				$alreadyDefined = true;
-			}
-			break;
-		case "POST":
-			if ($path->post == null) {
-				$path->post = $operation;
-			} else {
-				$alreadyDefined = true;
-			}
-			break;
-		case "PUT":
-			if ($path->put == null) {
-				$path->put = $operation;
-			} else {
-				$alreadyDefined = true;
-			}
-			break;
-		case "PATCH":
-			if ($path->patch == null) {
-				$path->patch = $operation;
-			} else {
-				$alreadyDefined = true;
-			}
-			break;
-		case "OPTIONS":
-			if ($path->options == null) {
-				$path->options = $operation;
-			} else {
-				$alreadyDefined = true;
-			}
-			break;
-	}
-	if ($alreadyDefined) {
+
+	$verb = strtolower($route->verb);
+	if (!array_key_exists($verb, $path)) {
+		$path[$verb] = $operation;
+	} else {
 		throw new Exception($route->name . ": Operation '" . $route->verb . "' already set for path '" . $route->url . "'");
 	}
 }
 
 if ($appIsCore) {
-	$schemas["Status"] = new Schema([
+	$schemas["Status"] = [
 		"type" => "object",
 		"required" => [
 			"installed",
@@ -663,66 +607,59 @@ if ($appIsCore) {
 			"extendedSupport"
 		],
 		"properties" => [
-			"installed" => new Schema([
+			"installed" => [
 				"type" => "boolean",
-			]),
-			"maintenance" => new Schema([
+			],
+			"maintenance" => [
 				"type" => "boolean",
-			]),
-			"needsDbUpgrade" => new Schema([
+			],
+			"needsDbUpgrade" => [
 				"type" => "boolean",
-			]),
-			"version" => new Schema([
+			],
+			"version" => [
 				"type" => "string",
-			]),
-			"versionstring" => new Schema([
+			],
+			"versionstring" => [
 				"type" => "string",
-			]),
-			"edition" => new Schema([
+			],
+			"edition" => [
 				"type" => "string",
-			]),
-			"productname" => new Schema([
+			],
+			"productname" => [
 				"type" => "string",
-			]),
-			"extendedSupport" => new Schema([
+			],
+			"extendedSupport" => [
 				"type" => "boolean",
-			]),
+			],
 		],
-	]);
-	$openapi->paths->addPath("/status.php", new PathItem([
-		"get" => new Operation([
+	];
+	$openapi["paths"]["/status.php"] = [
+		"get" => [
 			"operationId" => "get-status",
 			"responses" => [
-				200 => new Response([
+				200 => [
 					"description" => "Status returned",
 					"content" => [
-						"application/json" => new MediaType([
-							"schema" => new Schema([
+						"application/json" => [
+							"schema" => [
 								"\$ref" => "#/components/schemas/Status"
-							]),
-						]),
+							],
+						],
 					],
-				]),
+				],
 			],
-		]),
-	]));
+		],
+	];
 }
 
 ksort($schemas);
-$openapi->components->schemas = $schemas;
+$openapi["components"]["schemas"] = $schemas;
 
 if ($useTags) {
-	$openapi->tags = $tags;
+	$openapi["tags"] = $tags;
 }
 
-file_put_contents($out, Writer::writeToJson($openapi, jsonFlags()));
-if (!$openapi->validate()) {
-	$errors = array_filter($openapi->getErrors(), fn(string $error) => !str_contains($error, "Unsupported openapi version"));
-	if (count($errors) != 0) {
-		print_r(implode("\n", array_map(fn(string $error) => "Error: " . $error, $errors)) . "\n");
-		throw new Exception("Invalid OpenAPI spec generated. Please review the output!");
-	}
-}
+file_put_contents($out, json_encode($openapi, jsonFlags()));
 
 function cleanSchemaName(string $name): string {
 	global $readableAppID;

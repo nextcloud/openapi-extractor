@@ -1,16 +1,9 @@
 {
-  "repositories": [
-    {
-      "type": "vcs",
-      "url":  "https://github.com/provokateurin/php-openapi.git"
-    }
-  ],
   "require": {
     "nikic/php-parser": "4.15.3",
     "adhocore/cli": "v1.2.0",
     "ext-simplexml": "*",
-    "phpstan/phpdoc-parser": "1.16.0",
-    "cebe/php-openapi": "dev-fix/assume-reference"
+    "phpstan/phpdoc-parser": "1.16.0"
   },
   "autoload": {
     "files": [
