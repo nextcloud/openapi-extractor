@@ -14,6 +14,7 @@ $command
 	->option("--merged <merged>")
 	->option("--core <core>")
 	->option('--openapi-version', 'OpenAPI version to use', null, '3.0.3')
+	->option('--first-status-code', 'Only output the first status code')
 	->argument("<[specs...]>")
 	->parse($_SERVER["argv"]);
 
@@ -26,6 +27,7 @@ $mergedSpecPath = $command->values()["<merged>"];
  */
 $coreSpecPath = $command->values()["<core>"];
 $openapiVersion = $command->openapiVersion ?? '3.0.3';
+$firstStatusCode = $command->firstStatusCode ?? false;
 /**
  * @var $otherSpecPaths string[]
  */
@@ -128,6 +130,8 @@ function rewriteTags(array $spec): array {
 }
 
 function rewriteOperations(array $spec): array {
+	global $firstStatusCode;
+
 	foreach (array_keys($spec["paths"]) as $path) {
 		foreach (array_keys($spec["paths"][$path]) as $method) {
 			if (!in_array($method, ["delete", "get", "post", "put", "patch", "options"])) {
@@ -141,6 +145,10 @@ function rewriteOperations(array $spec): array {
 				$operation["tags"] = array_map(fn(string $tag) => $spec["info"]["title"] . "/" . $tag, $operation["tags"]);
 			} else {
 				$operation["tags"] = [$spec["info"]["title"]];
+			}
+			if ($firstStatusCode && array_key_exists("responses", $operation)) {
+				$firstStatusCode = array_key_first($operation["responses"]);
+				$operation["responses"] = [$firstStatusCode => $operation["responses"][$firstStatusCode]];
 			}
 			if (array_key_exists("security", $operation)) {
 				for ($i = 0; $i < count($operation["security"]); $i++) {
