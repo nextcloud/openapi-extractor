@@ -81,28 +81,32 @@ function mergeCapabilities(string $context, array $schemas): array {
 	);
 }
 
-function wrapOCSResponse(array $schema): array {
-	return [
-		"type" => "object",
-		"required" => [
-			"ocs",
-		],
-		"properties" => [
-			"ocs" => [
-				"type" => "object",
-				"required" => [
-					"meta",
-					"data",
-				],
-				"properties" => [
-					"meta" => [
-						"\$ref" => "#/components/schemas/OCSMeta",
+function wrapOCSResponse(Route $route, ControllerMethodResponse $response, array $schema): array {
+	if ($route->isOCS && $response->className == "DataResponse") {
+		return [
+			"type" => "object",
+			"required" => [
+				"ocs",
+			],
+			"properties" => [
+				"ocs" => [
+					"type" => "object",
+					"required" => [
+						"meta",
+						"data",
 					],
-					"data" => $schema,
+					"properties" => [
+						"meta" => [
+							"\$ref" => "#/components/schemas/OCSMeta",
+						],
+						"data" => $schema,
+					],
 				],
 			],
-		],
-	];
+		];
+	}
+
+	return $schema;
 }
 
 function classMethodHasAnnotationOrAttribute(ClassMethod|Node $classMethod, string $annotation): bool {

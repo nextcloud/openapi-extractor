@@ -489,6 +489,7 @@ foreach ($routes as $route) {
 				break;
 			}
 
+			/** @var ControllerMethodResponse[] $contentTypeResponses */
 			$contentTypeResponses = array_values(array_filter($statusCodeResponses, fn(ControllerMethodResponse $response) => $response->contentType == $contentType));
 
 			$hasEmpty = count(array_filter($contentTypeResponses, fn(ControllerMethodResponse $response) => $response->type == null)) > 0;
@@ -498,12 +499,12 @@ foreach ($routes as $route) {
 					$mergedContentTypeResponses[$contentType] = [];
 				} else {
 					$schema = $contentTypeResponses[0]->type->toArray($openapiVersion);
-					$mergedContentTypeResponses[$contentType] = ["schema" => $route->isOCS ? wrapOCSResponse($schema) : $schema];
+					$mergedContentTypeResponses[$contentType] = ["schema" => wrapOCSResponse($route, $contentTypeResponses[0], $schema)];
 				}
 			} else {
 				$mergedContentTypeResponses[$contentType] = [
 					"schema" => [
-						$hasEmpty ? "anyOf" : "oneOf" => array_map(fn(ControllerMethodResponse $response) => $response->type->toArray($openapiVersion), $uniqueResponses),
+						[$hasEmpty ? "anyOf" : "oneOf" => array_map(fn(ControllerMethodResponse $response) => wrapOCSResponse($route, $response, $response->type->toArray($openapiVersion)), $uniqueResponses)],
 					],
 				];
 			}

@@ -36,6 +36,7 @@ class ControllerMethodResponse {
 	 * @param array<string, OpenApiType>|null $headers
 	 */
 	public function __construct(
+		public string $className,
 		public int $statusCode,
 		public ?string $contentType = null,
 		public ?OpenApiType $type = null,
@@ -117,7 +118,7 @@ function extractControllerMethod(string $context, array $definitions, ClassMetho
 							throw new Exception($context . ": Missing description for exception '" . $type . "'");
 						}
 						$responseDescriptions[$statusCode] = $docNode->value->description;
-						$responses[] = new ControllerMethodResponse($statusCode, "text/plain", new OpenApiType(type: "string"), null);
+						$responses[] = new ControllerMethodResponse($docNode->value->type, $statusCode, "text/plain", new OpenApiType(type: "string"), null);
 					}
 				}
 			}

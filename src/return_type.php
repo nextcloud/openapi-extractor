@@ -273,6 +273,7 @@ function resolveReturnTypes(string $context, TypeNode $obj): array {
 				foreach ($statusCodes as $statusCode) {
 					foreach ($contentTypes as $contentType) {
 						$responses[] = new ControllerMethodResponse(
+							$className,
 							$statusCode,
 							$contentType,
 							$type,
