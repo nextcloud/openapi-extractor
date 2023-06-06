@@ -232,7 +232,7 @@ foreach ($parsedRoutes as $key => $value) {
 		$postfix = array_key_exists("postfix", $route) ? $route["postfix"] : null;
 		$verb = array_key_exists("verb", $route) ? $route["verb"] : "GET";
 		$requirements = array_key_exists("requirements", $route) ? $route["requirements"] : [];
-		$root = array_key_exists("root", $route) ? $route["root"] : ($appIsCore ? "" : "/apps") . "/" . $appID;
+		$root = array_key_exists("root", $route) ? $route["root"] : ($appIsCore ? "" : "/apps/" . $appID);
 		$url = $route["url"];
 		if (!str_starts_with($url, "/")) {
 			$url = "/" . $url;
