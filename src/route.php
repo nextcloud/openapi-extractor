@@ -25,17 +25,24 @@ class Route {
 function parseRoutes(string $path): array {
 	$content = file_get_contents($path);
 	if (str_contains($content, "return ")) {
+		if (str_contains($content, "\$this")) {
+			preg_match("/return ([^;]*);/", $content, $matches);
+			return includeRoutes("<?php\nreturn " . $matches[1] . ";");
+		}
 		return include($path);
 	} elseif (str_contains($content, "registerRoutes")) {
-		preg_match("/registerRoutes\(\\\$this, (\[[^;]*)\);/", $content, $matches);
-
-		$tmpPath = tempnam(sys_get_temp_dir(), "routes-");
-		file_put_contents($tmpPath, "<?php\nreturn " . $matches[1] . ";");
-		$routes = include($tmpPath);
-		unlink($tmpPath);
-
-		return $routes;
+		preg_match("/registerRoutes\(.*?\\\$this,.*?(\[[^;]*)\);/s", $content, $matches);
+		return includeRoutes("<?php\nreturn " . $matches[1] . ";");
 	} else {
 		throw new Exception("Unknown routes.php format");
 	}
+}
+
+function includeRoutes(string $code) {
+	$tmpPath = tempnam(sys_get_temp_dir(), "routes-");
+	file_put_contents($tmpPath, $code);
+	$routes = include($tmpPath);
+	unlink($tmpPath);
+
+	return $routes;
 }
