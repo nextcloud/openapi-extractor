@@ -175,6 +175,13 @@ function resolveOpenApiType(string $context, array $definitions, ParamTagValueNo
 		);
 	}
 
+	if ($node instanceof ConstTypeNode && $node->constExpr instanceof ConstExprStringNode) {
+		return new OpenApiType(
+			type: "string",
+			enum: [$node->constExpr->value],
+		);
+	}
+
 	throw new Exception($context . ": Unable to resolve OpenAPI type for type '" . get_class($node) . "'");
 }
 

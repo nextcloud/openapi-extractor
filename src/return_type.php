@@ -31,12 +31,12 @@ function getResponseTypes(): array {
 		new ResponseType(
 			"DataDisplayResponse",
 			true,
-			true,
+			false,
 			false,
 			null,
 			null,
 			$binaryType,
-			["Content-Disposition" => $stringType],
+			null,
 		),
 		new ResponseType(
 			"DataDownloadResponse",
@@ -46,7 +46,7 @@ function getResponseTypes(): array {
 			null,
 			null,
 			$binaryType,
-			["Content-Disposition" => $stringType],
+			null,
 		),
 		new ResponseType(
 			"DataResponse",
@@ -66,17 +66,17 @@ function getResponseTypes(): array {
 			null,
 			null,
 			$binaryType,
-			["Content-Disposition" => $stringType],
+			null,
 		),
 		new ResponseType(
 			"FileDisplayResponse",
 			true,
-			true,
+			false,
 			false,
 			null,
 			null,
 			$binaryType,
-			["Content-Disposition" => $stringType],
+			null,
 		),
 		new ResponseType(
 			"JSONResponse",
@@ -141,7 +141,7 @@ function getResponseTypes(): array {
 		new ResponseType(
 			"StreamResponse",
 			true,
-			true,
+			false,
 			false,
 			null,
 			null,
@@ -263,9 +263,28 @@ function resolveReturnTypes(string $context, TypeNode $obj): array {
 					$type = $responseType->defaultType;
 				}
 
-				$headers = resolveOpenApiType($context, $definitions, $args[$i])->properties;
+				$headers = resolveOpenApiType($context, $definitions, $args[$i])->properties ?? [];
 				if ($responseType->defaultHeaders != null) {
 					$headers = array_merge($responseType->defaultHeaders, $headers);
+				}
+
+				if (array_key_exists("Content-Type", $headers)) {
+					/** @var OpenApiType $value */
+					$values = $headers["Content-Type"];
+					if ($values->oneOf != null) {
+						$values = $values->oneOf;
+					} else {
+						$values = [$values];
+					}
+
+					foreach ($values as $value) {
+						if ($value->type == "string" && $value->enum != null) {
+							$contentTypes = array_merge($contentTypes, $value->enum);
+						}
+					}
+
+					// Content-Type is an illegal response header
+					unset($headers["Content-Type"]);
 				}
 
 				$contentTypes = $contentTypes !== [] ? $contentTypes : [$type != null ? "*/*" : null];
