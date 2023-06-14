@@ -218,6 +218,8 @@ function resolveReturnTypes(string $context, TypeNode $obj): array {
 	} else {
 		throw new Exception($context . ": Failed to get class name for " . $obj);
 	}
+	$classNameParts = explode("\\", $className);
+	$className = end($classNameParts);
 
 	if ($className == "void") {
 		$responses[] = null;
