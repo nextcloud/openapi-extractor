@@ -203,9 +203,9 @@ foreach ($iterator as $file) {
 		}
 
 		if ($implementsPublicCapability) {
-			$publicCapabilities = $publicCapabilities == null ? $schema : mergeCapabilities($path, [$publicCapabilities, $schema]);
+			$publicCapabilities = $publicCapabilities == null ? $schema : mergeCapabilities([$publicCapabilities, $schema]);
 		} else {
-			$capabilities = $capabilities == null ? $schema : mergeCapabilities($path, [$capabilities, $schema]);
+			$capabilities = $capabilities == null ? $schema : mergeCapabilities([$capabilities, $schema]);
 		}
 	}
 }

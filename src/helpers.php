@@ -55,20 +55,16 @@ function mapVerb(string $verb): string {
 }
 
 /**
- * @param string $context
  * @param array[] $schemas
  * @return array
  */
-function mergeCapabilities(string $context, array $schemas): array {
+function mergeCapabilities(array $schemas): array {
 	$required = [];
 	$properties = [];
 
 	foreach ($schemas as $schema) {
 		foreach (array_keys($schema["properties"]) as $propertyName) {
-			if (array_key_exists($propertyName, $properties)) {
-				throw new Exception($context . ": Overlapping capabilities key '" . $propertyName . "'");
-			}
-			$properties[$propertyName] = $schema["properties"][$propertyName];
+			$properties[$propertyName] = array_merge_recursive(array_key_exists($propertyName, $properties) ? $properties[$propertyName] : [], $schema["properties"][$propertyName]);
 		}
 		$required = array_merge($required, $schema->required ?? []);
 	}
