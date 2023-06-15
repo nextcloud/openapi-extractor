@@ -219,7 +219,10 @@ if ($capabilities == null && $publicCapabilities == null) {
 	print_r("No capabilities were loaded\n");
 }
 
-$parsedRoutes = parseRoutes($appinfoDir . "/routes.php");
+$parsedRoutes = file_exists($appinfoDir . "/routes.php") ? parseRoutes($appinfoDir . "/routes.php") : [];
+if (count($parsedRoutes) == 0) {
+	print_r("No routes were loaded\n");
+}
 
 $routes = [];
 foreach ($parsedRoutes as $key => $value) {
