@@ -40,6 +40,7 @@ function statusEnumToCode(string $context, string $name): int {
 		"STATUS_CREATED" => 201,
 		"STATUS_ACCEPTED" => 202,
 		"STATUS_NO_CONTENT" => 204,
+		"STATUS_SEE_OTHER" => 303,
 		"STATUS_NOT_MODIFIED" => 304,
 		"STATUS_BAD_REQUEST" => 400,
 		"STATUS_UNAUTHORIZED" => 401,
