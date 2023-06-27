@@ -194,7 +194,7 @@ function resolveIdentifier(string $context, array $definitions, string $name): O
 		$name = substr($name, 1);
 	}
 	return match ($name) {
-		"string", "non-falsy-string" => new OpenApiType(type: "string"),
+		"string", "non-falsy-string", "numeric-string" => new OpenApiType(type: "string"),
 		"non-empty-string" => new OpenApiType(type: "string", minLength: 1),
 		"int", "integer" => new OpenApiType(type: "integer", format: "int64"),
 		"bool", "boolean" => new OpenApiType(type: "boolean"),
