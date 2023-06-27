@@ -12,10 +12,8 @@ use PHPStan\PhpDocParser\Ast\Type\UnionTypeNode;
 class ResponseType {
 	public function __construct(
 		public string $className,
-		public bool $hasStatusCodeTemplate,
 		public bool $hasContentTypeTemplate,
 		public bool $hasTypeTemplate,
-		public ?int $defaultStatusCode,
 		public ?string $defaultContentType,
 		public ?OpenApiType $defaultType,
 		public ?array $defaultHeaders,
@@ -30,10 +28,8 @@ function getResponseTypes(): array {
 	return [
 		new ResponseType(
 			"DataDisplayResponse",
-			true,
 			false,
 			false,
-			null,
 			null,
 			$binaryType,
 			null,
@@ -41,19 +37,15 @@ function getResponseTypes(): array {
 		new ResponseType(
 			"DataDownloadResponse",
 			true,
-			true,
 			false,
-			null,
 			null,
 			$binaryType,
 			null,
 		),
 		new ResponseType(
 			"DataResponse",
-			true,
 			false,
 			true,
-			null,
 			"application/json",
 			$stringType,
 			null,
@@ -61,29 +53,23 @@ function getResponseTypes(): array {
 		new ResponseType(
 			"DownloadResponse",
 			true,
-			true,
 			false,
-			null,
 			null,
 			$binaryType,
 			null,
 		),
 		new ResponseType(
 			"FileDisplayResponse",
-			true,
 			false,
 			false,
-			null,
 			null,
 			$binaryType,
 			null,
 		),
 		new ResponseType(
 			"JSONResponse",
-			true,
 			false,
 			true,
-			null,
 			"application/json",
 			$stringType,
 			null,
@@ -92,8 +78,6 @@ function getResponseTypes(): array {
 			"NotFoundResponse",
 			false,
 			false,
-			false,
-			404,
 			"text/html",
 			$stringType,
 			null,
@@ -102,8 +86,6 @@ function getResponseTypes(): array {
 			"RedirectResponse",
 			false,
 			false,
-			false,
-			303,
 			null,
 			null,
 			["Location" => $stringType],
@@ -112,58 +94,46 @@ function getResponseTypes(): array {
 			"RedirectToDefaultAppResponse",
 			false,
 			false,
-			false,
-			303,
 			null,
 			null,
 			["Location" => $stringType],
 		),
 		new ResponseType(
 			"Response",
-			true,
 			false,
 			false,
-			null,
 			null,
 			null,
 			null,
 		),
 		new ResponseType(
 			"StandaloneTemplateResponse",
-			true,
 			false,
 			false,
-			null,
 			"text/html",
 			$stringType,
 			null,
 		),
 		new ResponseType(
 			"StreamResponse",
-			true,
 			false,
 			false,
-			null,
 			null,
 			$binaryType,
 			null,
 		),
 		new ResponseType(
 			"TemplateResponse",
-			true,
 			false,
 			false,
-			null,
 			"text/html",
 			$stringType,
 			null,
 		),
 		new ResponseType(
 			"TextPlainResponse",
-			true,
 			false,
 			false,
-			null,
 			"text/plain",
 			$stringType,
 			null,
@@ -172,18 +142,14 @@ function getResponseTypes(): array {
 			"TooManyRequestsResponse",
 			false,
 			false,
-			false,
-			429,
 			"text/html",
 			$stringType,
 			null,
 		),
 		new ResponseType(
 			"ZipResponse",
-			true,
 			false,
 			false,
-			null,
 			null,
 			$binaryType,
 			null,
@@ -229,19 +195,14 @@ function resolveReturnTypes(string $context, TypeNode $obj): array {
 		}
 		foreach ($responseTypes as $responseType) {
 			if ($responseType->className == $className) {
-				$expectedArgs = count(array_filter([$responseType->hasStatusCodeTemplate, $responseType->hasContentTypeTemplate, $responseType->hasTypeTemplate, true /* Headers */], fn($value) => $value));
+				// +2 for status code and headers which are always present
+				$expectedArgs = count(array_filter([$responseType->hasContentTypeTemplate, $responseType->hasTypeTemplate], fn($value) => $value)) + 2;
 				if (count($args) != $expectedArgs) {
 					throw new Exception($context . ": '" . $className . "' needs " . $expectedArgs . " parameters");
 				}
 
-				$i = 0;
-
-				if ($responseType->hasStatusCodeTemplate) {
-					$statusCodes = resolveStatusCodes($context, $args[$i]);
-					$i++;
-				} else {
-					$statusCodes = [$responseType->defaultStatusCode != null ? $responseType->defaultStatusCode : 200];
-				}
+				$statusCodes = resolveStatusCodes($context, $args[0]);
+				$i = 1;
 
 				if ($responseType->hasContentTypeTemplate) {
 					if ($args[$i] instanceof ConstTypeNode) {
