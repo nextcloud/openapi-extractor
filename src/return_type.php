@@ -226,7 +226,11 @@ function resolveReturnTypes(string $context, TypeNode $obj): array {
 					$type = $responseType->defaultType;
 				}
 
-				$headers = resolveOpenApiType($context, $definitions, $args[$i])->properties ?? [];
+				$headersType = resolveOpenApiType($context, $definitions, $args[$i]);
+				if ($headersType->additionalProperties !== null) {
+					throw new Exception($context . ": Use array{} instead of array<string, mixed> for empty headers");
+				}
+				$headers = $headersType->properties ?? [];
 				if ($responseType->defaultHeaders != null) {
 					$headers = array_merge($responseType->defaultHeaders, $headers);
 				}
