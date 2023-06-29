@@ -657,6 +657,11 @@ if ($appIsCore) {
 	];
 }
 
+if (count($schemas) == 0 && count($routes) == 0) {
+    print_r("No spec generated\n");
+    return;
+}
+
 ksort($schemas);
 $openapi["components"]["schemas"] = $schemas;
 
