@@ -177,7 +177,7 @@ function extractControllerMethod(string $context, array $definitions, ClassMetho
 		$methodDescription = array_slice($methodDescription, 1);
 	}
 
-	if (preg_match("/[.,!?:-]$/", $methodSummary)) {
+	if ($methodSummary != null && preg_match("/[.,!?:-]$/", $methodSummary)) {
 		throw new Exception($context . ": Summary ends with a punctuation mark");
 	}
 
