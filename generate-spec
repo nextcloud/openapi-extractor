@@ -658,12 +658,16 @@ if ($appIsCore) {
 }
 
 if (count($schemas) == 0 && count($routes) == 0) {
-    print_r("No spec generated\n");
-    return;
+	print_r("No spec generated\n");
+	return;
+}
+
+if (count($openapi["paths"]) == 0) {
+	$openapi["paths"] = new stdClass();
 }
 
 ksort($schemas);
-$openapi["components"]["schemas"] = $schemas;
+$openapi["components"]["schemas"] = count($schemas) == 0 ? new stdClass() : $schemas;
 
 if ($useTags) {
 	$openapi["tags"] = $tags;
