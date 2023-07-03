@@ -304,9 +304,9 @@ foreach ($parsedRoutes as $key => $value) {
 			if ($classMethod->name == $methodName) {
 				$doc = $classMethod->getDocComment()?->getText();
 				$isCSRFRequired = !classMethodHasAnnotationOrAttribute($classMethod, "NoCSRFRequired");
-				if ($controllerClass->extends != "Controller" || ($doc != null && !$isCSRFRequired)) {
+				$isOCS = $controllerClass->extends != "Controller" && $controllerClass->extends != "ApiController";
+				if (!$isCSRFRequired || $isOCS) {
 					$methodFunction = $classMethod;
-					$isOCS = $controllerClass->extends != "Controller" && $controllerClass->extends != "ApiController";
 					$isCORS = classMethodHasAnnotationOrAttribute($classMethod, "CORS");
 					$isPublic = classMethodHasAnnotationOrAttribute($classMethod, "PublicPage");
 					$isAdmin = !classMethodHasAnnotationOrAttribute($classMethod, "NoAdminRequired") && !$isPublic;
@@ -379,6 +379,7 @@ foreach ($parsedRoutes as $key => $value) {
 			$classMethodInfo,
 			$isOCS,
 			$isCORS,
+			$isCSRFRequired,
 			$isPublic,
 		);
 	}
@@ -549,8 +550,10 @@ foreach ($routes as $route) {
 		// Bearer auth is not allowed on CORS routes
 		$security[] = ["bearer_auth" => []];
 	}
-	// Add basic auth last, so it's only fallback if bearer is available
-	$security[] = ["basic_auth" => []];
+    if(!$route->isCSRFRequired || $route->isOCS) {
+		// Add basic auth last, so it's only fallback if bearer is available
+		$security[] = ["basic_auth" => []];
+	}
 
 	$operation = array_merge(
 		["operationId" => implode("-", $operationId)],
