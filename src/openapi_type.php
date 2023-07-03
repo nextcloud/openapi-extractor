@@ -147,6 +147,11 @@ function resolveOpenApiType(string $context, array $definitions, ParamTagValueNo
 			$values[] = $type->constExpr->value;
 		}
 
+		if (count(array_filter($values, fn(string $value) => $value == '')) > 0) {
+			// Not a valid enum
+			return new OpenApiType(type: "string");
+		}
+
 		return new OpenApiType(type: "string", enum: $values);
 	}
 
@@ -176,6 +181,11 @@ function resolveOpenApiType(string $context, array $definitions, ParamTagValueNo
 	}
 
 	if ($node instanceof ConstTypeNode && $node->constExpr instanceof ConstExprStringNode) {
+		$value = $node->constExpr->value;
+		if ($value == '') {
+			// Not a valid enum
+			return new OpenApiType(type: "string");
+		}
 		return new OpenApiType(
 			type: "string",
 			enum: [$node->constExpr->value],
