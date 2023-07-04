@@ -112,6 +112,9 @@ function resolveOpenApiType(string $context, array $definitions, ParamTagValueNo
 		return new OpenApiType(type: "array", items: resolveOpenApiType($context, $definitions, $node->type));
 	}
 	if ($node instanceof GenericTypeNode && ($node->type->name == "array" || $node->type->name == "list") && count($node->genericTypes) == 1) {
+		if ($node->genericTypes[0] instanceof IdentifierTypeNode && $node->genericTypes[0]->name == "empty") {
+			return new OpenApiType();
+		}
 		return new OpenApiType(type: "array", items: resolveOpenApiType($context, $definitions, $node->genericTypes[0]));
 	}
 
@@ -199,7 +202,7 @@ function resolveOpenApiType(string $context, array $definitions, ParamTagValueNo
 
 function resolveIdentifier(string $context, array $definitions, string $name): OpenApiType {
 	if ($name == "array") {
-		throw new Exception($context . ": Instead of 'array' use '\stdClass::class' for empty objects, 'array<string, mixed>' for non-empty objects and 'array<mixed>' for lists");
+		throw new Exception($context . ": Instead of 'array' use:\n'\stdClass::class' for empty objects\n'array<string, mixed>' for non-empty objects\n'array<emtpy>' for empty lists\n'array<YourTypeHere>' for lists");
 	}
 	if (str_starts_with($name, "\\")) {
 		$name = substr($name, 1);
