@@ -76,8 +76,8 @@ class OpenApiType {
 			$this->enum != null && count($this->enum) > 0 ? ["enum" => $this->enum] : [],
 			$this->description != null && $this->description != "" && !$isParameter ? ["description" => $this->description] : [],
 			$this->items != null ? ["items" => $this->items->toArray($openapiVersion)] : [],
-			$this->minLength != null && $this->minLength != 0 ? ["minLength" => $this->minLength] : [],
-			$this->maxLength != null && $this->maxLength != 0 ? ["maxLength" => $this->maxLength] : [],
+			$this->minLength !== null ? ["minLength" => $this->minLength] : [],
+			$this->maxLength !== null ? ["maxLength" => $this->maxLength] : [],
 			$this->required != null && count($this->required) > 0 ? ["required" => $this->required] : [],
 			$this->properties != null ? ["properties" =>
 				array_combine(array_keys($this->properties),
