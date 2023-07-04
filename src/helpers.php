@@ -77,7 +77,7 @@ function mergeCapabilities(array $schemas): array {
 	);
 }
 
-function wrapOCSResponse(Route $route, ControllerMethodResponse $response, array $schema): array {
+function wrapOCSResponse(Route $route, ControllerMethodResponse $response, array|\stdClass $schema): array {
 	if ($route->isOCS && $response->className == "DataResponse") {
 		return [
 			"type" => "object",

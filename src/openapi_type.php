@@ -48,7 +48,7 @@ class OpenApiType {
 	) {
 	}
 
-	public function toArray(string $openapiVersion, bool $isParameter = false): array {
+	public function toArray(string $openapiVersion, bool $isParameter = false): array|\stdClass {
 		$asContentString = $isParameter && (
 				$this->type == "object" ||
 				$this->type == "array" ||
@@ -67,7 +67,7 @@ class OpenApiType {
 				] : [],
 			);
 		}
-		return array_merge(
+		$values = array_merge(
 			$this->ref != null ? ["\$ref" => $this->ref] : [],
 			$this->type != null ? ["type" => $isParameter && $this->type == "boolean" ? "integer" : $this->type] : [],
 			$this->format != null ? ["format" => $this->format] : [],
@@ -90,6 +90,7 @@ class OpenApiType {
 			$this->anyOf != null ? ["anyOf" => array_map(fn(OpenApiType $type) => $type->toArray($openapiVersion), $this->anyOf)] : [],
 			$this->allOf != null ? ["allOf" => array_map(fn(OpenApiType $type) => $type->toArray($openapiVersion), $this->allOf)] : [],
 		);
+		return count($values) > 0 ? $values : new \stdClass();
 	}
 }
 
