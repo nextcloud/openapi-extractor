@@ -267,6 +267,9 @@ foreach ($parsedRoutes as $key => $value) {
 		if ($controllerClass == null) {
 			throw new Exception($routeName . ": Controller '" . $controllerName . "' not found");
 		}
+		if (classMethodHasAnnotationOrAttribute($controllerClass, "IgnoreOpenAPI")) {
+			continue;
+		}
 
 		$tagName = implode("_", array_map(fn(string $s) => strtolower($s), splitOnUppercaseFollowedByNonUppercase($controllerName)));
 		$doc = $controllerClass->getDocComment()?->getText();
@@ -311,7 +314,7 @@ foreach ($parsedRoutes as $key => $value) {
 					$isPublic = classMethodHasAnnotationOrAttribute($classMethod, "PublicPage");
 					$isAdmin = !classMethodHasAnnotationOrAttribute($classMethod, "NoAdminRequired") && !$isPublic;
 					$isDeprecated = classMethodHasAnnotationOrAttribute($classMethod, "deprecated");
-					$isIgnored = classMethodHasAnnotationOrAttribute($classMethod, "IgnoreAPI");
+					$isIgnored = classMethodHasAnnotationOrAttribute($classMethod, "IgnoreOpenAPI");
 					break;
 				}
 			}
@@ -550,7 +553,7 @@ foreach ($routes as $route) {
 		// Bearer auth is not allowed on CORS routes
 		$security[] = ["bearer_auth" => []];
 	}
-    if(!$route->isCSRFRequired || $route->isOCS) {
+	if (!$route->isCSRFRequired || $route->isOCS) {
 		// Add basic auth last, so it's only fallback if bearer is available
 		$security[] = ["basic_auth" => []];
 	}
