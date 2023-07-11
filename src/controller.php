@@ -201,7 +201,7 @@ function exprToValue(string $context, Expr $expr): mixed {
 		return intval($expr->value);
 	}
 	if ($expr instanceof UnaryMinus) {
-		return exprToValue($context, $expr->expr);
+		return -exprToValue($context, $expr->expr);
 	}
 	if ($expr instanceof Array_) {
 		$values = array_map(fn(ArrayItem $item) => exprToValue($context, $item), $expr->items);
