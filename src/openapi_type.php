@@ -9,6 +9,7 @@ use PhpParser\Node\Name;
 use PhpParser\Node\NullableType;
 use PhpParser\Node\UnionType;
 use PhpParser\NodeAbstract;
+use PHPStan\PhpDocParser\Ast\ConstExpr\ConstExprIntegerNode;
 use PHPStan\PhpDocParser\Ast\ConstExpr\ConstExprStringNode;
 use PHPStan\PhpDocParser\Ast\PhpDoc\ParamTagValueNode;
 use PHPStan\PhpDocParser\Ast\Type\ArrayShapeNode;
@@ -193,6 +194,13 @@ function resolveOpenApiType(string $context, array $definitions, ParamTagValueNo
 		return new OpenApiType(
 			type: "string",
 			enum: [$node->constExpr->value],
+		);
+	}
+
+	if ($node instanceof ConstTypeNode && $node->constExpr instanceof ConstExprIntegerNode) {
+		return new OpenApiType(
+			type: "integer",
+			format: "int64",
 		);
 	}
 
