@@ -182,7 +182,7 @@ function resolveReturnTypes(string $context, TypeNode $obj): array {
 		$className = $obj->type->name;
 		$args = $obj->genericTypes;
 	} else {
-		throw new Exception($context . ": Failed to get class name for " . $obj);
+		Logger::panic($context, "Failed to get class name for " . $obj);
 	}
 	$classNameParts = explode("\\", $className);
 	$className = end($classNameParts);
@@ -191,14 +191,16 @@ function resolveReturnTypes(string $context, TypeNode $obj): array {
 		$responses[] = null;
 	} else {
 		if (count(array_filter($responseTypes, fn($responseType) => $responseType->className == $className)) == 0) {
-			throw new Exception($context . ": Invalid return type '" . $obj . "'");
+			Logger::error($context, "Invalid return type '" . $obj . "'");
+			return [];
 		}
 		foreach ($responseTypes as $responseType) {
 			if ($responseType->className == $className) {
 				// +2 for status code and headers which are always present
 				$expectedArgs = count(array_filter([$responseType->hasContentTypeTemplate, $responseType->hasTypeTemplate], fn($value) => $value)) + 2;
 				if (count($args) != $expectedArgs) {
-					throw new Exception($context . ": '" . $className . "' needs " . $expectedArgs . " parameters");
+					Logger::error($context, "'" . $className . "' needs " . $expectedArgs . " parameters");
+					continue;
 				}
 
 				$statusCodes = resolveStatusCodes($context, $args[0]);
@@ -212,7 +214,7 @@ function resolveReturnTypes(string $context, TypeNode $obj): array {
 					} else if ($args[$i] instanceof UnionTypeNode) {
 						$contentTypes = array_map(fn($arg) => $arg->constExpr->value, $args[$i]->types);
 					} else {
-						throw new Exception($context . ": Unable to parse content type from " . get_class($args[$i]));
+						Logger::panic($context, "Unable to parse content type from " . get_class($args[$i]));
 					}
 					$i++;
 				} else {
@@ -228,7 +230,7 @@ function resolveReturnTypes(string $context, TypeNode $obj): array {
 
 				$headersType = resolveOpenApiType($context, $definitions, $args[$i]);
 				if ($headersType->additionalProperties !== null) {
-					throw new Exception($context . ": Use array{} instead of array<string, mixed> for empty headers");
+					Logger::error($context, "Use array{} instead of array<string, mixed> for empty headers");
 				}
 				$headers = $headersType->properties ?? [];
 				if ($responseType->defaultHeaders != null) {

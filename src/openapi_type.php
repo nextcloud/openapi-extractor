@@ -204,13 +204,13 @@ function resolveOpenApiType(string $context, array $definitions, ParamTagValueNo
 		);
 	}
 
-	throw new Exception($context . ": Unable to resolve OpenAPI type for type '" . get_class($node) . "'");
+	Logger::panic($context, "Unable to resolve OpenAPI type for type '" . get_class($node) . "'");
 }
 
 
 function resolveIdentifier(string $context, array $definitions, string $name): OpenApiType {
 	if ($name == "array") {
-		throw new Exception($context . ": Instead of 'array' use:\n'\stdClass::class' for empty objects\n'array<string, mixed>' for non-empty objects\n'array<emtpy>' for empty lists\n'array<YourTypeHere>' for lists");
+		Logger::error($context, "Instead of 'array' use:\n'\stdClass::class' for empty objects\n'array<string, mixed>' for non-empty objects\n'array<emtpy>' for empty lists\n'array<YourTypeHere>' for lists");
 	}
 	if (str_starts_with($name, "\\")) {
 		$name = substr($name, 1);
@@ -222,7 +222,7 @@ function resolveIdentifier(string $context, array $definitions, string $name): O
 		"bool", "boolean" => new OpenApiType(type: "boolean"),
 		"double" => new OpenApiType(type: "number", format: "double"),
 		"float" => new OpenApiType(type: "number", format: "float"),
-		"mixed", "empty" => new OpenApiType(type: "object"),
+		"mixed", "empty", "array" => new OpenApiType(type: "object"),
 		"object", "stdClass" => new OpenApiType(type: "object", additionalProperties: true),
 		"null" => new OpenApiType(nullable: true),
 		default => (function () use ($context, $definitions, $name) {
@@ -231,7 +231,7 @@ function resolveIdentifier(string $context, array $definitions, string $name): O
 					ref: "#/components/schemas/" . cleanSchemaName($name),
 				);
 			}
-			throw new Exception($context . ": Unable to resolve OpenAPI type for identifier '" . $name . "'");
+			Logger::panic($context, "Unable to resolve OpenAPI type for identifier '" . $name . "'");
 		})(),
 	};
 }

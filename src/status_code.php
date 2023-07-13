@@ -55,7 +55,7 @@ function statusEnumToCode(string $context, string $name): int {
 		"STATUS_INTERNAL_SERVER_ERROR" => 500,
 		"STATUS_NOT_IMPLEMENTED" => 501,
 		"STATUS_INSUFFICIENT_STORAGE" => 507,
-		default => throw new Exception($context . ": Unknown status code '" . $name . "'"),
+		default => Logger::panic($context, "Unknown status code '" . $name . "'"),
 	};
 }
 
@@ -68,6 +68,6 @@ function exceptionToStatusCode(string $context, string $name): ?int {
 		"OCSBadRequestException" => 400,
 		"OCSForbiddenException" => 403,
 		"OCSNotFoundException" => 404,
-		default => throw new Exception($context . ": Unknown exception '" . $name . "'"),
+		default => Logger::panic($context, "Unknown exception '" . $name . "'"),
 	};
 }

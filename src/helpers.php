@@ -27,7 +27,7 @@ function securitySchemes(): array {
 function license(string $openapiVersion, string $license): array {
 	$identifier = match ($license) {
 		"agpl" => "AGPL-3.0-only",
-		default => throw new Exception("Unable to convert " . $license . " to SPDX identifier"),
+		default => Logger::panic("license", "Unable to convert " . $license . " to SPDX identifier"),
 	};
 	return array_merge([
 		"name" => "agpl",

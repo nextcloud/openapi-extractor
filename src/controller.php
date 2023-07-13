@@ -115,9 +115,10 @@ function extractControllerMethod(string $context, array $definitions, ClassMetho
 					$statusCode = exceptionToStatusCode($context, $type);
 					if ($statusCode != null) {
 						if (!$allowMissingDocs && $docNode->value->description == "" && $statusCode < 500) {
-							throw new Exception($context . ": Missing description for exception '" . $type . "'");
+							Logger::error($context, "Missing description for exception '" . $type . "'");
+						} else {
+							$responseDescriptions[$statusCode] = $docNode->value->description;
 						}
-						$responseDescriptions[$statusCode] = $docNode->value->description;
 						$responses[] = new ControllerMethodResponse($docNode->value->type, $statusCode, "text/plain", new OpenApiType(type: "string"), null);
 					}
 				}
@@ -128,7 +129,7 @@ function extractControllerMethod(string $context, array $definitions, ClassMetho
 	if (!$allowMissingDocs && count($responses) > 1) {
 		foreach (array_unique(array_map(fn(ControllerMethodResponse $response) => $response->statusCode, array_filter($responses, fn(?ControllerMethodResponse $response) => $response != null))) as $statusCode) {
 			if ($statusCode < 500 && (!array_key_exists($statusCode, $responseDescriptions) || $responseDescriptions[$statusCode] == "")) {
-				throw new Exception($context . ": Missing description for status code " . $statusCode);
+				Logger::error($context, "Missing description for status code " . $statusCode);
 			}
 		}
 	}
@@ -150,19 +151,21 @@ function extractControllerMethod(string $context, array $definitions, ClassMetho
 			if ($allowMissingDocs) {
 				$param = new ControllerMethodParameter($context, $definitions, $methodParameterName, $methodParameter, null);
 			} else {
-				throw new Exception($context . ": Missing doc parameter for '" . $methodParameterName . "'");
+				Logger::error($context, "Missing doc parameter for '" . $methodParameterName . "'");
+				continue;
 			}
 		}
 
 		if (!$allowMissingDocs && $param->type->description == "") {
-			throw new Exception($context . ": Missing description for parameter '" . $methodParameterName . "'");
+			Logger::error($context, "Missing description for parameter '" . $methodParameterName . "'");
+			continue;
 		}
 
 		$parameters[] = $param;
 	}
 
 	if (!$allowMissingDocs && count($methodDescription) == 0) {
-		throw new Exception($context . ": Missing method description");
+		Logger::error($context, "Missing method description");
 	}
 
 	if ($isAdmin) {
@@ -178,7 +181,7 @@ function extractControllerMethod(string $context, array $definitions, ClassMetho
 	}
 
 	if ($methodSummary != null && preg_match("/[.,!?:-]$/", $methodSummary)) {
-		throw new Exception($context . ": Summary ends with a punctuation mark");
+		Logger::warning($context, "Summary ends with a punctuation mark");
 	}
 
 	return new ControllerMethod($parameters, array_values($responses), $returns, $responseDescriptions, $methodDescription, $methodSummary, $isDeprecated);
@@ -191,7 +194,7 @@ function exprToValue(string $context, Expr $expr): mixed {
 			"null" => null,
 			"true" => true,
 			"false" => false,
-			default => throw new Exception($context . ": Unable to evaluate constant value '" . $value . "'"),
+			default => Logger::panic($context, "Unable to evaluate constant value '" . $value . "'"),
 		};
 	}
 	if ($expr instanceof String_) {
@@ -219,5 +222,5 @@ function exprToValue(string $context, Expr $expr): mixed {
 		return null;
 	}
 
-	throw new Exception($context . ": Unable to evaluate expression '" . get_class($expr) . "'");
+	Logger::panic($context, "Unable to evaluate expression '" . get_class($expr) . "'");
 }

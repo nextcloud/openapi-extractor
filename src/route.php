@@ -35,7 +35,7 @@ function parseRoutes(string $path): array {
 		preg_match("/registerRoutes\(.*?\\\$this,.*?(\[[^;]*)\);/s", $content, $matches);
 		return includeRoutes("<?php\nreturn " . $matches[1] . ";");
 	} else {
-		throw new Exception("Unknown routes.php format");
+		Logger::panic("Routes", "Unknown routes.php format");
 	}
 }
 
