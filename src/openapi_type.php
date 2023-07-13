@@ -219,7 +219,7 @@ function resolveIdentifier(string $context, array $definitions, string $name): O
 		"string", "non-falsy-string", "numeric-string" => new OpenApiType(type: "string"),
 		"non-empty-string" => new OpenApiType(type: "string", minLength: 1),
 		"int", "integer" => new OpenApiType(type: "integer", format: "int64"),
-		"bool", "boolean" => new OpenApiType(type: "boolean"),
+		"bool", "boolean", "true", "false" => new OpenApiType(type: "boolean"),
 		"double" => new OpenApiType(type: "number", format: "double"),
 		"float" => new OpenApiType(type: "number", format: "float"),
 		"mixed", "empty", "array" => new OpenApiType(type: "object"),
