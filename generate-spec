@@ -396,6 +396,8 @@ foreach ($parsedRoutes as $key => $value) {
 			$isCSRFRequired,
 			$isPublic,
 		);
+
+		Logger::info($routeName, "Route generated");
 	}
 }
 
