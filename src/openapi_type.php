@@ -172,9 +172,11 @@ function resolveOpenApiType(string $context, array $definitions, ParamTagValueNo
 			$items[] = resolveOpenApiType($context, $definitions, $type);
 		}
 
+		$items = array_unique($items, SORT_REGULAR);
+
 		if (count($items) == 1) {
 			$type = $items[0];
-			$type->nullable = true;
+			$type->nullable = $nullable;
 			return $type;
 		}
 
