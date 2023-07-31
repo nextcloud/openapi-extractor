@@ -204,6 +204,14 @@ foreach ($iterator as $file) {
 		}
 
 		$schema = $type->toArray($openapiVersion);
+
+		if (array_key_exists("oneOf", $schema)) {
+			$validSchemas = array_values(array_filter($schema["oneOf"], fn($schema) => !($schema instanceof \stdClass) && count($schema) > 0));
+			if (count($validSchemas) == 1) {
+				$schema = $validSchemas[0];
+			}
+		}
+
 		if ($schema["type"] != "object" || $schema["properties"] == null || count($schema["properties"]) == 0) {
 			Logger::error($path, "Invalid capabilities");
 			continue;
