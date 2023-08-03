@@ -593,7 +593,7 @@ foreach ($routes as $route) {
 			"parameters" => array_merge(
 				array_map(fn(ControllerMethodParameter $parameter) => array_merge(
 					[
-						"name" => $parameter->name,
+						"name" => $parameter->name . ($parameter->type->type == "array" ? "[]" : ""),
 						"in" => "query",
 					],
 					$parameter->docParameter != null && $parameter->docParameter->description != "" ? ["description" => cleanDocComment($parameter->docParameter->description)] : [],

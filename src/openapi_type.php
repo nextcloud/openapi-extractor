@@ -52,7 +52,6 @@ class OpenApiType {
 	public function toArray(string $openapiVersion, bool $isParameter = false): array|\stdClass {
 		$asContentString = $isParameter && (
 				$this->type == "object" ||
-				$this->type == "array" ||
 				$this->ref !== null ||
 				$this->oneOf !== null ||
 				$this->anyOf !== null ||
