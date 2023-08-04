@@ -132,8 +132,13 @@ function resolveOpenApiType(string $context, array $definitions, ParamTagValueNo
 		return new OpenApiType(type: "object", properties: $properties, required: count($required) > 0 ? $required : null);
 	}
 
-	if ($node instanceof GenericTypeNode && $node->type->name == "array" && count($node->genericTypes) == 2 && $node->genericTypes[0] instanceof IdentifierTypeNode && $node->genericTypes[0]->name == "string") {
-		return new OpenApiType(type: "object", additionalProperties: resolveOpenApiType($context, $definitions, $node->genericTypes[1]));
+	if ($node instanceof GenericTypeNode && $node->type->name == "array" && count($node->genericTypes) == 2 && $node->genericTypes[0] instanceof IdentifierTypeNode) {
+		if ($node->genericTypes[0]->name == "array-key") {
+			Logger::error($context, "Instead of 'array-key' use 'string' or 'int'");
+		}
+		if ($node->genericTypes[0]->name == "string" || $node->genericTypes[0]->name == "array-key") {
+			return new OpenApiType(type: "object", additionalProperties: resolveOpenApiType($context, $definitions, $node->genericTypes[1]));
+		}
 	}
 
 	if ($node instanceof NullableTypeNode || $node instanceof NullableType) {
