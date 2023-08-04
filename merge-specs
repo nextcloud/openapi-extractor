@@ -6,6 +6,7 @@ namespace OpenAPIExtractor;
 require_once __DIR__ . "/vendor/autoload.php";
 
 use Ahc\Cli\Input\Command;
+use stdClass;
 
 $command = new Command("merge-specs", "Merge multiple Nextcloud OpenAPI specs into one");
 $command
@@ -40,7 +41,7 @@ $data = [
 	"info" => [
 		"title" => "nextcloud",
 		"description" => "Nextcloud APIs",
-		"license" => license($openapiVersion, "agpl"),
+		"license" => Helpers::license($openapiVersion, "agpl"),
 		"version" => "0.0.1",
 	],
 	"security" => [
@@ -53,7 +54,7 @@ $data = [
 	],
 	"tags" => rewriteTags($coreSpec),
 	"components" => [
-		"securitySchemes" => securitySchemes(),
+		"securitySchemes" => Helpers::securitySchemes(),
 		"schemas" => rewriteSchemaNames($coreSpec),
 	],
 	"paths" => rewriteOperations($coreSpec),
@@ -90,7 +91,7 @@ function loadSpec(string $path): array {
 }
 
 function rewriteRefs(array $spec): array {
-	$readableAppID = generateReadableAppID($spec["info"]["title"]);
+	$readableAppID = Helpers::generateReadableAppID($spec["info"]["title"]);
 	array_walk_recursive($spec, function (&$item, $key) use ($readableAppID) {
 		if ($key == "\$ref" && $item != "#/components/schemas/OCSMeta") {
 			$item = str_replace("#/components/schemas/", "#/components/schemas/" . $readableAppID, $item);
@@ -113,7 +114,7 @@ function collectCapabilities(array $spec): array {
 
 function rewriteSchemaNames(array $spec): array {
 	$schemas = $spec["components"]["schemas"];
-	$readableAppID = generateReadableAppID($spec["info"]["title"]);
+	$readableAppID = Helpers::generateReadableAppID($spec["info"]["title"]);
 	return array_combine(
 		array_map(fn(string $key) => $key == "OCSMeta" ? $key : $readableAppID . $key, array_keys($schemas)),
 		array_values($schemas),
@@ -160,4 +161,4 @@ function rewriteOperations(array $spec): array {
 	return $spec["paths"];
 }
 
-file_put_contents($mergedSpecPath, json_encode($data, jsonFlags()));
+file_put_contents($mergedSpecPath, json_encode($data, Helpers::jsonFlags()));

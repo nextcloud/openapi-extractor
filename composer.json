@@ -11,14 +11,8 @@
     "merge-specs"
   ],
   "autoload": {
-    "files": [
-      "src/controller.php",
-      "src/helpers.php",
-      "src/logger.php",
-      "src/openapi_type.php",
-      "src/return_type.php",
-      "src/route.php",
-      "src/status_code.php"
-    ]
+    "psr-4": {
+      "OpenAPIExtractor\\": "src"
+    }
   }
 }

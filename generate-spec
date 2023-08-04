@@ -22,6 +22,9 @@ use PHPStan\PhpDocParser\Parser\ConstExprParser;
 use PHPStan\PhpDocParser\Parser\PhpDocParser;
 use PHPStan\PhpDocParser\Parser\TokenIterator;
 use PHPStan\PhpDocParser\Parser\TypeParser;
+use RecursiveDirectoryIterator;
+use RecursiveIteratorIterator;
+use stdClass;
 
 $command = new Command("generate-spec", "Extract OpenAPI specs from the Nextcloud source code");
 $command
@@ -88,7 +91,7 @@ if (file_exists($infoXMLPath)) {
 	$appLicence = "agpl";
 }
 
-$readableAppID = generateReadableAppID($appID);
+$readableAppID = Helpers::generateReadableAppID($appID);
 $sourceDir = $appIsCore ? $dir : $dir . "/lib";
 $appinfoDir = $appIsCore ? $dir : $dir . "/appinfo";
 
@@ -98,10 +101,10 @@ $openapi = [
 		"title" => $appID,
 		"version" => "0.0.1", // This marks the document version and not the implementation version
 		"description" => $appSummary,
-		"license" => license($openapiVersion, $appLicence),
+		"license" => Helpers::license($openapiVersion, $appLicence),
 	],
 	"components" => [
-		"securitySchemes" => securitySchemes(),
+		"securitySchemes" => Helpers::securitySchemes(),
 		"schemas" => [],
 	],
 	"paths" => [],
@@ -130,7 +133,7 @@ if (file_exists($definitionsPath)) {
 		}
 	}
 	foreach (array_keys($definitions) as $name) {
-		$schemas[cleanSchemaName($name)] = resolveOpenApiType("Response definitions", $definitions, $definitions[$name])->toArray($openapiVersion);
+		$schemas[cleanSchemaName($name)] = OpenApiType::resolve("Response definitions", $definitions, $definitions[$name])->toArray($openapiVersion);
 	}
 } else {
 	Logger::warning("Response definitions", "No response definitions were loaded");
@@ -177,7 +180,7 @@ foreach ($iterator as $file) {
 		$docNodes = $phpDocParser->parse(new TokenIterator($lexer->tokenize($doc)))->children;
 		foreach ($docNodes as $docNode) {
 			if ($docNode instanceof PhpDocTagNode && $docNode->value instanceof ReturnTagValueNode) {
-				$type = resolveOpenApiType($path, $definitions, $docNode->value->type);
+				$type = OpenApiType::resolve($path, $definitions, $docNode->value->type);
 				break;
 			}
 		}
@@ -189,7 +192,7 @@ foreach ($iterator as $file) {
 		$schema = $type->toArray($openapiVersion);
 
 		if (array_key_exists("oneOf", $schema)) {
-			$validSchemas = array_values(array_filter($schema["oneOf"], fn($schema) => !($schema instanceof \stdClass) && count($schema) > 0));
+			$validSchemas = array_values(array_filter($schema["oneOf"], fn($schema) => !($schema instanceof stdClass) && count($schema) > 0));
 			if (count($validSchemas) == 1) {
 				$schema = $validSchemas[0];
 			}
@@ -201,9 +204,9 @@ foreach ($iterator as $file) {
 		}
 
 		if ($implementsPublicCapability) {
-			$publicCapabilities = $publicCapabilities == null ? $schema : mergeCapabilities([$publicCapabilities, $schema]);
+			$publicCapabilities = $publicCapabilities == null ? $schema : Helpers::mergeCapabilities([$publicCapabilities, $schema]);
 		} else {
-			$capabilities = $capabilities == null ? $schema : mergeCapabilities([$capabilities, $schema]);
+			$capabilities = $capabilities == null ? $schema : Helpers::mergeCapabilities([$capabilities, $schema]);
 		}
 	}
 }
@@ -217,7 +220,7 @@ if ($capabilities == null && $publicCapabilities == null) {
 	Logger::warning("Capabilities", "No capabilities were loaded");
 }
 
-$parsedRoutes = file_exists($appinfoDir . "/routes.php") ? parseRoutes($appinfoDir . "/routes.php") : [];
+$parsedRoutes = file_exists($appinfoDir . "/routes.php") ? Route::parseRoutes($appinfoDir . "/routes.php") : [];
 if (count($parsedRoutes) == 0) {
 	Logger::warning("Routes", "No routes were loaded");
 }
@@ -266,11 +269,11 @@ foreach ($parsedRoutes as $key => $value) {
 			Logger::error($routeName, "Controller '" . $controllerName . "' not found");
 			continue;
 		}
-		if (classMethodHasAnnotationOrAttribute($controllerClass, "IgnoreOpenAPI")) {
+		if (Helpers::classMethodHasAnnotationOrAttribute($controllerClass, "IgnoreOpenAPI")) {
 			continue;
 		}
 
-		$tagName = implode("_", array_map(fn(string $s) => strtolower($s), splitOnUppercaseFollowedByNonUppercase($controllerName)));
+		$tagName = implode("_", array_map(fn(string $s) => strtolower($s), Helpers::splitOnUppercaseFollowedByNonUppercase($controllerName)));
 		$doc = $controllerClass->getDocComment()?->getText();
 		if ($doc != null && count(array_filter($tags, fn(array $tag) => $tag["name"] == $tagName)) == 0) {
 			$classDescription = [];
@@ -278,7 +281,7 @@ foreach ($parsedRoutes as $key => $value) {
 			$docNodes = $phpDocParser->parse(new TokenIterator($lexer->tokenize($doc)))->children;
 			foreach ($docNodes as $docNode) {
 				if ($docNode instanceof PhpDocTextNode) {
-					$block = cleanDocComment($docNode->text);
+					$block = Helpers::cleanDocComment($docNode->text);
 					if ($block == "") {
 						continue;
 					}
@@ -304,16 +307,15 @@ foreach ($parsedRoutes as $key => $value) {
 		/** @var ClassMethod $classMethod */
 		foreach ($nodeFinder->findInstanceOf($controllerClass->stmts, ClassMethod::class) as $classMethod) {
 			if ($classMethod->name == $methodName) {
-				$doc = $classMethod->getDocComment()?->getText();
-				$isCSRFRequired = !classMethodHasAnnotationOrAttribute($classMethod, "NoCSRFRequired");
+				$isCSRFRequired = !Helpers::classMethodHasAnnotationOrAttribute($classMethod, "NoCSRFRequired");
 				$isOCS = $controllerClass->extends != "Controller" && $controllerClass->extends != "ApiController";
 				if (!$isCSRFRequired || $isOCS) {
 					$methodFunction = $classMethod;
-					$isCORS = classMethodHasAnnotationOrAttribute($classMethod, "CORS");
-					$isPublic = classMethodHasAnnotationOrAttribute($classMethod, "PublicPage");
-					$isAdmin = !classMethodHasAnnotationOrAttribute($classMethod, "NoAdminRequired") && !$isPublic;
-					$isDeprecated = classMethodHasAnnotationOrAttribute($classMethod, "deprecated");
-					$isIgnored = classMethodHasAnnotationOrAttribute($classMethod, "IgnoreOpenAPI");
+					$isCORS = Helpers::classMethodHasAnnotationOrAttribute($classMethod, "CORS");
+					$isPublic = Helpers::classMethodHasAnnotationOrAttribute($classMethod, "PublicPage");
+					$isAdmin = !Helpers::classMethodHasAnnotationOrAttribute($classMethod, "NoAdminRequired") && !$isPublic;
+					$isDeprecated = Helpers::classMethodHasAnnotationOrAttribute($classMethod, "deprecated");
+					$isIgnored = Helpers::classMethodHasAnnotationOrAttribute($classMethod, "IgnoreOpenAPI");
 					break;
 				}
 			}
@@ -342,7 +344,7 @@ foreach ($parsedRoutes as $key => $value) {
 			];
 		}
 
-		$classMethodInfo = extractControllerMethod($routeName, $definitions, $methodFunction, $isAdmin, $isDeprecated);
+		$classMethodInfo = ControllerMethod::parse($routeName, $definitions, $methodFunction, $isAdmin, $isDeprecated);
 		if (count($classMethodInfo->returns) > 0) {
 			Logger::error($routeName, "Returns an invalid response");
 			continue;
@@ -357,7 +359,7 @@ foreach ($parsedRoutes as $key => $value) {
 		foreach ($nodeFinder->findInstanceOf($methodFunction->stmts, Throw_::class) as $throwStatement) {
 			if ($throwStatement->expr instanceof New_ && $throwStatement->expr->class instanceof Name) {
 				$type = $throwStatement->expr->class->getLast();
-				$statusCode = exceptionToStatusCode($routeName, $type);
+				$statusCode = StatusCodes::resolveException($routeName, $type);
 				if ($statusCode != null) {
 					$codeStatusCodes[] = $statusCode;
 				}
@@ -421,7 +423,7 @@ foreach ($routes as $route) {
 			}
 
 			$schema = $parameter->type->toArray($openapiVersion, true);
-			$description = $parameter?->docParameter != null && $parameter->docParameter->description != "" ? cleanDocComment($parameter->docParameter->description) : null;
+			$description = $parameter?->docParameter != null && $parameter->docParameter->description != "" ? Helpers::cleanDocComment($parameter->docParameter->description) : null;
 		} else {
 			$schema = [
 				"type" => "string",
@@ -513,12 +515,12 @@ foreach ($routes as $route) {
 					$mergedContentTypeResponses[$contentType] = [];
 				} else {
 					$schema = $contentTypeResponses[0]->type->toArray($openapiVersion);
-					$mergedContentTypeResponses[$contentType] = ["schema" => wrapOCSResponse($route, $contentTypeResponses[0], $schema)];
+					$mergedContentTypeResponses[$contentType] = ["schema" => Helpers::wrapOCSResponse($route, $contentTypeResponses[0], $schema)];
 				}
 			} else {
 				$mergedContentTypeResponses[$contentType] = [
 					"schema" => [
-						[$hasEmpty ? "anyOf" : "oneOf" => array_map(fn(ControllerMethodResponse $response) => wrapOCSResponse($route, $response, $response->type->toArray($openapiVersion)), $uniqueResponses)],
+						[$hasEmpty ? "anyOf" : "oneOf" => array_map(fn(ControllerMethodResponse $response) => Helpers::wrapOCSResponse($route, $response, $response->type->toArray($openapiVersion)), $uniqueResponses)],
 					],
 				];
 			}
@@ -546,7 +548,7 @@ foreach ($routes as $route) {
 	}
 
 	$operationId = [$route->tag];
-	$operationId = array_merge($operationId, array_map(fn(string $s) => mapVerb(strtolower($s)), splitOnUppercaseFollowedByNonUppercase($route->methodName)));
+	$operationId = array_merge($operationId, array_map(fn(string $s) => Helpers::mapVerb(strtolower($s)), Helpers::splitOnUppercaseFollowedByNonUppercase($route->methodName)));
 	if ($route->postfix != null) {
 		$operationId[] = $route->postfix;
 	}
@@ -579,7 +581,7 @@ foreach ($routes as $route) {
 						"name" => $parameter->name . ($parameter->type->type == "array" ? "[]" : ""),
 						"in" => "query",
 					],
-					$parameter->docParameter != null && $parameter->docParameter->description != "" ? ["description" => cleanDocComment($parameter->docParameter->description)] : [],
+					$parameter->docParameter != null && $parameter->docParameter->description != "" ? ["description" => Helpers::cleanDocComment($parameter->docParameter->description)] : [],
 					!$parameter->type->nullable && !$parameter->type->hasDefaultValue ? ["required" => true] : [],
 					["schema" => $parameter->type->toArray($openapiVersion, true),],
 				), $queryParameters),
@@ -601,14 +603,12 @@ foreach ($routes as $route) {
 		$openapi["paths"][$route->url] = [];
 	}
 	$path = &$openapi["paths"][$route->url];
-	$alreadyDefined = false;
 
 	$verb = strtolower($route->verb);
 	if (!array_key_exists($verb, $path)) {
 		$path[$verb] = $operation;
 	} else {
 		Logger::error($route->name, "Operation '" . $route->verb . "' already set for path '" . $route->url . "'");
-		continue;
 	}
 }
 
@@ -686,7 +686,7 @@ if ($useTags) {
 	$openapi["tags"] = $tags;
 }
 
-file_put_contents($out, json_encode($openapi, jsonFlags()));
+file_put_contents($out, json_encode($openapi, Helpers::jsonFlags()));
 
 function cleanSchemaName(string $name): string {
 	global $readableAppID;

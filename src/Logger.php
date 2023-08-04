@@ -4,12 +4,6 @@ namespace OpenAPIExtractor;
 
 use Exception;
 
-enum LoggerColor {
-	case Green;
-	case Yellow;
-	case Red;
-}
-
 class Logger {
 	static bool $exitOnError = true;
 
