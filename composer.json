@@ -1,9 +1,10 @@
 {
   "name": "nextcloud/openapi-extractor",
   "require": {
+    "php": "^8.1",
+    "ext-simplexml": "*",
     "nikic/php-parser": "^4.16",
     "adhocore/cli": "^v1.6",
-    "ext-simplexml": "*",
     "phpstan/phpdoc-parser": "^1.23"
   },
   "bin": [
