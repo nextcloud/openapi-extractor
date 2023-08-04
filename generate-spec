@@ -1,14 +1,11 @@
 #!/usr/bin/env php
 <?php
 
+namespace OpenAPIExtractor;
+
 require_once __DIR__ . "/vendor/autoload.php";
 
 use Ahc\Cli\Input\Command;
-use OpenAPIExtractor\ControllerMethodParameter;
-use OpenAPIExtractor\ControllerMethodResponse;
-use OpenAPIExtractor\Logger;
-use OpenAPIExtractor\OpenApiType;
-use OpenAPIExtractor\Route;
 use PhpParser\Node\Expr\New_;
 use PhpParser\Node\Name;
 use PhpParser\Node\Stmt\Class_;
@@ -25,20 +22,6 @@ use PHPStan\PhpDocParser\Parser\ConstExprParser;
 use PHPStan\PhpDocParser\Parser\PhpDocParser;
 use PHPStan\PhpDocParser\Parser\TokenIterator;
 use PHPStan\PhpDocParser\Parser\TypeParser;
-use function OpenAPIExtractor\classMethodHasAnnotationOrAttribute;
-use function OpenAPIExtractor\cleanDocComment;
-use function OpenAPIExtractor\exceptionToStatusCode;
-use function OpenAPIExtractor\extractControllerMethod;
-use function OpenAPIExtractor\generateReadableAppID;
-use function OpenAPIExtractor\jsonFlags;
-use function OpenAPIExtractor\license;
-use function OpenAPIExtractor\mapVerb;
-use function OpenAPIExtractor\mergeCapabilities;
-use function OpenAPIExtractor\parseRoutes;
-use function OpenAPIExtractor\resolveOpenApiType;
-use function OpenAPIExtractor\securitySchemes;
-use function OpenAPIExtractor\splitOnUppercaseFollowedByNonUppercase;
-use function OpenAPIExtractor\wrapOCSResponse;
 
 $command = new Command("generate-spec", "Extract OpenAPI specs from the Nextcloud source code");
 $command

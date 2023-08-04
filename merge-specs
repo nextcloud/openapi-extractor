@@ -1,13 +1,11 @@
 #!/usr/bin/env php
 <?php
 
+namespace OpenAPIExtractor;
+
 require_once __DIR__ . "/vendor/autoload.php";
 
 use Ahc\Cli\Input\Command;
-use function OpenAPIExtractor\generateReadableAppID;
-use function OpenAPIExtractor\jsonFlags;
-use function OpenAPIExtractor\license;
-use function OpenAPIExtractor\securitySchemes;
 
 $command = new Command("merge-specs", "Merge multiple Nextcloud OpenAPI specs into one");
 $command
