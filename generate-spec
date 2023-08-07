@@ -147,11 +147,16 @@ if (file_exists($definitionsPath)) {
 $capabilities = null;
 $publicCapabilities = null;
 $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($sourceDir));
+$capabilitiesFiles = [];
 foreach ($iterator as $file) {
 	$path = $file->getPathname();
 	if (!str_ends_with($path, ".php")) {
 		continue;
 	}
+	$capabilitiesFiles[] = $path;
+}
+ksort($capabilitiesFiles);
+foreach ($capabilitiesFiles as $path) {
 	/**
 	 * @var $node Class_
 	 */
