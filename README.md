@@ -17,3 +17,7 @@ This tool should be added as a dev dependency to the `composer.json` of your app
     }
 }
 ```
+
+## Usage
+
+Checkout the OpenAPI tutorial at https://docs.nextcloud.com/server/latest/developer_manual/client_apis/OCS/ocs-openapi.html to see how you can use openapi-extractor.
