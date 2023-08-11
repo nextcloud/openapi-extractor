@@ -155,7 +155,7 @@ foreach ($iterator as $file) {
 	}
 	$capabilitiesFiles[] = $path;
 }
-ksort($capabilitiesFiles);
+sort($capabilitiesFiles);
 foreach ($capabilitiesFiles as $path) {
 	/**
 	 * @var $node Class_
