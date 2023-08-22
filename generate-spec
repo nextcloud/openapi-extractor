@@ -214,9 +214,9 @@ foreach ($capabilitiesFiles as $path) {
 		}
 
 		if ($implementsPublicCapability) {
-			$publicCapabilities = $publicCapabilities == null ? $schema : Helpers::mergeCapabilities([$publicCapabilities, $schema]);
+			$publicCapabilities = $publicCapabilities == null ? $schema : Helpers::mergeSchemas([$publicCapabilities, $schema]);
 		} else {
-			$capabilities = $capabilities == null ? $schema : Helpers::mergeCapabilities([$capabilities, $schema]);
+			$capabilities = $capabilities == null ? $schema : Helpers::mergeSchemas([$capabilities, $schema]);
 		}
 	}
 }

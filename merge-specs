@@ -70,7 +70,7 @@ foreach ($otherSpecPaths as $specPath) {
 	$data["components"]["schemas"] = array_merge($data["components"]["schemas"], rewriteSchemaNames($spec));
 	$data["tags"] = array_merge($data["tags"], rewriteTags($spec));
 	$data["paths"] = array_merge($data["paths"], rewriteOperations($spec));
-	$capabilities = array_merge_recursive($capabilities, collectCapabilities($spec));
+	$capabilities = Helpers::mergeSchemas([$capabilities, collectCapabilities($spec)]);
 }
 
 $data

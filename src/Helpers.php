@@ -2,6 +2,7 @@
 
 namespace OpenAPIExtractor;
 
+use Exception;
 use PhpParser\Node;
 use PhpParser\Node\Stmt\ClassMethod;
 use PhpParser\Node\Stmt\Class_;
@@ -56,27 +57,42 @@ class Helpers {
 		};
 	}
 
-	/**
-	 * @param array[] $schemas
-	 * @return array
-	 */
-	static function mergeCapabilities(array $schemas): array {
-		$required = [];
-		$properties = [];
-
-		foreach ($schemas as $schema) {
-			foreach (array_keys($schema["properties"]) as $propertyName) {
-				$properties[$propertyName] = array_merge_recursive(array_key_exists($propertyName, $properties) ? $properties[$propertyName] : [], $schema["properties"][$propertyName]);
+	static function mergeSchemas(array $schemas) {
+		if (!in_array(true, array_map(fn($schema) => is_array($schema), $schemas))) {
+			$results = array_values(array_unique($schemas));
+			if (count($results) > 1) {
+				throw new Exception("Incompatibles types: " . join(", ", $results));
 			}
-			$required = array_merge($required, $schema->required ?? []);
+			return $results[0];
 		}
 
-		return array_merge([
-			"type" => "object",
-		],
-			count($properties) > 0 ? ["properties" => $properties] : [],
-			count($required) > 0 ? ["required" => $required] : [],
-		);
+		$keys = [];
+		foreach ($schemas as $schema) {
+			foreach ($schema as $key => $value) {
+				$keys[] = $key;
+			}
+		}
+		$result = [];
+		foreach ($keys as $key) {
+			if ($key == "required") {
+				$result["required"] = array_unique(array_merge(...array_map(function (array $schema) {
+					if (array_key_exists("required", $schema)) {
+						return $schema["required"];
+					}
+					return [];
+				}, $schemas)));
+				continue;
+			}
+
+			$result[$key] = self::mergeSchemas(array_filter(array_map(function (array $schema) use ($key) {
+				if (array_key_exists($key, $schema)) {
+					return $schema[$key];
+				}
+				return null;
+			}, $schemas), fn($schema) => $schema != null));
+		}
+
+		return $result;
 	}
 
 	static function wrapOCSResponse(Route $route, ControllerMethodResponse $response, array|stdClass $schema): array|stdClass {
