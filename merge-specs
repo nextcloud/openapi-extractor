@@ -70,7 +70,7 @@ foreach ($otherSpecPaths as $specPath) {
 	$data["components"]["schemas"] = array_merge($data["components"]["schemas"], rewriteSchemaNames($spec));
 	$data["tags"] = array_merge($data["tags"], rewriteTags($spec));
 	$data["paths"] = array_merge($data["paths"], rewriteOperations($spec));
-	$capabilities = Helpers::mergeSchemas([$capabilities, collectCapabilities($spec)]);
+	$capabilities = array_merge($capabilities, collectCapabilities($spec));
 }
 
 $data
@@ -88,8 +88,8 @@ $data
 ["data"]
 ["properties"]
 ["capabilities"]
-["properties"]
-	= $capabilities;
+["anyOf"]
+	= array_map(fn(string $capability) => ["\$ref" => "#/components/schemas/" . $capability], $capabilities);
 
 function loadSpec(string $path): array {
 	return rewriteRefs(json_decode(file_get_contents($path), true));
@@ -107,10 +107,10 @@ function rewriteRefs(array $spec): array {
 
 function collectCapabilities(array $spec): array {
 	$capabilities = [];
+	$readableAppID = Helpers::generateReadableAppID($spec["info"]["title"]);
 	foreach ($spec["components"]["schemas"] as $name => $schema) {
 		if ($name == "Capabilities" || $name == "PublicCapabilities") {
-			$capabilities = array_merge_recursive($capabilities, $schema["properties"]);
-			unset($spec["components"]["schemas"][$name]);
+			$capabilities[] = $readableAppID . $name;
 		}
 	}
 
