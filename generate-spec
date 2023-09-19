@@ -456,12 +456,9 @@ foreach ($routes as $route) {
 					Logger::error($route->name, "Missing requirement for apiVersion");
 					continue;
 				}
-				preg_match("/^\^\(([v0-9.|]*)\)\\$$/m", $requirement, $multipleMatches);
-				preg_match("/^\^([v0-9.]*)\\$$/m", $requirement, $singleMatches);
-				if (count($multipleMatches) == 2) {
-					$enum = explode("|", $multipleMatches[1]);
-				} else if (count($singleMatches) == 2) {
-					$enum = [$singleMatches[1]];
+				preg_match("/^\^\(([v0-9-.|]*)\)\\$$/m", $requirement, $matches);
+				if (count($matches) == 2) {
+					$enum = explode("|", $matches[1]);
 				} else {
 					Logger::error($route->name, "Invalid requirement for apiVersion");
 					continue;
