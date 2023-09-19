@@ -125,7 +125,7 @@ class Helpers {
 
 	static function classMethodHasAnnotationOrAttribute(ClassMethod|Class_|Node $node, string $annotation): bool {
 		$doc = $node->getDocComment()?->getText();
-		if (str_contains($doc, "@" . $annotation)) {
+		if ($doc !== null && str_contains($doc, "@" . $annotation)) {
 			return true;
 		}
 
