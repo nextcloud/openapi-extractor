@@ -73,6 +73,11 @@ if (file_exists($infoXMLPath)) {
 
 	$appIsCore = false;
 	$appID = (string)$xml->id;
+	if ($xml->namespace) {
+		$readableAppID = (string)$xml->namespace;
+	} else {
+		$readableAppID = Helpers::generateReadableAppID($appID);
+	}
 	$appSummary = (string)$xml->summary;
 	$appVersion = (string)$xml->version;
 	$appLicence = (string)$xml->licence;
@@ -91,12 +96,12 @@ if (file_exists($infoXMLPath)) {
 
 	$appIsCore = true;
 	$appID = "core";
+	$readableAppID = "Core";
 	$appSummary = "Core functionality of Nextcloud";
 	$appVersion = $OC_VersionString;
 	$appLicence = "agpl";
 }
 
-$readableAppID = Helpers::generateReadableAppID($appID);
 $sourceDir = $appIsCore ? $dir : $dir . "/lib";
 $appinfoDir = $appIsCore ? $dir : $dir . "/appinfo";
 
