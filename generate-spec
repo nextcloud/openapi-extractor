@@ -285,6 +285,7 @@ foreach ($parsedRoutes as $key => $value) {
 			continue;
 		}
 		if (Helpers::classMethodHasAnnotationOrAttribute($controllerClass, "IgnoreOpenAPI")) {
+			Logger::info($routeName, "Controller '" . $controllerName . "' ignored because of IgnoreOpenAPI attribute");
 			continue;
 		}
 
@@ -335,10 +336,12 @@ foreach ($parsedRoutes as $key => $value) {
 				}
 			}
 		}
-		if ($methodFunction == null || $isIgnored) {
-			if (!$isIgnored) {
-				Logger::warning($routeName, "Route ignored");
-			}
+		if ($methodFunction == null) {
+			Logger::panic($routeName, 'Missing controller method');
+			continue;
+		}
+		if ($isIgnored) {
+			Logger::info($routeName, "Route ignored because of IgnoreOpenAPI attribute");
 			continue;
 		}
 
