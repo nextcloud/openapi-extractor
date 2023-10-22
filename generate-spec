@@ -338,7 +338,6 @@ foreach ($parsedRoutes as $key => $value) {
 		}
 		if ($methodFunction == null) {
 			Logger::panic($routeName, 'Missing controller method');
-			continue;
 		}
 		if ($isIgnored) {
 			Logger::info($routeName, "Route ignored because of IgnoreOpenAPI attribute");
