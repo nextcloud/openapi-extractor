@@ -314,31 +314,30 @@ foreach ($parsedRoutes as $key => $value) {
 		}
 
 		$methodFunction = null;
-		$isOCS = false;
-		$isCORS = false;
-		$isPublic = false;
-		$isAdmin = true;
-		$isDeprecated = false;
-		$isIgnored = false;
 		/** @var ClassMethod $classMethod */
 		foreach ($nodeFinder->findInstanceOf($controllerClass->stmts, ClassMethod::class) as $classMethod) {
 			if ($classMethod->name == $methodName) {
-				$isCSRFRequired = !Helpers::classMethodHasAnnotationOrAttribute($classMethod, "NoCSRFRequired");
-				$isOCS = $controllerClass->extends != "Controller" && $controllerClass->extends != "ApiController";
-				if (!$isCSRFRequired || $isOCS) {
-					$methodFunction = $classMethod;
-					$isCORS = Helpers::classMethodHasAnnotationOrAttribute($classMethod, "CORS");
-					$isPublic = Helpers::classMethodHasAnnotationOrAttribute($classMethod, "PublicPage");
-					$isAdmin = !Helpers::classMethodHasAnnotationOrAttribute($classMethod, "NoAdminRequired") && !$isPublic;
-					$isDeprecated = Helpers::classMethodHasAnnotationOrAttribute($classMethod, "deprecated");
-					$isIgnored = Helpers::classMethodHasAnnotationOrAttribute($classMethod, "IgnoreOpenAPI");
-					break;
-				}
+				$methodFunction = $classMethod;
+                break;
 			}
 		}
 		if ($methodFunction == null) {
 			Logger::panic($routeName, 'Missing controller method');
 		}
+
+		$isCSRFRequired = !Helpers::classMethodHasAnnotationOrAttribute($classMethod, "NoCSRFRequired");
+		$isOCS = $controllerClass->extends != "Controller" && $controllerClass->extends != "ApiController";
+		if ($isCSRFRequired && !$isOCS) {
+			Logger::info($routeName, "Route ignored because of required CSRF in a non-OCS controller");
+			continue;
+		}
+
+		$isCORS = Helpers::classMethodHasAnnotationOrAttribute($classMethod, "CORS");
+		$isPublic = Helpers::classMethodHasAnnotationOrAttribute($classMethod, "PublicPage");
+		$isAdmin = !Helpers::classMethodHasAnnotationOrAttribute($classMethod, "NoAdminRequired") && !$isPublic;
+		$isDeprecated = Helpers::classMethodHasAnnotationOrAttribute($classMethod, "deprecated");
+		$isIgnored = Helpers::classMethodHasAnnotationOrAttribute($classMethod, "IgnoreOpenAPI");
+
 		if ($isIgnored) {
 			Logger::info($routeName, "Route ignored because of IgnoreOpenAPI attribute");
 			continue;
