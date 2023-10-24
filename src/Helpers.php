@@ -140,4 +140,24 @@ class Helpers {
 
 		return false;
 	}
+
+	static function formatSchemaForParameter(array $schema): array {
+		if ((array_key_exists("type", $schema) && $schema["type"] == "object") ||
+			array_key_exists("ref", $schema) ||
+			array_key_exists("oneOf", $schema) ||
+			array_key_exists("anyOf", $schema) ||
+			array_key_exists("allOf", $schema)) {
+			return [
+				"content" => [
+					"application/json" => [
+						"schema" => $schema,
+					],
+				],
+			];
+		}
+
+		return [
+			"schema" => $schema,
+		];
+	}
 }

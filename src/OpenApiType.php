@@ -49,24 +49,7 @@ class OpenApiType {
 	) {
 	}
 
-	public function toArray(string $openapiVersion, bool $isParameter = false): array|stdClass {
-		$asContentString = $isParameter && (
-				$this->type == "object" ||
-				$this->ref !== null ||
-				$this->oneOf !== null ||
-				$this->anyOf !== null ||
-				$this->allOf !== null);
-		if ($asContentString) {
-			return array_merge([
-				"type" => "string",
-			],
-				$this->nullable ? ["nullable" => true] : [],
-				version_compare($openapiVersion, "3.1.0", ">=") ? [
-					"contentMediaType" => "application/json",
-					"contentSchema" => $this->toArray($openapiVersion),
-				] : [],
-			);
-		}
+	public function toArray(bool $isParameter = false): array|stdClass {
 		$values = array_merge(
 			$this->ref != null ? ["\$ref" => $this->ref] : [],
 			$this->type != null ? ["type" => $isParameter && $this->type == "boolean" ? "integer" : $this->type] : [],
@@ -75,20 +58,20 @@ class OpenApiType {
 			$this->hasDefaultValue && $this->defaultValue !== null ? ["default" => $isParameter && $this->type == "boolean" ? $this->defaultValue === true ? 1 : 0 : $this->defaultValue] : [],
 			$this->enum != null && count($this->enum) > 0 ? ["enum" => $this->enum] : [],
 			$this->description != null && $this->description != "" && !$isParameter ? ["description" => $this->description] : [],
-			$this->items != null ? ["items" => $this->items->toArray($openapiVersion)] : [],
+			$this->items != null ? ["items" => $this->items->toArray()] : [],
 			$this->minLength !== null ? ["minLength" => $this->minLength] : [],
 			$this->maxLength !== null ? ["maxLength" => $this->maxLength] : [],
 			$this->required != null && count($this->required) > 0 ? ["required" => $this->required] : [],
 			$this->properties != null ? ["properties" =>
 				array_combine(array_keys($this->properties),
-					array_map(fn(OpenApiType $property) => $property->toArray($openapiVersion), array_values($this->properties)),
+					array_map(fn(OpenApiType $property) => $property->toArray(), array_values($this->properties)),
 				)] : [],
 			$this->additionalProperties != null ? [
-				"additionalProperties" => $this->additionalProperties instanceof OpenApiType ? $this->additionalProperties->toArray($openapiVersion) : $this->additionalProperties,
+				"additionalProperties" => $this->additionalProperties instanceof OpenApiType ? $this->additionalProperties->toArray() : $this->additionalProperties,
 			] : [],
-			$this->oneOf != null ? ["oneOf" => array_map(fn(OpenApiType $type) => $type->toArray($openapiVersion), $this->oneOf)] : [],
-			$this->anyOf != null ? ["anyOf" => array_map(fn(OpenApiType $type) => $type->toArray($openapiVersion), $this->anyOf)] : [],
-			$this->allOf != null ? ["allOf" => array_map(fn(OpenApiType $type) => $type->toArray($openapiVersion), $this->allOf)] : [],
+			$this->oneOf != null ? ["oneOf" => array_map(fn(OpenApiType $type) => $type->toArray(), $this->oneOf)] : [],
+			$this->anyOf != null ? ["anyOf" => array_map(fn(OpenApiType $type) => $type->toArray(), $this->anyOf)] : [],
+			$this->allOf != null ? ["allOf" => array_map(fn(OpenApiType $type) => $type->toArray(), $this->allOf)] : [],
 		);
 		return count($values) > 0 ? $values : new stdClass();
 	}

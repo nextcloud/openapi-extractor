@@ -143,7 +143,7 @@ if (file_exists($definitionsPath)) {
 		}
 	}
 	foreach (array_keys($definitions) as $name) {
-		$schemas[cleanSchemaName($name)] = OpenApiType::resolve("Response definitions", $definitions, $definitions[$name])->toArray($openapiVersion);
+		$schemas[cleanSchemaName($name)] = OpenApiType::resolve("Response definitions", $definitions, $definitions[$name])->toArray();
 	}
 } else {
 	Logger::warning("Response definitions", "No response definitions were loaded");
@@ -204,7 +204,7 @@ foreach ($capabilitiesFiles as $path) {
 			continue;
 		}
 
-		$schema = $type->toArray($openapiVersion);
+		$schema = $type->toArray();
 
 		if (array_key_exists("oneOf", $schema)) {
 			$validSchemas = array_values(array_filter($schema["oneOf"], fn($schema) => !($schema instanceof stdClass) && count($schema) > 0));
@@ -318,7 +318,7 @@ foreach ($parsedRoutes as $key => $value) {
 		foreach ($nodeFinder->findInstanceOf($controllerClass->stmts, ClassMethod::class) as $classMethod) {
 			if ($classMethod->name == $methodName) {
 				$methodFunction = $classMethod;
-                break;
+				break;
 			}
 		}
 		if ($methodFunction == null) {
@@ -438,7 +438,7 @@ foreach ($routes as $route) {
 				continue;
 			}
 
-			$schema = $parameter->type->toArray($openapiVersion, true);
+			$schema = $parameter->type->toArray(true);
 			$description = $parameter?->docParameter != null && $parameter->docParameter->description != "" ? Helpers::cleanDocComment($parameter->docParameter->description) : null;
 		} else {
 			$schema = [
@@ -482,10 +482,8 @@ foreach ($routes as $route) {
 				"in" => "path",
 			],
 			$description != null ? ["description" => $description] : [],
-			[
-				"required" => true,
-				"schema" => $schema,
-			],
+			["required" => true],
+			Helpers::formatSchemaForParameter($schema),
 		);
 	}
 
@@ -522,18 +520,18 @@ foreach ($routes as $route) {
 			$contentTypeResponses = array_values(array_filter($statusCodeResponses, fn(ControllerMethodResponse $response) => $response->contentType == $contentType));
 
 			$hasEmpty = count(array_filter($contentTypeResponses, fn(ControllerMethodResponse $response) => $response->type == null)) > 0;
-			$uniqueResponses = array_values(array_intersect_key($contentTypeResponses, array_unique(array_map(fn(ControllerMethodResponse $response) => $response->type->toArray($openapiVersion), array_filter($contentTypeResponses, fn(ControllerMethodResponse $response) => $response->type != null)), SORT_REGULAR)));
+			$uniqueResponses = array_values(array_intersect_key($contentTypeResponses, array_unique(array_map(fn(ControllerMethodResponse $response) => $response->type->toArray(), array_filter($contentTypeResponses, fn(ControllerMethodResponse $response) => $response->type != null)), SORT_REGULAR)));
 			if (count($uniqueResponses) == 1) {
 				if ($hasEmpty) {
 					$mergedContentTypeResponses[$contentType] = [];
 				} else {
-					$schema = $contentTypeResponses[0]->type->toArray($openapiVersion);
+					$schema = $contentTypeResponses[0]->type->toArray();
 					$mergedContentTypeResponses[$contentType] = ["schema" => Helpers::wrapOCSResponse($route, $contentTypeResponses[0], $schema)];
 				}
 			} else {
 				$mergedContentTypeResponses[$contentType] = [
 					"schema" => [
-						[$hasEmpty ? "anyOf" : "oneOf" => array_map(fn(ControllerMethodResponse $response) => Helpers::wrapOCSResponse($route, $response, $response->type->toArray($openapiVersion)), $uniqueResponses)],
+						[$hasEmpty ? "anyOf" : "oneOf" => array_map(fn(ControllerMethodResponse $response) => Helpers::wrapOCSResponse($route, $response, $response->type->toArray()), $uniqueResponses)],
 					],
 				];
 			}
@@ -548,7 +546,7 @@ foreach ($routes as $route) {
 					array_keys($headers),
 					array_map(
 						fn(OpenApiType $type) => [
-							"schema" => $type->toArray($openapiVersion),
+							"schema" => $type->toArray(),
 						],
 						array_values($headers),
 					),
@@ -596,7 +594,7 @@ foreach ($routes as $route) {
 					],
 					$parameter->docParameter != null && $parameter->docParameter->description != "" ? ["description" => Helpers::cleanDocComment($parameter->docParameter->description)] : [],
 					!$parameter->type->nullable && !$parameter->type->hasDefaultValue ? ["required" => true] : [],
-					["schema" => $parameter->type->toArray($openapiVersion, true),],
+					Helpers::formatSchemaForParameter($parameter->type->toArray(true)),
 				), $queryParameters),
 				$pathParameters,
 				$route->isOCS ? [[
