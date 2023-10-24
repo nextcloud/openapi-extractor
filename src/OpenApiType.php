@@ -50,12 +50,22 @@ class OpenApiType {
 	}
 
 	public function toArray(bool $isParameter = false): array|stdClass {
+		$defaultValue = null;
+		if ($this->hasDefaultValue) {
+			if ($isParameter && $this->type == "boolean") {
+				$defaultValue = $this->defaultValue === true ? 1 : 0;
+			} else if (is_array($this->defaultValue) && count($this->defaultValue) == 0 && $this->type !== "array") {
+				$defaultValue = new \stdClass();
+			} else {
+				$defaultValue = $this->defaultValue;
+			}
+		}
 		$values = array_merge(
 			$this->ref != null ? ["\$ref" => $this->ref] : [],
 			$this->type != null ? ["type" => $isParameter && $this->type == "boolean" ? "integer" : $this->type] : [],
 			$this->format != null ? ["format" => $this->format] : [],
 			$this->nullable ? ["nullable" => true] : [],
-			$this->hasDefaultValue && $this->defaultValue !== null ? ["default" => $isParameter && $this->type == "boolean" ? $this->defaultValue === true ? 1 : 0 : $this->defaultValue] : [],
+			$this->hasDefaultValue ? ["default" => $defaultValue] : [],
 			$this->enum != null && count($this->enum) > 0 ? ["enum" => $this->enum] : [],
 			$this->description != null && $this->description != "" && !$isParameter ? ["description" => $this->description] : [],
 			$this->items != null ? ["items" => $this->items->toArray()] : [],
