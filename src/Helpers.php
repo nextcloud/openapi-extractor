@@ -4,6 +4,8 @@ namespace OpenAPIExtractor;
 
 use Exception;
 use PhpParser\Node;
+use PhpParser\Node\Expr\ClassConstFetch;
+use PhpParser\Node\Scalar\String_;
 use PhpParser\Node\Stmt\ClassMethod;
 use PhpParser\Node\Stmt\Class_;
 use stdClass;
@@ -147,5 +149,40 @@ class Helpers {
 		}
 
 		return false;
+	}
+
+	static function getAttributeScope(ClassMethod|Class_|Node $node, string $annotation, string $routeName): ?string {
+		/** @var Node\AttributeGroup $attrGroup */
+		foreach ($node->attrGroups as $attrGroup) {
+			foreach ($attrGroup->attrs as $attr) {
+				if ($attr->name->getLast() === $annotation) {
+					if (empty($attr->args)) {
+						return 'default';
+					}
+
+					foreach ($attr->args as $arg) {
+						if ($arg->name->name === 'scope') {
+							if ($arg->value instanceof ClassConstFetch) {
+								if ($arg->value->class->getLast() === 'OpenAPI') {
+									return match ($arg->value->name->name) {
+										'SCOPE_DEFAULT' => 'default',
+										'SCOPE_ADMINISTRATION' => 'administration',
+										'SCOPE_FEDERATION' => 'federation',
+										'SCOPE_IGNORE' => 'ignore',
+										// Fall back for future scopes assuming we follow the pattern (cut of 'SCOPE_' and lower case)
+										default => strtolower(substr($arg->value->name->name, 6)),
+									};
+								}
+							} elseif ($arg->value instanceof String_) {
+								return $arg->value->value;
+							}
+							Logger::panic($routeName, 'Can not interpret value of scope provided in OpenAPI(scope: …) attribute. Please use string or OpenAPI::SCOPE_* constants');
+						}
+					}
+				}
+			}
+		}
+
+		return null;
 	}
 }
