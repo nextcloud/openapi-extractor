@@ -213,7 +213,7 @@ class OpenApiType {
 
 	private static function resolveIdentifier(string $context, array $definitions, string $name): OpenApiType {
 		if ($name == "array") {
-			Logger::error($context, "Instead of 'array' use:\n'\stdClass::class' for empty objects\n'array<string, mixed>' for non-empty objects\n'array<emtpy>' for empty lists\n'array<YourTypeHere>' for lists");
+			Logger::error($context, "Instead of 'array' use:\n'new stdClass()' for empty objects\n'array<string, mixed>' for non-empty objects\n'array<emtpy>' for empty lists\n'array<YourTypeHere>' for lists");
 		}
 		if (str_starts_with($name, "\\")) {
 			$name = substr($name, 1);
