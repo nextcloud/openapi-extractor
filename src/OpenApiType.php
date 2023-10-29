@@ -111,7 +111,7 @@ class OpenApiType {
 		}
 		if ($node instanceof GenericTypeNode && ($node->type->name == "array" || $node->type->name == "list") && count($node->genericTypes) == 1) {
 			if ($node->genericTypes[0] instanceof IdentifierTypeNode && $node->genericTypes[0]->name == "empty") {
-				return new OpenApiType();
+				return new OpenApiType(type: "array", maxLength: 0);
 			}
 			return new OpenApiType(type: "array", items: self::resolve($context, $definitions, $node->genericTypes[0]));
 		}

@@ -123,6 +123,14 @@ class Helpers {
 		return $schema;
 	}
 
+	static function cleanEmptyResponseArray(array|stdClass $schema): array|stdClass {
+		if (key_exists("type", $schema) && $schema["type"] == "array" && key_exists("maxLength", $schema) && $schema["maxLength"] === 0) {
+			return new stdClass();
+		}
+
+		return $schema;
+	}
+
 	static function classMethodHasAnnotationOrAttribute(ClassMethod|Class_|Node $node, string $annotation): bool {
 		$doc = $node->getDocComment()?->getText();
 		if ($doc !== null && str_contains($doc, "@" . $annotation)) {

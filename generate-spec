@@ -206,18 +206,6 @@ foreach ($capabilitiesFiles as $path) {
 
 		$schema = $type->toArray($openapiVersion);
 
-		if (array_key_exists("oneOf", $schema)) {
-			$validSchemas = array_values(array_filter($schema["oneOf"], fn($schema) => !($schema instanceof stdClass) && count($schema) > 0));
-			if (count($validSchemas) == 1) {
-				$schema = $validSchemas[0];
-			}
-		}
-
-		if ($schema["type"] != "object" || $schema["properties"] == null || count($schema["properties"]) == 0) {
-			Logger::error($path, "Invalid capabilities");
-			continue;
-		}
-
 		if ($implementsPublicCapability) {
 			$publicCapabilities = $publicCapabilities == null ? $schema : Helpers::mergeSchemas([$publicCapabilities, $schema]);
 		} else {
@@ -318,7 +306,7 @@ foreach ($parsedRoutes as $key => $value) {
 		foreach ($nodeFinder->findInstanceOf($controllerClass->stmts, ClassMethod::class) as $classMethod) {
 			if ($classMethod->name == $methodName) {
 				$methodFunction = $classMethod;
-                break;
+				break;
 			}
 		}
 		if ($methodFunction == null) {
@@ -527,13 +515,16 @@ foreach ($routes as $route) {
 				if ($hasEmpty) {
 					$mergedContentTypeResponses[$contentType] = [];
 				} else {
-					$schema = $contentTypeResponses[0]->type->toArray($openapiVersion);
+					$schema = Helpers::cleanEmptyResponseArray($contentTypeResponses[0]->type->toArray($openapiVersion));
 					$mergedContentTypeResponses[$contentType] = ["schema" => Helpers::wrapOCSResponse($route, $contentTypeResponses[0], $schema)];
 				}
 			} else {
 				$mergedContentTypeResponses[$contentType] = [
 					"schema" => [
-						[$hasEmpty ? "anyOf" : "oneOf" => array_map(fn(ControllerMethodResponse $response) => Helpers::wrapOCSResponse($route, $response, $response->type->toArray($openapiVersion)), $uniqueResponses)],
+						[$hasEmpty ? "anyOf" : "oneOf" => array_map(function (ControllerMethodResponse $response) use ($route, $openapiVersion) {
+							$schema = Helpers::cleanEmptyResponseArray($response->type->toArray($openapiVersion));
+							return Helpers::wrapOCSResponse($route, $response, $schema);
+						}, $uniqueResponses)],
 					],
 				];
 			}
