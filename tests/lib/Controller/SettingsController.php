@@ -80,18 +80,6 @@ class SettingsController extends OCSController {
 	}
 
 	/**
-	 * Route is only in the admin scope because there is no "NoAdminRequired" annotation or attribute
-	 *
-	 * @return DataResponse<Http::STATUS_OK, array<empty>, array{}>
-	 *
-	 * 200: Personal settings updated
-	 */
-	#[OpenAPI]
-	public function defaultAdminScope(): DataResponse {
-		return new DataResponse();
-	}
-
-	/**
 	 * @NoAdminRequired
 	 *
 	 * Route is only in the admin scope due to defined scope

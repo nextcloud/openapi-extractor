@@ -347,6 +347,8 @@ foreach ($parsedRoutes as $key => $value) {
 		if (empty($scopes)) {
 			if (!empty($controllerScopes)) {
 				$scopes = $controllerScopes;
+			} else if ($isAdmin) {
+				$scopes = ['administration'];
 			} else {
 				$scopes = ['default'];
 			}
