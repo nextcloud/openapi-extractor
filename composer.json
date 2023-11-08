@@ -1,19 +1,23 @@
 {
-  "name": "nextcloud/openapi-extractor",
-  "require": {
-    "php": "^8.1",
-    "ext-simplexml": "*",
-    "nikic/php-parser": "^4.16",
-    "adhocore/cli": "^v1.6",
-    "phpstan/phpdoc-parser": "^1.23"
-  },
-  "bin": [
-    "generate-spec",
-    "merge-specs"
-  ],
-  "autoload": {
-    "psr-4": {
-      "OpenAPIExtractor\\": "src"
-    }
-  }
+	"name": "nextcloud/openapi-extractor",
+	"require": {
+		"php": "^8.1",
+		"ext-simplexml": "*",
+		"nikic/php-parser": "^4.16",
+		"adhocore/cli": "^v1.6",
+		"phpstan/phpdoc-parser": "^1.23"
+	},
+	"bin": [
+		"generate-spec",
+		"merge-specs"
+	],
+	"autoload": {
+		"psr-4": {
+			"OpenAPIExtractor\\": "src"
+		}
+	},
+	"scripts": {
+		"lint": "find . -name \\*.php -not -path './tests/*' -not -path './vendor/*' -not -path './build/*' -print0 | xargs -0 -n1 php -l && php -l generate-spec && php -l merge-specs",
+		"test:unit": "cd tests && ../generate-spec"
+	}
 }
