@@ -29,8 +29,10 @@ return [
 		['name' => 'Settings#federationByController', 'url' => '/api/{apiVersion}/controller-scope', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
 		['name' => 'Settings#ignoreByMethod', 'url' => '/api/{apiVersion}/ignore-method', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
 		['name' => 'Settings#defaultScope', 'url' => '/api/{apiVersion}/settings', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
-		['name' => 'Settings#defaultAdminScope', 'url' => '/api/{apiVersion}/default-admin', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
 		['name' => 'Settings#adminScope', 'url' => '/api/{apiVersion}/admin', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
 		['name' => 'Settings#doubleScope', 'url' => '/api/{apiVersion}/double', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
+
+		['name' => 'Settings2#defaultAdminScopeOverwritten', 'url' => '/api/{apiVersion}/default-admin-overwritten', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
+		['name' => 'Settings2#defaultAdminScope', 'url' => '/api/{apiVersion}/default-admin', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
 	],
 ];
