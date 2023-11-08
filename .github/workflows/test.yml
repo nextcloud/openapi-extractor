@@ -1,0 +1,75 @@
+# This workflow is provided via the organization template repository
+#
+# https://github.com/nextcloud/.github
+# https://docs.github.com/en/actions/learn-github-actions/sharing-workflows-with-your-organization
+
+name: Generate OpenAPI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - master
+      - stable*
+
+permissions:
+  contents: read
+
+concurrency:
+  group: openapi-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  openapi:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        php-versions: [ "8.1" ]
+
+    name: openapi
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
+
+      - name: Set up php ${{ matrix.php-versions }}
+        uses: shivammathur/setup-php@4bd44f22a98a19e0950cbad5f31095157cc9621b # v2
+        with:
+          php-version: ${{ matrix.php-versions }}
+          coverage: none
+          ini-file: development
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install dependencies
+        run: composer i
+
+      - name: Generate OpenAPI
+        working-directory: tests/
+        run: ../generate-spec
+
+      - name: Check openapi changes
+        run: |
+            bash -c "[[ ! \"`git status --porcelain `\" ]] || (echo 'Please recompile and commit the assets, see the section \"Show changes on failure\" for details' && exit 1)"
+
+      - name: Show changes on failure
+        if: failure()
+        run: |
+            git status
+            git --no-pager diff
+            exit 1 # make it red to grab attention
+
+  summary:
+    permissions:
+      contents: none
+    runs-on: ubuntu-latest
+    needs: openapi
+
+    if: always()
+
+    name: openapi-summary
+
+    steps:
+      - name: Summary status
+        run: if ${{ needs.openapi.result != 'success' && needs.openapi.result != 'skipped' }}; then exit 1; fi
