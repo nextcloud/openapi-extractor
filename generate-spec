@@ -214,10 +214,10 @@ foreach ($capabilitiesFiles as $path) {
 	}
 }
 if ($capabilities != null) {
-	$schemas["Capabilities"] = $capabilities;
+	$schemas['Capabilities'] = $capabilities;
 }
 if ($publicCapabilities != null) {
-	$schemas["PublicCapabilities"] = $publicCapabilities;
+	$schemas['PublicCapabilities'] = $publicCapabilities;
 }
 if ($capabilities == null && $publicCapabilities == null) {
 	Logger::warning("Capabilities", "No capabilities were loaded");
@@ -715,7 +715,6 @@ if (count($schemas) == 0 && count($routes) == 0) {
 }
 
 ksort($schemas);
-$openapi["components"]["schemas"] = count($schemas) == 0 ? new stdClass() : $schemas;
 
 if ($useTags) {
 	$openapi["tags"] = $tags;
@@ -731,6 +730,39 @@ foreach ($scopePaths as $scope => $paths) {
 	$scopeSuffix = $scope === 'default' ? '' : '-' . $scope;
 	$openapiScope['info']['title'] .= $scopeSuffix;
 	$openapiScope['paths'] = $paths;
+
+	$usedSchemas = [];
+	foreach ($paths as $url => $urlRoutes) {
+		foreach ($urlRoutes as $httpMethod => $routeData) {
+			foreach ($routeData['responses'] as $statusCode => $responseData) {
+				$usedSchemas = array_merge($usedSchemas, Helpers::collectUsedRefs($responseData['content']['application/json']['schema']));
+			}
+		}
+	}
+
+	$scopedSchemas = [];
+	foreach ($usedSchemas as $usedSchema) {
+		if (!str_starts_with($usedSchema, '#/components/schemas/')) {
+			continue;
+		}
+
+		$schemaName = substr($usedSchema, strlen('#/components/schemas/'));
+
+		if (!isset($schemas[$schemaName])) {
+			Logger::error("app", "Schema $schemaName used by scope $scope is not defined");
+		}
+
+		$scopedSchemas[$schemaName] = $schemas[$schemaName];
+	}
+
+	if (isset($schemas['Capabilities'])) {
+		$scopedSchemas['Capabilities'] = $schemas['Capabilities'];
+	}
+	if (isset($schemas['PublicCapabilities'])) {
+		$scopedSchemas['PublicCapabilities'] = $schemas['PublicCapabilities'];
+	}
+
+	$openapiScope['components']['schemas'] = $scopedSchemas;
 
 	$startExtension = strrpos($out, '.');
 	if ($startExtension !== false) {
