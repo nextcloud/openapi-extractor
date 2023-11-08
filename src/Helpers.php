@@ -189,4 +189,19 @@ class Helpers {
 
 		return $scopes;
 	}
+
+	static function collectUsedRefs(array $data): array {
+		$refs = [];
+		if (isset($data['$ref'])) {
+			$refs[] = [$data['$ref']];
+		}
+		if (isset($data['properties'])) {
+			foreach ($data['properties'] as $property) {
+				if (is_array($property)) {
+					$refs[] = self::collectUsedRefs($property);
+				}
+			}
+		}
+		return array_merge(...$refs);
+	}
 }

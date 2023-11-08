@@ -26,11 +26,15 @@ declare(strict_types=1);
 
 namespace OCA\Notifications\Controller;
 
+use OCA\Notifications\ResponseDefinitions;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\OpenAPI;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\AppFramework\OCSController;
 
+/**
+ * @psalm-import-type NotificationsPushDevice from ResponseDefinitions
+ */
 #[OpenAPI(scope: OpenAPI::SCOPE_FEDERATION)]
 class SettingsController extends OCSController {
 
@@ -92,13 +96,24 @@ class SettingsController extends OCSController {
 	 *
 	 * Route is only in the admin scope due to defined scope
 	 *
-	 * @return DataResponse<Http::STATUS_OK, array<empty>, array{}>
+	 * @return DataResponse<Http::STATUS_OK, NotificationsPushDevice, array{}>
 	 *
 	 * 200: Admin settings updated
 	 */
 	#[OpenAPI(scope: OpenAPI::SCOPE_ADMINISTRATION)]
 	public function adminScope(): DataResponse {
-		return new DataResponse();
+		return new DataResponse($this->createNotificationsPushDevice());
+	}
+
+	/**
+	 * @return NotificationsPushDevice
+	 */
+	protected function createNotificationsPushDevice(): array {
+		return [
+			'publicKey' => 'publicKey',
+			'deviceIdentifier' => 'deviceIdentifier',
+			'signature' => 'signature',
+		];
 	}
 
 	/**

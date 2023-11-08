@@ -20,104 +20,6 @@
             }
         },
         "schemas": {
-            "Notification": {
-                "type": "object",
-                "required": [
-                    "notification_id",
-                    "app",
-                    "user",
-                    "datetime",
-                    "object_type",
-                    "object_id",
-                    "subject",
-                    "message",
-                    "link",
-                    "actions"
-                ],
-                "properties": {
-                    "notification_id": {
-                        "type": "integer",
-                        "format": "int64"
-                    },
-                    "app": {
-                        "type": "string"
-                    },
-                    "user": {
-                        "type": "string"
-                    },
-                    "datetime": {
-                        "type": "string"
-                    },
-                    "object_type": {
-                        "type": "string"
-                    },
-                    "object_id": {
-                        "type": "string"
-                    },
-                    "subject": {
-                        "type": "string"
-                    },
-                    "message": {
-                        "type": "string"
-                    },
-                    "link": {
-                        "type": "string"
-                    },
-                    "actions": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/NotificationAction"
-                        }
-                    },
-                    "subjectRich": {
-                        "type": "string"
-                    },
-                    "subjectRichParameters": {
-                        "type": "object",
-                        "additionalProperties": {
-                            "type": "object"
-                        }
-                    },
-                    "messageRich": {
-                        "type": "string"
-                    },
-                    "messageRichParameters": {
-                        "type": "object",
-                        "additionalProperties": {
-                            "type": "object"
-                        }
-                    },
-                    "icon": {
-                        "type": "string"
-                    },
-                    "shouldNotify": {
-                        "type": "boolean"
-                    }
-                }
-            },
-            "NotificationAction": {
-                "type": "object",
-                "required": [
-                    "label",
-                    "link",
-                    "type",
-                    "primary"
-                ],
-                "properties": {
-                    "label": {
-                        "type": "string"
-                    },
-                    "link": {
-                        "type": "string"
-                    },
-                    "type": {
-                        "type": "string"
-                    },
-                    "primary": {
-                        "type": "boolean"
-                    }
-                }
-            },
             "OCSMeta": {
                 "type": "object",
                 "required": [
@@ -224,7 +126,9 @@
                                                 "meta": {
                                                     "$ref": "#/components/schemas/OCSMeta"
                                                 },
-                                                "data": {}
+                                                "data": {
+                                                    "$ref": "#/components/schemas/PushDevice"
+                                                }
                                             }
                                         }
                                     }
