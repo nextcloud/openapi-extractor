@@ -278,8 +278,8 @@ foreach ($parsedRoutes as $key => $value) {
 			continue;
 		}
 
-		$controllerScope = Helpers::getAttributeScope($controllerClass, 'OpenAPI', $routeName);
-		if ($controllerScope === 'ignore') {
+		$controllerScopes = Helpers::getAttributeScopes($controllerClass, 'OpenAPI', $routeName);
+		if (in_array('ignore', $controllerScopes, true)) {
 			Logger::info($routeName, "Controller '" . $controllerName . "' ignored because of OpenAPI attribute");
 			continue;
 		}
@@ -338,17 +338,17 @@ foreach ($parsedRoutes as $key => $value) {
 			continue;
 		}
 
-		$scope = Helpers::getAttributeScope($classMethod, 'OpenAPI', $routeName);
-		if ($scope === 'ignore') {
+		$scopes = Helpers::getAttributeScopes($classMethod, 'OpenAPI', $routeName);
+		if (in_array('ignore', $scopes, true)) {
 			Logger::info($routeName, "Route ignored because of OpenAPI attribute");
 			continue;
 		}
 
-		if ($scope === null) {
-			if ($controllerScope !== null) {
-				$scope = $controllerScope;
+		if (empty($scopes)) {
+			if (!empty($controllerScopes)) {
+				$scopes = $controllerScopes;
 			} else {
-				$scope = 'default';
+				$scopes = ['default'];
 			}
 		}
 
@@ -399,23 +399,25 @@ foreach ($parsedRoutes as $key => $value) {
 			continue;
 		}
 
-		$routes[$scope] ??= [];
-		$routes[$scope][] = new Route(
-			$routeName,
-			$tagName,
-			$controllerName,
-			$methodName,
-			$postfix,
-			$verb,
-			$url,
-			$requirements,
-			$defaults,
-			$classMethodInfo,
-			$isOCS,
-			$isCORS,
-			$isCSRFRequired,
-			$isPublic,
-		);
+		foreach ($scopes as $scope) {
+			$routes[$scope] ??= [];
+			$routes[$scope][] = new Route(
+				$routeName,
+				$tagName,
+				$controllerName,
+				$methodName,
+				$postfix,
+				$verb,
+				$url,
+				$requirements,
+			    $defaults,
+				$classMethodInfo,
+				$isOCS,
+				$isCORS,
+				$isCSRFRequired,
+				$isPublic,
+			);
+		}
 
 		Logger::info($routeName, "Route generated");
 	}

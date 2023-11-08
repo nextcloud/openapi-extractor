@@ -151,20 +151,23 @@ class Helpers {
 		return false;
 	}
 
-	static function getAttributeScope(ClassMethod|Class_|Node $node, string $annotation, string $routeName): ?string {
+	static function getAttributeScopes(ClassMethod|Class_|Node $node, string $annotation, string $routeName): array {
+		$scopes = [];
+
+
 		/** @var Node\AttributeGroup $attrGroup */
 		foreach ($node->attrGroups as $attrGroup) {
 			foreach ($attrGroup->attrs as $attr) {
 				if ($attr->name->getLast() === $annotation) {
 					if (empty($attr->args)) {
-						return 'default';
+						$scopes[] = 'default';
 					}
 
 					foreach ($attr->args as $arg) {
 						if ($arg->name->name === 'scope') {
 							if ($arg->value instanceof ClassConstFetch) {
 								if ($arg->value->class->getLast() === 'OpenAPI') {
-									return match ($arg->value->name->name) {
+									$scopes[] = match ($arg->value->name->name) {
 										'SCOPE_DEFAULT' => 'default',
 										'SCOPE_ADMINISTRATION' => 'administration',
 										'SCOPE_FEDERATION' => 'federation',
@@ -174,15 +177,16 @@ class Helpers {
 									};
 								}
 							} elseif ($arg->value instanceof String_) {
-								return $arg->value->value;
+								$scopes[] = $arg->value->value;
+							} else {
+								Logger::panic($routeName, 'Can not interpret value of scope provided in OpenAPI(scope: …) attribute. Please use string or OpenAPI::SCOPE_* constants');
 							}
-							Logger::panic($routeName, 'Can not interpret value of scope provided in OpenAPI(scope: …) attribute. Please use string or OpenAPI::SCOPE_* constants');
 						}
 					}
 				}
 			}
 		}
 
-		return null;
+		return $scopes;
 	}
 }
