@@ -55,4 +55,16 @@ class Settings2Controller extends OCSController {
 	public function defaultAdminScopeOverwritten(): DataResponse {
 		return new DataResponse();
 	}
+
+	/**
+	 * Route is only in the admin scope because there is no "NoAdminRequired" annotation or attribute
+	 *
+	 * @return DataResponse<Http::STATUS_OK, array<empty>, array{}>
+	 *
+	 * 200: Personal settings updated
+	 */
+	#[OpenAPI(tags: ['settings', 'admin-settings'])]
+	public function movedToSettingsTag(): DataResponse {
+		return new DataResponse();
+	}
 }
