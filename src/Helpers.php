@@ -4,6 +4,8 @@ namespace OpenAPIExtractor;
 
 use Exception;
 use PhpParser\Node;
+use PhpParser\Node\Expr\Array_;
+use PhpParser\Node\Expr\ArrayItem;
 use PhpParser\Node\Expr\ClassConstFetch;
 use PhpParser\Node\Scalar\String_;
 use PhpParser\Node\Stmt\ClassMethod;
@@ -188,6 +190,63 @@ class Helpers {
 		}
 
 		return $scopes;
+	}
+
+	static function getAttributeTagsByScope(ClassMethod|Class_|Node $node, string $annotation, string $routeName, string $defaultTag, string $defaultScope): array {
+		$tags = [];
+
+		/** @var Node\AttributeGroup $attrGroup */
+		foreach ($node->attrGroups as $attrGroup) {
+			foreach ($attrGroup->attrs as $attr) {
+				if ($attr->name->getLast() === $annotation) {
+					if (empty($attr->args)) {
+						$tags[$defaultScope] = [$defaultTag];
+						continue;
+					}
+
+					$foundsTags = [];
+					$foundScopeName = null;
+					foreach ($attr->args as $arg) {
+						if ($arg->name->name === 'scope') {
+							if ($arg->value instanceof ClassConstFetch) {
+								if ($arg->value->class->getLast() === 'OpenAPI') {
+									$foundScopeName = match ($arg->value->name->name) {
+										'SCOPE_DEFAULT' => 'default',
+										'SCOPE_ADMINISTRATION' => 'administration',
+										'SCOPE_FEDERATION' => 'federation',
+										'SCOPE_IGNORE' => 'ignore',
+										// Fall back for future scopes assuming we follow the pattern (cut of 'SCOPE_' and lower case)
+										default => strtolower(substr($arg->value->name->name, 6)),
+									};
+								}
+							} elseif ($arg->value instanceof String_) {
+								$foundScopeName = $arg->value->value;
+							} else {
+								Logger::panic($routeName, 'Can not interpret value of scope provided in OpenAPI(scope: …) attribute. Please use string or OpenAPI::SCOPE_* constants');
+							}
+						}
+
+						if ($arg->name->name === 'tags') {
+							if ($arg->value instanceof Array_) {
+								foreach ($arg->value->items as $item) {
+									if ($item instanceof ArrayItem) {
+										if ($item->value instanceof String_) {
+											$foundsTags[] = $item->value->value;
+										}
+									}
+								}
+							}
+						}
+					}
+
+					if (!empty($foundsTags)) {
+						$tags[$foundScopeName ?: $defaultScope] = $foundsTags;
+					}
+				}
+			}
+		}
+
+		return $tags;
 	}
 
 	static function collectUsedRefs(array $data): array {
