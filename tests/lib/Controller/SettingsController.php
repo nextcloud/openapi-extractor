@@ -118,4 +118,17 @@ class SettingsController extends OCSController {
 	public function doubleScope(): DataResponse {
 		return new DataResponse();
 	}
+
+	/**
+	 * A route with a limited set of possible integers
+	 *
+	 * @param 1|2|3|4|5|6|7|8|9|10 $limit Maximum number of objects
+	 * @psalm-param int<1, 10> $limit
+	 * @return DataResponse<Http::STATUS_OK, array<empty>, array{}>
+	 *
+	 * 200: Admin settings updated
+	 */
+	public function listOfIntParameters(int $limit): DataResponse {
+		return new DataResponse();
+	}
 }

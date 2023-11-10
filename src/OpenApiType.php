@@ -161,6 +161,27 @@ class OpenApiType {
 
 			return new OpenApiType(type: "string", enum: $values);
 		}
+		if ($isUnion && count($node->types) == count(array_filter($node->types, fn($type) => $type instanceof ConstTypeNode && $type->constExpr instanceof ConstExprIntegerNode))) {
+			$values = [];
+			/** @var ConstTypeNode $type */
+			foreach ($node->types as $type) {
+				$values[] = (int) $type->constExpr->value;
+			}
+
+			if (count(array_filter($values, fn(string $value) => $value == '')) > 0) {
+				// Not a valid enum
+				return new OpenApiType(
+					type: "integer",
+					format: "int64",
+				);
+			}
+
+			return new OpenApiType(
+				type: "integer",
+				format: "int64",
+				enum: $values,
+			);
+		}
 
 		if ($isUnion || $isIntersection) {
 			$nullable = false;
@@ -205,6 +226,7 @@ class OpenApiType {
 			return new OpenApiType(
 				type: "integer",
 				format: "int64",
+				enum: [(int) $node->constExpr->value],
 			);
 		}
 
