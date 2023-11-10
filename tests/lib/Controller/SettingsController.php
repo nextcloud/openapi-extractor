@@ -209,4 +209,16 @@ class SettingsController extends OCSController {
 	public function intParameterWithMax(int $limit): DataResponse {
 		return new DataResponse();
 	}
+
+	/**
+	 * A route with a list of 2 integers, 2 strings and 1 boolean
+	 *
+	 * @param 0|1|'yes'|'no'|true $weird Weird list
+	 * @return DataResponse<Http::STATUS_OK, array<empty>, array{}>
+	 *
+	 * 200: Admin settings updated
+	 */
+	public function listOfIntStringAndBool($weird): DataResponse {
+		return new DataResponse();
+	}
 }

@@ -42,5 +42,6 @@ return [
 		['name' => 'Settings#intParameterWithMinAndMax', 'url' => '/api/{apiVersion}/min-max', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
 		['name' => 'Settings#intParameterWithMin', 'url' => '/api/{apiVersion}/min', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
 		['name' => 'Settings#intParameterWithMax', 'url' => '/api/{apiVersion}/max', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
+		['name' => 'Settings#listOfIntStringAndBool', 'url' => '/api/{apiVersion}/mixed-list', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
 	],
 ];
