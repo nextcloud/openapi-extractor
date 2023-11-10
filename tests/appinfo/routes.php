@@ -38,5 +38,9 @@ return [
 		['name' => 'Settings#defaultAndAdminScope', 'url' => '/api/{apiVersion}/default-and-admin-scope', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
 		['name' => 'Settings#nestedSchemas', 'url' => '/api/{apiVersion}/nested-schemas', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
 		['name' => 'Settings#listSchemas', 'url' => '/api/{apiVersion}/list-schemas', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
+		['name' => 'Settings#listOfIntParameters', 'url' => '/api/{apiVersion}/list-of-int', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
+		['name' => 'Settings#intParameterWithMinAndMax', 'url' => '/api/{apiVersion}/min-max', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
+		['name' => 'Settings#intParameterWithMin', 'url' => '/api/{apiVersion}/min', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
+		['name' => 'Settings#intParameterWithMax', 'url' => '/api/{apiVersion}/max', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
 	],
 ];

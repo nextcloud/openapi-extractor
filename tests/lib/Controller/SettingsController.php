@@ -161,4 +161,52 @@ class SettingsController extends OCSController {
 	public function listSchemas(): DataResponse {
 		return new DataResponse();
 	}
+
+	/**
+	 * A route with a limited set of possible integers
+	 *
+	 * @param 1|2|3|4|5|6|7|8|9|10 $limit Maximum number of objects
+	 * @return DataResponse<Http::STATUS_OK, array<empty>, array{}>
+	 *
+	 * 200: Admin settings updated
+	 */
+	public function listOfIntParameters(int $limit): DataResponse {
+		return new DataResponse();
+	}
+
+	/**
+	 * A route with a min and max integers
+	 *
+	 * @param int<5, 10> $limit Between 5 and 10
+	 * @return DataResponse<Http::STATUS_OK, array<empty>, array{}>
+	 *
+	 * 200: Admin settings updated
+	 */
+	public function intParameterWithMinAndMax(int $limit): DataResponse {
+		return new DataResponse();
+	}
+
+	/**
+	 * A route with a min integers
+	 *
+	 * @param int<5, max> $limit At least 5
+	 * @return DataResponse<Http::STATUS_OK, array<empty>, array{}>
+	 *
+	 * 200: Admin settings updated
+	 */
+	public function intParameterWithMin(int $limit): DataResponse {
+		return new DataResponse();
+	}
+
+	/**
+	 * A route with a max integers
+	 *
+	 * @param int<min, 10> $limit At most 10
+	 * @return DataResponse<Http::STATUS_OK, array<empty>, array{}>
+	 *
+	 * 200: Admin settings updated
+	 */
+	public function intParameterWithMax(int $limit): DataResponse {
+		return new DataResponse();
+	}
 }
