@@ -45,6 +45,8 @@ class OpenApiType {
 		public ?string $description = null,
 		public ?int $minLength = null,
 		public ?int $maxLength = null,
+		public ?int $minimum = null,
+		public ?int $maximum = null,
 		public ?array $enum = null,
 	) {
 	}
@@ -77,6 +79,8 @@ class OpenApiType {
 			$this->items != null ? ["items" => $this->items->toArray($openapiVersion)] : [],
 			$this->minLength !== null ? ["minLength" => $this->minLength] : [],
 			$this->maxLength !== null ? ["maxLength" => $this->maxLength] : [],
+			$this->minimum !== null ? ["minimum" => $this->minimum] : [],
+			$this->maximum !== null ? ["maximum" => $this->maximum] : [],
 			$this->required != null && count($this->required) > 0 ? ["required" => $this->required] : [],
 			$this->properties != null ? ["properties" =>
 				array_combine(array_keys($this->properties),
@@ -136,6 +140,23 @@ class OpenApiType {
 			if ($node->genericTypes[0]->name == "string" || $node->genericTypes[0]->name == "array-key") {
 				return new OpenApiType(type: "object", additionalProperties: self::resolve($context, $definitions, $node->genericTypes[1]));
 			}
+		}
+
+		if ($node instanceof GenericTypeNode && $node->type->name == "int" && count($node->genericTypes) == 2) {
+			$min = null;
+			$max = null;
+			if ($node->genericTypes[0] instanceof ConstTypeNode) {
+				$min = $node->genericTypes[0]->constExpr->value;
+			}
+			if ($node->genericTypes[1] instanceof ConstTypeNode) {
+				$max = $node->genericTypes[1]->constExpr->value;
+			}
+			return new OpenApiType(
+				type: "integer",
+				format: "int64",
+				minimum: $min,
+				maximum: $max,
+			);
 		}
 
 		if ($node instanceof NullableTypeNode || $node instanceof NullableType) {
@@ -266,6 +287,10 @@ class OpenApiType {
 			"string", "non-falsy-string", "numeric-string" => new OpenApiType(type: "string"),
 			"non-empty-string" => new OpenApiType(type: "string", minLength: 1),
 			"int", "integer" => new OpenApiType(type: "integer", format: "int64"),
+			"non-negative-int" => new OpenApiType(type: "integer", format: "int64", minimum: 0),
+			"positive-int" => new OpenApiType(type: "integer", format: "int64", minimum: 1),
+			"negative-int" => new OpenApiType(type: "integer", format: "int64", maximum: -1),
+			"non-positive-int" => new OpenApiType(type: "integer", format: "int64", maximum: 0),
 			"bool", "boolean", "true", "false" => new OpenApiType(type: "boolean"),
 			"double" => new OpenApiType(type: "number", format: "double"),
 			"float" => new OpenApiType(type: "number", format: "float"),
