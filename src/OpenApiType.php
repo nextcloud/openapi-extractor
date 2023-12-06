@@ -53,7 +53,6 @@ class OpenApiType {
 		$asContentString = $isParameter && (
 				$this->type == "object" ||
 				$this->ref !== null ||
-				$this->oneOf !== null ||
 				$this->anyOf !== null ||
 				$this->allOf !== null);
 		if ($asContentString) {
@@ -196,6 +195,7 @@ class OpenApiType {
 			}
 
 			$items = array_unique($items, SORT_REGULAR);
+			$items = self::mergeEnums($items);
 
 			if (count($items) == 1) {
 				$type = $items[0];
@@ -231,6 +231,28 @@ class OpenApiType {
 		}
 
 		Logger::panic($context, "Unable to resolve OpenAPI type for type '" . get_class($node) . "'");
+	}
+
+	/**
+	 * @param OpenApiType[] $types
+	 */
+	private static function mergeEnums(array $types) {
+		$enums = [];
+		$nonEnums = [];
+
+		foreach ($types as $type) {
+			if ($type->enum !== null) {
+				if (array_key_exists($type->type, $enums)) {
+					$enums[$type->type] = array_merge($enums[$type->type], $type->enum);
+				} else {
+					$enums[$type->type] = $type->enum;
+				}
+			} else {
+				$nonEnums[] = $type;
+			}
+		}
+
+		return array_merge($nonEnums, array_map(fn(string $type) => new OpenApiType(type: $type, enum: $enums[$type]), array_keys($enums)));
 	}
 
 	private static function resolveIdentifier(string $context, array $definitions, string $name): OpenApiType {
