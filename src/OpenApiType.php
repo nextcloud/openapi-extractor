@@ -53,7 +53,6 @@ class OpenApiType {
 		$asContentString = $isParameter && (
 				$this->type == "object" ||
 				$this->ref !== null ||
-				$this->oneOf !== null ||
 				$this->anyOf !== null ||
 				$this->allOf !== null);
 		if ($asContentString) {
