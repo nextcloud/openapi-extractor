@@ -4,6 +4,9 @@ namespace OpenAPIExtractor;
 
 use Exception;
 use PhpParser\Node;
+use PhpParser\Node\Arg;
+use PhpParser\Node\Attribute;
+use PhpParser\Node\AttributeGroup;
 use PhpParser\Node\Expr\Array_;
 use PhpParser\Node\Expr\ArrayItem;
 use PhpParser\Node\Expr\ClassConstFetch;
@@ -141,7 +144,7 @@ class Helpers {
 			return true;
 		}
 
-		/** @var Node\AttributeGroup $attrGroup */
+		/** @var AttributeGroup $attrGroup */
 		foreach ($node->attrGroups as $attrGroup) {
 			foreach ($attrGroup->attrs as $attr) {
 				if ($attr->name->getLast() == $annotation) {
@@ -153,36 +156,49 @@ class Helpers {
 		return false;
 	}
 
+	protected static function getScopeNameFromAttributeArgument(Arg $arg, string $routeName): ?string {
+		if ($arg->name->name === 'scope') {
+			if ($arg->value instanceof ClassConstFetch) {
+				if ($arg->value->class->getLast() === 'OpenAPI') {
+					return self::getScopeNameFromConst($arg->value);
+				}
+			} elseif ($arg->value instanceof String_) {
+				return $arg->value->value;
+			} else {
+				Logger::panic($routeName, 'Can not interpret value of scope provided in OpenAPI(scope: …) attribute. Please use string or OpenAPI::SCOPE_* constants');
+			}
+		}
+
+		return null;
+	}
+
+	protected static function getScopeNameFromConst(ClassConstFetch $scope): string {
+		return match ($scope->name->name) {
+			'SCOPE_DEFAULT' => 'default',
+			'SCOPE_ADMINISTRATION' => 'administration',
+			'SCOPE_FEDERATION' => 'federation',
+			'SCOPE_IGNORE' => 'ignore',
+			// Fall back for future scopes assuming we follow the pattern (cut of 'SCOPE_' and lower case)
+			default => strtolower(substr($scope->name->name, 6)),
+		};
+	}
+
 	static function getAttributeScopes(ClassMethod|Class_|Node $node, string $annotation, string $routeName): array {
 		$scopes = [];
 
-
-		/** @var Node\AttributeGroup $attrGroup */
+		/** @var AttributeGroup $attrGroup */
 		foreach ($node->attrGroups as $attrGroup) {
 			foreach ($attrGroup->attrs as $attr) {
 				if ($attr->name->getLast() === $annotation) {
 					if (empty($attr->args)) {
 						$scopes[] = 'default';
+						continue;
 					}
 
 					foreach ($attr->args as $arg) {
-						if ($arg->name->name === 'scope') {
-							if ($arg->value instanceof ClassConstFetch) {
-								if ($arg->value->class->getLast() === 'OpenAPI') {
-									$scopes[] = match ($arg->value->name->name) {
-										'SCOPE_DEFAULT' => 'default',
-										'SCOPE_ADMINISTRATION' => 'administration',
-										'SCOPE_FEDERATION' => 'federation',
-										'SCOPE_IGNORE' => 'ignore',
-										// Fall back for future scopes assuming we follow the pattern (cut of 'SCOPE_' and lower case)
-										default => strtolower(substr($arg->value->name->name, 6)),
-									};
-								}
-							} elseif ($arg->value instanceof String_) {
-								$scopes[] = $arg->value->value;
-							} else {
-								Logger::panic($routeName, 'Can not interpret value of scope provided in OpenAPI(scope: …) attribute. Please use string or OpenAPI::SCOPE_* constants');
-							}
+						$scope = self::getScopeNameFromAttributeArgument($arg, $routeName);
+						if ($scope !== null) {
+							$scopes[] = $scope;
 						}
 					}
 				}
@@ -195,7 +211,7 @@ class Helpers {
 	static function getAttributeTagsByScope(ClassMethod|Class_|Node $node, string $annotation, string $routeName, string $defaultTag, string $defaultScope): array {
 		$tags = [];
 
-		/** @var Node\AttributeGroup $attrGroup */
+		/** @var AttributeGroup $attrGroup */
 		foreach ($node->attrGroups as $attrGroup) {
 			foreach ($attrGroup->attrs as $attr) {
 				if ($attr->name->getLast() === $annotation) {
@@ -207,24 +223,7 @@ class Helpers {
 					$foundsTags = [];
 					$foundScopeName = null;
 					foreach ($attr->args as $arg) {
-						if ($arg->name->name === 'scope') {
-							if ($arg->value instanceof ClassConstFetch) {
-								if ($arg->value->class->getLast() === 'OpenAPI') {
-									$foundScopeName = match ($arg->value->name->name) {
-										'SCOPE_DEFAULT' => 'default',
-										'SCOPE_ADMINISTRATION' => 'administration',
-										'SCOPE_FEDERATION' => 'federation',
-										'SCOPE_IGNORE' => 'ignore',
-										// Fall back for future scopes assuming we follow the pattern (cut of 'SCOPE_' and lower case)
-										default => strtolower(substr($arg->value->name->name, 6)),
-									};
-								}
-							} elseif ($arg->value instanceof String_) {
-								$foundScopeName = $arg->value->value;
-							} else {
-								Logger::panic($routeName, 'Can not interpret value of scope provided in OpenAPI(scope: …) attribute. Please use string or OpenAPI::SCOPE_* constants');
-							}
-						}
+						$foundScopeName = self::getScopeNameFromAttributeArgument($arg, $routeName);
 
 						if ($arg->name->name === 'tags') {
 							if ($arg->value instanceof Array_) {
