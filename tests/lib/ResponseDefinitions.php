@@ -27,6 +27,15 @@ declare(strict_types=1);
 namespace OCA\Notifications;
 
 /**
+ * @psalm-type NotificationsItem = array{
+ *     label: string,
+ *     link: string,
+ *     type: string,
+ *     primary: bool,
+ * }
+ *
+ * @psalm-type NotificationsCollection = list<NotificationsItem>
+ *
  * @psalm-type NotificationsNotificationAction = array{
  *     label: string,
  *     link: string,

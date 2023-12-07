@@ -119,7 +119,36 @@
                     }
                 }
             },
+            "Collection": {
+                "type": "array",
+                "items": {
+                    "$ref": "#/components/schemas/Item"
+                }
+            },
             "NotificationAction": {
+                "type": "object",
+                "required": [
+                    "label",
+                    "link",
+                    "type",
+                    "primary"
+                ],
+                "properties": {
+                    "label": {
+                        "type": "string"
+                    },
+                    "link": {
+                        "type": "string"
+                    },
+                    "type": {
+                        "type": "string"
+                    },
+                    "primary": {
+                        "type": "boolean"
+                    }
+                }
+            },
+            "Item": {
                 "type": "object",
                 "required": [
                     "label",
@@ -352,6 +381,79 @@
                                                     "items": {
                                                         "$ref": "#/components/schemas/Notification"
                                                     }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/ocs/v2.php/apps/notifications/api/{apiVersion}/list-schemas": {
+            "post": {
+                "operationId": "settings-list-schemas",
+                "summary": "Route is ignored because of scope on the controller",
+                "tags": [
+                    "settings"
+                ],
+                "security": [
+                    {
+                        "bearer_auth": []
+                    },
+                    {
+                        "basic_auth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "apiVersion",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "v2"
+                            ],
+                            "default": "v2"
+                        }
+                    },
+                    {
+                        "name": "OCS-APIRequest",
+                        "in": "header",
+                        "description": "Required to be true for the API request to pass",
+                        "required": true,
+                        "schema": {
+                            "type": "boolean",
+                            "default": true
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "required": [
+                                        "ocs"
+                                    ],
+                                    "properties": {
+                                        "ocs": {
+                                            "type": "object",
+                                            "required": [
+                                                "meta",
+                                                "data"
+                                            ],
+                                            "properties": {
+                                                "meta": {
+                                                    "$ref": "#/components/schemas/OCSMeta"
+                                                },
+                                                "data": {
+                                                    "$ref": "#/components/schemas/Collection"
                                                 }
                                             }
                                         }

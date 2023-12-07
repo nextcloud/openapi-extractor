@@ -35,6 +35,7 @@ use OCP\AppFramework\OCSController;
 /**
  * @psalm-import-type NotificationsPushDevice from ResponseDefinitions
  * @psalm-import-type NotificationsNotification from ResponseDefinitions
+ * @psalm-import-type NotificationsCollection from ResponseDefinitions
  */
 #[OpenAPI(scope: OpenAPI::SCOPE_FEDERATION)]
 class SettingsController extends OCSController {
@@ -131,6 +132,20 @@ class SettingsController extends OCSController {
 	 */
 	#[OpenAPI]
 	public function nestedSchemas(): DataResponse {
+		return new DataResponse();
+	}
+
+	/**
+	 * @NoAdminRequired
+	 *
+	 * Route is ignored because of scope on the controller
+	 *
+	 * @return DataResponse<Http::STATUS_OK, NotificationsCollection, array{}>
+	 *
+	 * 200: OK
+	 */
+	#[OpenAPI]
+	public function listSchemas(): DataResponse {
 		return new DataResponse();
 	}
 }

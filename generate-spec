@@ -770,7 +770,7 @@ foreach ($scopePaths as $scope => $paths) {
 		}
 
 		// Queue potential sub-refs for exporting as well
-		foreach (['allOf', 'oneOf', 'anyOf', 'properties'] as $group) {
+		foreach (['allOf', 'oneOf', 'anyOf', 'properties', 'additionalProperties'] as $group) {
 			if (isset($schemas[$schemaName][$group])) {
 				foreach ($schemas[$schemaName][$group] as $subType) {
 					$newRefs = Helpers::collectUsedRefs($subType);
@@ -779,6 +779,15 @@ foreach ($scopePaths as $scope => $paths) {
 							$usedSchemas[] = $newRef;
 						}
 					}
+				}
+			}
+		}
+
+		if (isset($schemas[$schemaName]['items'])) {
+			$newRefs = Helpers::collectUsedRefs($schemas[$schemaName]['items']);
+			foreach ($newRefs as $newRef) {
+				if (!isset($scopedSchemas[substr($newRef, strlen('#/components/schemas/'))])) {
+					$usedSchemas[] = $newRef;
 				}
 			}
 		}
