@@ -260,6 +260,9 @@ class Helpers {
 				}
 			}
 		}
+		if (isset($data['items'])) {
+			$refs[] = self::collectUsedRefs($data['items']);
+		}
 		return array_merge(...$refs);
 	}
 }
