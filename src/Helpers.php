@@ -106,7 +106,9 @@ class Helpers {
 	}
 
 	public static function wrapOCSResponse(Route $route, ControllerMethodResponse $response, array|stdClass $schema): array|stdClass {
-		if ($route->isOCS && $response->className == "DataResponse") {
+		if ($route->isOCS
+			&& ($response->className === 'DataResponse'
+				|| (str_starts_with($response->className, 'OCS') && str_ends_with($response->className, 'Exception')))) {
 			return [
 				"type" => "object",
 				"required" => [

@@ -63,5 +63,7 @@ return [
 		['name' => 'Settings#numericParameter', 'url' => '/api/{apiVersion}/numeric', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
 		['name' => 'Settings#arrayListParameter', 'url' => '/api/{apiVersion}/array-list', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
 		['name' => 'Settings#arrayKeyedParameter', 'url' => '/api/{apiVersion}/array-keyed', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
+		['name' => 'Settings#throwingOCS', 'url' => '/api/{apiVersion}/throwing/ocs', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
+		['name' => 'Settings#throwingOther', 'url' => '/api/{apiVersion}/throwing/other', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
 	],
 ];
