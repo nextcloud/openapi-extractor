@@ -427,7 +427,7 @@ foreach ($routes as $route) {
 			}
 
 			$schema = $parameter->type->toArray($openapiVersion, true);
-			$description = $parameter?->docParameter != null && $parameter->docParameter->description != "" ? Helpers::cleanDocComment($parameter->docParameter->description) : null;
+			$description = $parameter?->docType != null && $parameter->docType->description != "" ? Helpers::cleanDocComment($parameter->docType->description) : null;
 		} else {
 			$schema = [
 				"type" => "string",
@@ -585,7 +585,7 @@ foreach ($routes as $route) {
 						"name" => $parameter->name . ($parameter->type->type == "array" ? "[]" : ""),
 						"in" => "query",
 					],
-					$parameter->docParameter != null && $parameter->docParameter->description != "" ? ["description" => Helpers::cleanDocComment($parameter->docParameter->description)] : [],
+					$parameter->docType != null && $parameter->docType->description != "" ? ["description" => Helpers::cleanDocComment($parameter->docType->description)] : [],
 					!$parameter->type->nullable && !$parameter->type->hasDefaultValue ? ["required" => true] : [],
 					["schema" => $parameter->type->toArray($openapiVersion, true),],
 				), $queryParameters),

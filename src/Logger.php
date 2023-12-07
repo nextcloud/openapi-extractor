@@ -7,36 +7,36 @@ use Exception;
 class Logger {
 	static bool $exitOnError = true;
 
-	protected static function log(LoggerColor $color, string $level, string $context, string $text): void {
-		print(self::format($color, $level, $context, $text));
+	protected static function log(LoggerLevel $level, string $context, string $text): void {
+		print(self::format($level, $context, $text));
 	}
 
-	protected static function format(LoggerColor $color, string $level, string $context, string $text): string {
-		$colorCode = match ($color) {
-			LoggerColor::Green => "",
-			LoggerColor::Yellow => "\e[33m",
-			LoggerColor::Red => "\e[91m",
+	protected static function format(LoggerLevel $level, string $context, string $text): string {
+		$colorCode = match ($level) {
+			LoggerLevel::Info => "",
+			LoggerLevel::Warning => "\e[33m",
+			LoggerLevel::Error => "\e[91m",
 		};
-		return $colorCode . $level . ": " . $context . ": " . $text . "\n\e[0m";
+		return $colorCode . $level->value . ": " . $context . ": " . $text . "\n\e[0m";
 	}
 
 	public static function info(string $context, string $text): void {
-		self::log(LoggerColor::Green, "Info", $context, $text);
+		self::log(LoggerLevel::Info, $context, $text);
 	}
 
 	public static function warning(string $context, string $text): void {
-		self::log(LoggerColor::Yellow, "Warning", $context, $text);
+		self::log(LoggerLevel::Warning, $context, $text);
 	}
 
 	public static function error(string $context, string $text): void {
 		if (self::$exitOnError) {
-			throw new Exception(self::format(LoggerColor::Red, "Error", $context, $text));
+			throw new LoggerException(LoggerLevel::Error, $context, $text);
 		} else {
-			self::log(LoggerColor::Red, "Error", $context, $text);
+			self::log(LoggerLevel::Error, $context, $text);
 		}
 	}
 
 	public static function panic(string $context, string $text): void {
-		throw new Exception(self::format(LoggerColor::Red, "Panic", $context, $text));
+		throw new LoggerException(LoggerLevel::Error, $context, $text);
 	}
 }

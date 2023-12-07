@@ -16,9 +16,9 @@ use PHPStan\PhpDocParser\Ast\PhpDoc\ParamTagValueNode;
 class ControllerMethodParameter {
 	public OpenApiType $type;
 
-	public function __construct(string $context, array $definitions, public string $name, public Param $methodParameter, public ?ParamTagValueNode $docParameter) {
-		if ($docParameter != null) {
-			$this->type = OpenApiType::resolve($context, $definitions, $docParameter);
+	public function __construct(string $context, array $definitions, public string $name, public Param $methodParameter, public ?OpenApiType $docType) {
+		if ($docType != null) {
+			$this->type = $this->docType;
 		} else {
 			$this->type = OpenApiType::resolve($context, $definitions, $methodParameter->type);
 		}

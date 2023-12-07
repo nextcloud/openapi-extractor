@@ -3,6 +3,7 @@
 namespace OpenAPIExtractor;
 
 
+use Exception;
 use PhpParser\Node\Stmt\ClassMethod;
 use PHPStan\PhpDocParser\Ast\PhpDoc\ParamTagValueNode;
 use PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocTagNode;
@@ -61,7 +62,11 @@ class ControllerMethod {
 			foreach ($docNodes as $docNode) {
 				if ($docNode instanceof PhpDocTagNode) {
 					if ($docNode->value instanceof ParamTagValueNode) {
-						$docParameters[] = $docNode->value;
+						if (array_key_exists($docNode->name, $docParameters)) {
+							$docParameters[$docNode->name][] = $docNode->value;
+						} else {
+							$docParameters[$docNode->name] = [$docNode->value];
+						}
 					}
 
 					if ($docNode->value instanceof ReturnTagValueNode) {
@@ -95,25 +100,77 @@ class ControllerMethod {
 		}
 
 		foreach ($methodParameters as $methodParameter) {
-			$param = null;
 			$methodParameterName = $methodParameter->var->name;
 
-			foreach ($docParameters as $docParameter) {
-				$docParameterName = substr($docParameter->parameterName, 1);
+			$paramTag = null;
+			$psalmParamTag = null;
+			foreach ($docParameters as $docParameterType => $typeDocParameters) {
+				foreach ($typeDocParameters as $docParameter) {
+					$docParameterName = substr($docParameter->parameterName, 1);
 
-				if ($docParameterName == $methodParameterName) {
-					$param = new ControllerMethodParameter($context, $definitions, $methodParameterName, $methodParameter, $docParameter);
-					break;
+					if ($docParameterName == $methodParameterName) {
+						if ($docParameterType == "@param") {
+							$paramTag = $docParameter;
+						} else if ($docParameterType == "@psalm-param") {
+							$psalmParamTag = $docParameter;
+						} else {
+							Logger::panic($context, "Unknown param type " . $docParameterType);
+						}
+					}
 				}
 			}
 
-			if ($param == null) {
-				if ($allowMissingDocs) {
-					$param = new ControllerMethodParameter($context, $definitions, $methodParameterName, $methodParameter, null);
+			if ($paramTag !== null && $psalmParamTag !== null) {
+				// Use all the type information from @psalm-param because it is more specific,
+				// but pull the description from @param and @psalm-param because usually only one of them has it.
+				if ($psalmParamTag->description !== "") {
+					$description = $psalmParamTag->description;
+				} else if ($paramTag->description !== "") {
+					$description = $paramTag->description;
 				} else {
-					Logger::error($context, "Missing doc parameter for '" . $methodParameterName . "'");
-					continue;
+					$description = "";
 				}
+
+				try {
+					$type = OpenApiType::resolve(
+						$context,
+						$definitions,
+						new ParamTagValueNode(
+							$psalmParamTag->type,
+							$psalmParamTag->isVariadic,
+							$psalmParamTag->parameterName,
+							$description,
+							$psalmParamTag->isReference,
+						),
+					);
+				} catch (LoggerException $e) {
+					Logger::warning($context, "Unable to parse parameter " . $methodParameterName . ": " . $e->message . "\n" . $e->getTraceAsString());
+					// Fallback to the @param annotation
+					$type = OpenApiType::resolve(
+						$context,
+						$definitions,
+						new ParamTagValueNode(
+							$paramTag->type,
+							$paramTag->isVariadic,
+							$paramTag->parameterName,
+							$description,
+							$paramTag->isReference,
+						),
+					);
+				}
+
+				$param = new ControllerMethodParameter($context, $definitions, $methodParameterName, $methodParameter, $type);
+			} else if ($psalmParamTag !== null) {
+				$type = OpenApiType::resolve($context, $definitions, $psalmParamTag);
+				$param = new ControllerMethodParameter($context, $definitions, $methodParameterName, $methodParameter, $type);
+			} else if ($paramTag !== null) {
+				$type = OpenApiType::resolve($context, $definitions, $paramTag);
+				$param = new ControllerMethodParameter($context, $definitions, $methodParameterName, $methodParameter, $type);
+			} else if ($allowMissingDocs) {
+				$param = new ControllerMethodParameter($context, $definitions, $methodParameterName, $methodParameter, null);
+			} else {
+				Logger::error($context, "Missing doc parameter for '" . $methodParameterName . "'");
+				continue;
 			}
 
 			if (!$allowMissingDocs && $param->type->description == "") {
