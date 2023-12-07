@@ -45,20 +45,34 @@
                 }
             },
             "PushDevice": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/PushDeviceBase"
+                    },
+                    {
+                        "type": "object",
+                        "required": [
+                            "publicKey",
+                            "signature"
+                        ],
+                        "properties": {
+                            "publicKey": {
+                                "type": "string"
+                            },
+                            "signature": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                ]
+            },
+            "PushDeviceBase": {
                 "type": "object",
                 "required": [
-                    "publicKey",
-                    "deviceIdentifier",
-                    "signature"
+                    "deviceIdentifier"
                 ],
                 "properties": {
-                    "publicKey": {
-                        "type": "string"
-                    },
                     "deviceIdentifier": {
-                        "type": "string"
-                    },
-                    "signature": {
                         "type": "string"
                     }
                 }

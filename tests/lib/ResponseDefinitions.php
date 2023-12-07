@@ -53,9 +53,12 @@ namespace OCA\Notifications;
  *     shouldNotify?: bool,
  * }
  *
- * @psalm-type NotificationsPushDevice = array{
- *     publicKey: string,
+ * @psalm-type NotificationsPushDeviceBase = array{
  *     deviceIdentifier: string,
+ * }
+ *
+ * @psalm-type NotificationsPushDevice = NotificationsPushDeviceBase&array{
+ *     publicKey: string,
  *     signature: string,
  * }
  */
