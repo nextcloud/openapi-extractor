@@ -12,6 +12,7 @@ class Route {
 		public string $verb,
 		public string $url,
 		public array $requirements,
+		public array $defaults,
 		public ControllerMethod $controllerMethod,
 		public bool $isOCS,
 		public bool $isCORS,

@@ -239,6 +239,7 @@ foreach ($parsedRoutes as $key => $value) {
 		$postfix = array_key_exists("postfix", $route) ? $route["postfix"] : null;
 		$verb = array_key_exists("verb", $route) ? $route["verb"] : "GET";
 		$requirements = array_key_exists("requirements", $route) ? $route["requirements"] : [];
+		$defaults = array_key_exists("defaults", $route) ? $route["defaults"] : [];
 		$root = array_key_exists("root", $route) ? $route["root"] : ($appIsCore ? "" : "/apps/" . $appID);
 		$url = $route["url"];
 		if (!str_starts_with($url, "/")) {
@@ -387,6 +388,7 @@ foreach ($parsedRoutes as $key => $value) {
 			$verb,
 			$url,
 			$requirements,
+			$defaults,
 			$classMethodInfo,
 			$isOCS,
 			$isCORS,
@@ -462,6 +464,10 @@ foreach ($routes as $route) {
 			} else if ($requirement != null) {
 				$schema["pattern"] = $requirement;
 			}
+		}
+
+		if (array_key_exists($urlParameter, $route->defaults)) {
+			$schema["default"] = $route->defaults[$urlParameter];
 		}
 
 		$pathParameters[] = array_merge(
