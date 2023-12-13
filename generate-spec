@@ -384,7 +384,6 @@ foreach ($parsedRoutes as $key => $value) {
 		$routes[] = new Route(
 			$routeName,
 			$tagName,
-			$controllerName,
 			$methodName,
 			$postfix,
 			$verb,
