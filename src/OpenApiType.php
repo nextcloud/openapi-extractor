@@ -212,6 +212,9 @@ class OpenApiType {
 					$nullable = true;
 					continue;
 				}
+				if (($type instanceof IdentifierTypeNode || $type instanceof Identifier) && $type->name == "mixed") {
+					Logger::error($context, "Unions and intersections should not contain 'mixed'");
+				}
 				$items[] = self::resolve($context, $definitions, $type);
 			}
 
