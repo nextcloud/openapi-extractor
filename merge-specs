@@ -23,17 +23,17 @@ $command
 	->parse($_SERVER["argv"]);
 
 /**
- * @var $mergedSpecPath string
+ * @var string $mergedSpecPath
  */
 $mergedSpecPath = $command->values()["<merged>"];
 /**
- * @var $coreSpecPath string
+ * @var string $coreSpecPath
  */
 $coreSpecPath = $command->values()["<core>"];
 $openapiVersion = $command->openapiVersion ?? '3.0.3';
 $firstStatusCode = $command->firstStatusCode ?? false;
 /**
- * @var $otherSpecPaths string[]
+ * @var string[] $otherSpecPaths
  */
 $otherSpecPaths = $command->specs;
 
