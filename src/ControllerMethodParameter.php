@@ -2,7 +2,6 @@
 
 namespace OpenAPIExtractor;
 
-
 use PhpParser\Node\Expr;
 use PhpParser\Node\Expr\Array_;
 use PhpParser\Node\Expr\ArrayItem;
@@ -11,7 +10,6 @@ use PhpParser\Node\Expr\UnaryMinus;
 use PhpParser\Node\Param;
 use PhpParser\Node\Scalar\LNumber;
 use PhpParser\Node\Scalar\String_;
-use PHPStan\PhpDocParser\Ast\PhpDoc\ParamTagValueNode;
 
 class ControllerMethodParameter {
 	public OpenApiType $type;
@@ -48,8 +46,8 @@ class ControllerMethodParameter {
 			return -self::exprToValue($context, $expr->expr);
 		}
 		if ($expr instanceof Array_) {
-			$values = array_map(fn(ArrayItem $item) => self::exprToValue($context, $item), $expr->items);
-			$filteredValues = array_filter($values, fn(mixed $value) => $value !== null);
+			$values = array_map(fn (ArrayItem $item) => self::exprToValue($context, $item), $expr->items);
+			$filteredValues = array_filter($values, fn (mixed $value) => $value !== null);
 			if (count($filteredValues) != count($values)) {
 				return null;
 			}

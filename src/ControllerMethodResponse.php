@@ -2,7 +2,6 @@
 
 namespace OpenAPIExtractor;
 
-
 class ControllerMethodResponse {
 	/**
 	 * @param array<string, OpenApiType>|null $headers

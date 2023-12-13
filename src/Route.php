@@ -20,7 +20,7 @@ class Route {
 	) {
 	}
 
-	static function parseRoutes(string $path): array {
+	public static function parseRoutes(string $path): array {
 		$content = file_get_contents($path);
 		if (str_contains($content, "return ")) {
 			if (str_contains($content, "\$this")) {

@@ -53,10 +53,10 @@ class OpenApiType {
 
 	public function toArray(string $openapiVersion, bool $isParameter = false): array|stdClass {
 		$asContentString = $isParameter && (
-				$this->type == "object" ||
-				$this->ref !== null ||
-				$this->anyOf !== null ||
-				$this->allOf !== null);
+			$this->type == "object" ||
+			$this->ref !== null ||
+			$this->anyOf !== null ||
+			$this->allOf !== null);
 		if ($asContentString) {
 			return array_merge([
 				"type" => "string",
@@ -84,19 +84,19 @@ class OpenApiType {
 			$this->required != null ? ["required" => $this->required] : [],
 			$this->properties != null ? ["properties" =>
 				array_combine(array_keys($this->properties),
-					array_map(fn(OpenApiType $property) => $property->toArray($openapiVersion), array_values($this->properties)),
+					array_map(fn (OpenApiType $property) => $property->toArray($openapiVersion), array_values($this->properties)),
 				)] : [],
 			$this->additionalProperties != null ? [
 				"additionalProperties" => $this->additionalProperties instanceof OpenApiType ? $this->additionalProperties->toArray($openapiVersion) : $this->additionalProperties,
 			] : [],
-			$this->oneOf != null ? ["oneOf" => array_map(fn(OpenApiType $type) => $type->toArray($openapiVersion), $this->oneOf)] : [],
-			$this->anyOf != null ? ["anyOf" => array_map(fn(OpenApiType $type) => $type->toArray($openapiVersion), $this->anyOf)] : [],
-			$this->allOf != null ? ["allOf" => array_map(fn(OpenApiType $type) => $type->toArray($openapiVersion), $this->allOf)] : [],
+			$this->oneOf != null ? ["oneOf" => array_map(fn (OpenApiType $type) => $type->toArray($openapiVersion), $this->oneOf)] : [],
+			$this->anyOf != null ? ["anyOf" => array_map(fn (OpenApiType $type) => $type->toArray($openapiVersion), $this->anyOf)] : [],
+			$this->allOf != null ? ["allOf" => array_map(fn (OpenApiType $type) => $type->toArray($openapiVersion), $this->allOf)] : [],
 		);
 		return count($values) > 0 ? $values : new stdClass();
 	}
 
-	static function resolve(string $context, array $definitions, ParamTagValueNode|NodeAbstract|TypeNode $node): OpenApiType {
+	public static function resolve(string $context, array $definitions, ParamTagValueNode|NodeAbstract|TypeNode $node): OpenApiType {
 		if ($node instanceof ParamTagValueNode) {
 			$type = self::resolve($context, $definitions, $node->type);
 			$type->description = $node->description;
@@ -167,28 +167,28 @@ class OpenApiType {
 
 		$isUnion = $node instanceof UnionTypeNode || $node instanceof UnionType;
 		$isIntersection = $node instanceof IntersectionTypeNode || $node instanceof IntersectionType;
-		if ($isUnion && count($node->types) == count(array_filter($node->types, fn($type) => $type instanceof ConstTypeNode && $type->constExpr instanceof ConstExprStringNode))) {
+		if ($isUnion && count($node->types) == count(array_filter($node->types, fn ($type) => $type instanceof ConstTypeNode && $type->constExpr instanceof ConstExprStringNode))) {
 			$values = [];
 			/** @var ConstTypeNode $type */
 			foreach ($node->types as $type) {
 				$values[] = $type->constExpr->value;
 			}
 
-			if (count(array_filter($values, fn(string $value) => $value == '')) > 0) {
+			if (count(array_filter($values, fn (string $value) => $value == '')) > 0) {
 				// Not a valid enum
 				return new OpenApiType(type: "string");
 			}
 
 			return new OpenApiType(type: "string", enum: $values);
 		}
-		if ($isUnion && count($node->types) == count(array_filter($node->types, fn($type) => $type instanceof ConstTypeNode && $type->constExpr instanceof ConstExprIntegerNode))) {
+		if ($isUnion && count($node->types) == count(array_filter($node->types, fn ($type) => $type instanceof ConstTypeNode && $type->constExpr instanceof ConstExprIntegerNode))) {
 			$values = [];
 			/** @var ConstTypeNode $type */
 			foreach ($node->types as $type) {
 				$values[] = (int) $type->constExpr->value;
 			}
 
-			if (count(array_filter($values, fn(string $value) => $value == '')) > 0) {
+			if (count(array_filter($values, fn (string $value) => $value == '')) > 0) {
 				// Not a valid enum
 				return new OpenApiType(
 					type: "integer",
@@ -276,7 +276,7 @@ class OpenApiType {
 			}
 		}
 
-		return array_merge($nonEnums, array_map(fn(string $type) => new OpenApiType(type: $type, enum: $enums[$type]), array_keys($enums)));
+		return array_merge($nonEnums, array_map(fn (string $type) => new OpenApiType(type: $type, enum: $enums[$type]), array_keys($enums)));
 	}
 
 	private static function resolveIdentifier(string $context, array $definitions, string $name): OpenApiType {

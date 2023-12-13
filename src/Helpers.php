@@ -4,16 +4,16 @@ namespace OpenAPIExtractor;
 
 use Exception;
 use PhpParser\Node;
-use PhpParser\Node\Stmt\ClassMethod;
 use PhpParser\Node\Stmt\Class_;
+use PhpParser\Node\Stmt\ClassMethod;
 use stdClass;
 
 class Helpers {
-	static function generateReadableAppID(string $appID): string {
-		return implode("", array_map(fn(string $s) => ucfirst($s), explode("_", $appID)));
+	public static function generateReadableAppID(string $appID): string {
+		return implode("", array_map(fn (string $s) => ucfirst($s), explode("_", $appID)));
 	}
 
-	static function securitySchemes(): array {
+	public static function securitySchemes(): array {
 		return [
 			"basic_auth" => [
 				"type" => "http",
@@ -26,7 +26,7 @@ class Helpers {
 		];
 	}
 
-	static function license(string $openapiVersion, string $license): array {
+	public static function license(string $openapiVersion, string $license): array {
 		$identifier = match ($license) {
 			"agpl" => "AGPL-3.0-only",
 			default => Logger::panic("license", "Unable to convert " . $license . " to SPDX identifier"),
@@ -38,27 +38,27 @@ class Helpers {
 		);
 	}
 
-	static function jsonFlags(): int {
+	public static function jsonFlags(): int {
 		return JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES;
 	}
 
-	static function cleanDocComment(string $comment): string {
+	public static function cleanDocComment(string $comment): string {
 		return trim(preg_replace("/\s+/", " ", $comment));
 	}
 
-	static function splitOnUppercaseFollowedByNonUppercase(string $str): array {
+	public static function splitOnUppercaseFollowedByNonUppercase(string $str): array {
 		return preg_split('/(?=[A-Z][^A-Z])/', $str, -1, PREG_SPLIT_NO_EMPTY);
 	}
 
-	static function mapVerb(string $verb): string {
+	public static function mapVerb(string $verb): string {
 		return match ($verb) {
 			"index" => "list",
 			default => $verb,
 		};
 	}
 
-	static function mergeSchemas(array $schemas) {
-		if (!in_array(true, array_map(fn($schema) => is_array($schema), $schemas))) {
+	public static function mergeSchemas(array $schemas) {
+		if (!in_array(true, array_map(fn ($schema) => is_array($schema), $schemas))) {
 			$results = array_values(array_unique($schemas));
 			if (count($results) > 1) {
 				throw new Exception("Incompatibles types: " . join(", ", $results));
@@ -89,13 +89,13 @@ class Helpers {
 					return $schema[$key];
 				}
 				return null;
-			}, $schemas), fn($schema) => $schema != null));
+			}, $schemas), fn ($schema) => $schema != null));
 		}
 
 		return $result;
 	}
 
-	static function wrapOCSResponse(Route $route, ControllerMethodResponse $response, array|stdClass $schema): array|stdClass {
+	public static function wrapOCSResponse(Route $route, ControllerMethodResponse $response, array|stdClass $schema): array|stdClass {
 		if ($route->isOCS && $response->className == "DataResponse") {
 			return [
 				"type" => "object",
@@ -123,7 +123,7 @@ class Helpers {
 		return $schema;
 	}
 
-	static function cleanEmptyResponseArray(array|stdClass $schema): array|stdClass {
+	public static function cleanEmptyResponseArray(array|stdClass $schema): array|stdClass {
 		if (key_exists("type", $schema) && $schema["type"] == "array" && key_exists("maxLength", $schema) && $schema["maxLength"] === 0) {
 			return new stdClass();
 		}
@@ -131,7 +131,7 @@ class Helpers {
 		return $schema;
 	}
 
-	static function classMethodHasAnnotationOrAttribute(ClassMethod|Class_|Node $node, string $annotation): bool {
+	public static function classMethodHasAnnotationOrAttribute(ClassMethod|Class_|Node $node, string $annotation): bool {
 		$doc = $node->getDocComment()?->getText();
 		if ($doc !== null && str_contains($doc, "@" . $annotation)) {
 			return true;

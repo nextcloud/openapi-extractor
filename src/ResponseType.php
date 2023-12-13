@@ -21,7 +21,7 @@ class ResponseType {
 	}
 
 	/** @return ResponseType[] */
-	static function getAll(): array {
+	public static function getAll(): array {
 		$stringType = new OpenApiType(type: "string");
 		$binaryType = new OpenApiType(type: "string", format: "binary");
 		return [
@@ -162,7 +162,7 @@ class ResponseType {
 	 * @return ControllerMethodResponse[]
 	 * @throws Exception
 	 */
-	static function resolve(string $context, TypeNode $obj): array {
+	public static function resolve(string $context, TypeNode $obj): array {
 		global $definitions;
 		$responseTypes = self::getAll();
 
@@ -177,7 +177,7 @@ class ResponseType {
 		if ($obj instanceof IdentifierTypeNode) {
 			$className = $obj->name;
 			$args = [];
-		} else if ($obj instanceof GenericTypeNode) {
+		} elseif ($obj instanceof GenericTypeNode) {
 			$className = $obj->type->name;
 			$args = $obj->genericTypes;
 		} else {
@@ -189,14 +189,14 @@ class ResponseType {
 		if ($className == "void") {
 			$responses[] = null;
 		} else {
-			if (count(array_filter($responseTypes, fn($responseType) => $responseType->className == $className)) == 0) {
+			if (count(array_filter($responseTypes, fn ($responseType) => $responseType->className == $className)) == 0) {
 				Logger::error($context, "Invalid return type '" . $obj . "'");
 				return [];
 			}
 			foreach ($responseTypes as $responseType) {
 				if ($responseType->className == $className) {
 					// +2 for status code and headers which are always present
-					$expectedArgs = count(array_filter([$responseType->hasContentTypeTemplate, $responseType->hasTypeTemplate], fn($value) => $value)) + 2;
+					$expectedArgs = count(array_filter([$responseType->hasContentTypeTemplate, $responseType->hasTypeTemplate], fn ($value) => $value)) + 2;
 					if (count($args) != $expectedArgs) {
 						Logger::error($context, "'" . $className . "' needs " . $expectedArgs . " parameters");
 						continue;
@@ -208,10 +208,10 @@ class ResponseType {
 					if ($responseType->hasContentTypeTemplate) {
 						if ($args[$i] instanceof ConstTypeNode) {
 							$contentTypes = [$args[$i]->constExpr->value];
-						} else if ($args[$i] instanceof IdentifierTypeNode && $args[$i]->name == "string") {
+						} elseif ($args[$i] instanceof IdentifierTypeNode && $args[$i]->name == "string") {
 							$contentTypes = ["*/*"];
-						} else if ($args[$i] instanceof UnionTypeNode) {
-							$contentTypes = array_map(fn($arg) => $arg->constExpr->value, $args[$i]->types);
+						} elseif ($args[$i] instanceof UnionTypeNode) {
+							$contentTypes = array_map(fn ($arg) => $arg->constExpr->value, $args[$i]->types);
 						} else {
 							Logger::panic($context, "Unable to parse content type from " . get_class($args[$i]));
 						}
