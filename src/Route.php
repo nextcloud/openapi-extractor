@@ -6,7 +6,6 @@ class Route {
 	public function __construct(
 		public string $name,
 		public string $tag,
-		public string $controllerName,
 		public string $methodName,
 		public ?string $postfix,
 		public string $verb,
