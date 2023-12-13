@@ -12,4 +12,8 @@ class LoggerException extends Exception {
 	) {
 		parent::__construct($message);
 	}
+
+	public function __toString(): string {
+		return $this->level->value . ": " . $this->context . ": " . $this->message;
+	}
 }
