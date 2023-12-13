@@ -303,7 +303,7 @@ class OpenApiType {
 			default => (function () use ($context, $definitions, $name) {
 				if (array_key_exists($name, $definitions)) {
 					return new OpenApiType(
-						ref: "#/components/schemas/" . cleanSchemaName($name),
+						ref: "#/components/schemas/" . Helpers::cleanSchemaName($name),
 					);
 				}
 				Logger::panic($context, "Unable to resolve OpenAPI type for identifier '" . $name . "'");
