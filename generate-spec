@@ -40,6 +40,7 @@ $command
 	->option('--no-tags', 'Use no tags')
 	->option('--continue-on-error', 'Continue on error')
 	->option('--openapi-version', 'OpenAPI version to use', null, '3.0.3')
+	->option('--verbose', 'Verbose logging')
 	->parse($_SERVER["argv"]);
 
 $dir = $command->dir ?? "";
@@ -49,6 +50,7 @@ $firstContentType = $command->firstContentType ?? false;
 $allowMissingDocs = $command->allowMissingDocs ?? false;
 $useTags = $command->tags ?? true;
 Logger::$exitOnError = !($command->continueOnError ?? false);
+Logger::$verbose = $command->verbose ?? false;
 $openapiVersion = $command->openapiVersion ?? '3.0.3';
 
 if ($dir == "") {
@@ -146,7 +148,7 @@ if (file_exists($definitionsPath)) {
 		$schemas[cleanSchemaName($name)] = OpenApiType::resolve("Response definitions", $definitions, $definitions[$name])->toArray($openapiVersion);
 	}
 } else {
-	Logger::warning("Response definitions", "No response definitions were loaded");
+	Logger::debug("Response definitions", "No response definitions were loaded");
 }
 
 $capabilities = null;
@@ -220,7 +222,7 @@ if ($publicCapabilities != null) {
 	$schemas["PublicCapabilities"] = $publicCapabilities;
 }
 if ($capabilities == null && $publicCapabilities == null) {
-	Logger::warning("Capabilities", "No capabilities were loaded");
+	Logger::debug("Capabilities", "No capabilities were loaded");
 }
 
 $parsedRoutes = file_exists($appinfoDir . "/routes.php") ? Route::parseRoutes($appinfoDir . "/routes.php") : [];
@@ -274,7 +276,7 @@ foreach ($parsedRoutes as $key => $value) {
 			continue;
 		}
 		if (Helpers::classMethodHasAnnotationOrAttribute($controllerClass, "IgnoreOpenAPI")) {
-			Logger::info($routeName, "Controller '" . $controllerName . "' ignored because of IgnoreOpenAPI attribute");
+			Logger::debug($routeName, "Controller '" . $controllerName . "' ignored because of IgnoreOpenAPI attribute");
 			continue;
 		}
 
@@ -317,7 +319,7 @@ foreach ($parsedRoutes as $key => $value) {
 		$isCSRFRequired = !Helpers::classMethodHasAnnotationOrAttribute($classMethod, "NoCSRFRequired");
 		$isOCS = $controllerClass->extends != "Controller" && $controllerClass->extends != "ApiController";
 		if ($isCSRFRequired && !$isOCS) {
-			Logger::info($routeName, "Route ignored because of required CSRF in a non-OCS controller");
+			Logger::debug($routeName, "Route ignored because of required CSRF in a non-OCS controller");
 			continue;
 		}
 
@@ -328,7 +330,7 @@ foreach ($parsedRoutes as $key => $value) {
 		$isIgnored = Helpers::classMethodHasAnnotationOrAttribute($classMethod, "IgnoreOpenAPI");
 
 		if ($isIgnored) {
-			Logger::info($routeName, "Route ignored because of IgnoreOpenAPI attribute");
+			Logger::debug($routeName, "Route ignored because of IgnoreOpenAPI attribute");
 			continue;
 		}
 
@@ -396,7 +398,7 @@ foreach ($parsedRoutes as $key => $value) {
 			$isPublic,
 		);
 
-		Logger::info($routeName, "Route generated");
+		Logger::debug($routeName, "Route generated");
 	}
 }
 
