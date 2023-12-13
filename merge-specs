@@ -97,7 +97,7 @@ function loadSpec(string $path): array {
 
 function rewriteRefs(array $spec): array {
 	$readableAppID = Helpers::generateReadableAppID($spec["info"]["title"]);
-	array_walk_recursive($spec, function (&$item, $key) use ($readableAppID) {
+	array_walk_recursive($spec, function (string &$item, string $key) use ($readableAppID) {
 		if ($key == "\$ref" && $item != "#/components/schemas/OCSMeta") {
 			$item = str_replace("#/components/schemas/", "#/components/schemas/" . $readableAppID, $item);
 		}
@@ -151,8 +151,9 @@ function rewriteOperations(array $spec): array {
 				$operation["tags"] = [$spec["info"]["title"]];
 			}
 			if ($firstStatusCode && array_key_exists("responses", $operation)) {
-				$firstStatusCode = array_key_first($operation["responses"]);
-				$operation["responses"] = [$firstStatusCode => $operation["responses"][$firstStatusCode]];
+				/** @var string $value */
+				$value = array_key_first($operation["responses"]);
+				$operation["responses"] = [$value => $operation["responses"][$value]];
 			}
 			if (array_key_exists("security", $operation)) {
 				for ($i = 0; $i < count($operation["security"]); $i++) {

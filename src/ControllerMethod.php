@@ -13,7 +13,7 @@ use PHPStan\PhpDocParser\Parser\TokenIterator;
 class ControllerMethod {
 	/**
 	 * @param ControllerMethodParameter[] $parameters
-	 * @param ControllerMethodResponse[] $responses
+	 * @param list<ControllerMethodResponse|null> $responses
 	 * @param OpenApiType[] $returns
 	 * @param array<int, string> $responseDescription
 	 * @param string[] $description

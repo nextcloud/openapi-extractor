@@ -36,7 +36,7 @@ class Route {
 		}
 	}
 
-	private static function includeRoutes(string $code) {
+	private static function includeRoutes(string $code): array {
 		$tmpPath = tempnam(sys_get_temp_dir(), "routes-");
 		file_put_contents($tmpPath, $code);
 		$routes = include($tmpPath);

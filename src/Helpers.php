@@ -57,7 +57,7 @@ class Helpers {
 		};
 	}
 
-	public static function mergeSchemas(array $schemas) {
+	public static function mergeSchemas(array $schemas): mixed {
 		if (!in_array(true, array_map(fn ($schema) => is_array($schema), $schemas))) {
 			$results = array_values(array_unique($schemas));
 			if (count($results) > 1) {
@@ -123,7 +123,7 @@ class Helpers {
 		return $schema;
 	}
 
-	public static function cleanEmptyResponseArray(array|stdClass $schema): array|stdClass {
+	public static function cleanEmptyResponseArray(array $schema): array|stdClass {
 		if (key_exists("type", $schema) && $schema["type"] == "array" && key_exists("maxLength", $schema) && $schema["maxLength"] === 0) {
 			return new stdClass();
 		}
