@@ -144,7 +144,7 @@ class ControllerMethod {
 						),
 					);
 				} catch (LoggerException $e) {
-					Logger::warning($context, "Unable to parse parameter " . $methodParameterName . ": " . $e->message . "\n" . $e->getTraceAsString());
+					Logger::debug($context, "Unable to parse parameter " . $methodParameterName . ": " . $e->message . "\n" . $e->getTraceAsString());
 					// Fallback to the @param annotation
 					$type = OpenApiType::resolve(
 						$context,
