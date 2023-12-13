@@ -2,8 +2,6 @@
 
 namespace OpenAPIExtractor;
 
-use Exception;
-
 class Logger {
 	static bool $exitOnError = true;
 
