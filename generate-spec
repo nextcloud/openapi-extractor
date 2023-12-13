@@ -165,7 +165,7 @@ foreach ($iterator as $file) {
 sort($capabilitiesFiles);
 foreach ($capabilitiesFiles as $path) {
 	/**
-	 * @var $node Class_
+	 * @var Class_ $node
 	 */
 	foreach ($nodeFinder->findInstanceOf(loadAST($path), Class_::class) as $node) {
 		$implementsCapability = count(array_filter($node->implements, fn(Name $name) => $name->getLast() == "ICapability")) > 0;
@@ -362,7 +362,7 @@ foreach ($parsedRoutes as $key => $value) {
 		}
 
 		$codeStatusCodes = [];
-		/* @var $throwStatement Throw_ */
+		/* @var Throw_ $throwStatement */
 		foreach ($nodeFinder->findInstanceOf($methodFunction->stmts, Throw_::class) as $throwStatement) {
 			if ($throwStatement->expr instanceof New_ && $throwStatement->expr->class instanceof Name) {
 				$type = $throwStatement->expr->class->getLast();
