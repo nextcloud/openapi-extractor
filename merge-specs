@@ -89,7 +89,7 @@ $data
 ["properties"]
 ["capabilities"]
 ["anyOf"]
-	= array_map(fn(string $capability) => ["\$ref" => "#/components/schemas/" . $capability], $capabilities);
+	= array_map(fn (string $capability) => ["\$ref" => "#/components/schemas/" . $capability], $capabilities);
 
 function loadSpec(string $path): array {
 	return rewriteRefs(json_decode(file_get_contents($path), true));
@@ -121,7 +121,7 @@ function rewriteSchemaNames(array $spec): array {
 	$schemas = $spec["components"]["schemas"];
 	$readableAppID = Helpers::generateReadableAppID($spec["info"]["title"]);
 	return array_combine(
-		array_map(fn(string $key) => $key == "OCSMeta" ? $key : $readableAppID . $key, array_keys($schemas)),
+		array_map(fn (string $key) => $key == "OCSMeta" ? $key : $readableAppID . $key, array_keys($schemas)),
 		array_values($schemas),
 	);
 }
@@ -146,7 +146,7 @@ function rewriteOperations(array $spec): array {
 				$operation["operationId"] = $spec["info"]["title"] . "-" . $operation["operationId"];
 			}
 			if (array_key_exists("tags", $operation)) {
-				$operation["tags"] = array_map(fn(string $tag) => $spec["info"]["title"] . "/" . $tag, $operation["tags"]);
+				$operation["tags"] = array_map(fn (string $tag) => $spec["info"]["title"] . "/" . $tag, $operation["tags"]);
 			} else {
 				$operation["tags"] = [$spec["info"]["title"]];
 			}
