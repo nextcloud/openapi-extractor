@@ -71,7 +71,10 @@ $phpDocParser = new PhpDocParser($typeParser, $constExprParser);
 $infoXMLPath = $dir . "/appinfo/info.xml";
 
 if (file_exists($infoXMLPath)) {
-	$xml = simplexml_load_file($infoXMLPath);
+	$xml = simplexml_load_string(file_get_contents($infoXMLPath));
+	if ($xml === false) {
+		Logger::panic("appinfo", "info.xml file at " . $infoXMLPath . " is not parsable");
+	}
 
 	$appIsCore = false;
 	$appID = (string)$xml->id;
