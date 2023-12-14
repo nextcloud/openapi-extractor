@@ -11,5 +11,6 @@ $config
 	->getFinder()
 	->ignoreVCSIgnored(true)
 	->notPath('vendor')
-	->in(__DIR__);
+	->in(__DIR__)
+	->append(['generate-spec', 'merge-specs']);
 return $config;
