@@ -259,8 +259,9 @@ class OpenApiType {
 
 	/**
 	 * @param OpenApiType[] $types
+	 * @return OpenApiType[]
 	 */
-	private static function mergeEnums(array $types) {
+	private static function mergeEnums(array $types): array {
 		$enums = [];
 		$nonEnums = [];
 

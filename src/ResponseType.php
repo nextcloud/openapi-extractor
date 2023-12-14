@@ -159,7 +159,7 @@ class ResponseType {
 	/**
 	 * @param string $context
 	 * @param TypeNode $obj
-	 * @return ControllerMethodResponse[]
+	 * @return list<ControllerMethodResponse|null>
 	 * @throws Exception
 	 */
 	public static function resolve(string $context, TypeNode $obj): array {
