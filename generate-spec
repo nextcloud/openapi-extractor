@@ -614,14 +614,13 @@ foreach ($routes as $route) {
 	if (!array_key_exists($route->url, $openapi["paths"])) {
 		$openapi["paths"][$route->url] = [];
 	}
-	$path = &$openapi["paths"][$route->url];
 
 	$verb = strtolower($route->verb);
-	if (!array_key_exists($verb, $path)) {
-		$path[$verb] = $operation;
-	} else {
+	if (array_key_exists($verb, $openapi["paths"][$route->url])) {
 		Logger::error($route->name, "Operation '" . $route->verb . "' already set for path '" . $route->url . "'");
 	}
+
+	$openapi["paths"][$route->url][$verb] = $operation;
 }
 
 if ($appIsCore) {
