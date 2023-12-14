@@ -2,8 +2,6 @@
 
 namespace OpenAPIExtractor;
 
-
-use Exception;
 use PhpParser\Node\Stmt\ClassMethod;
 use PHPStan\PhpDocParser\Ast\PhpDoc\ParamTagValueNode;
 use PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocTagNode;
@@ -23,7 +21,7 @@ class ControllerMethod {
 	public function __construct(public array $parameters, public array $responses, public array $returns, public array $responseDescription, public array $description, public ?string $summary, public bool $isDeprecated) {
 	}
 
-	static function parse(string $context, array $definitions, ClassMethod $method, bool $isAdmin, bool $isDeprecated): ControllerMethod {
+	public static function parse(string $context, array $definitions, ClassMethod $method, bool $isAdmin, bool $isDeprecated): ControllerMethod {
 		global $phpDocParser, $lexer, $allowMissingDocs;
 
 		$parameters = [];
@@ -92,7 +90,7 @@ class ControllerMethod {
 		}
 
 		if (!$allowMissingDocs) {
-			foreach (array_unique(array_map(fn(ControllerMethodResponse $response) => $response->statusCode, array_filter($responses, fn(?ControllerMethodResponse $response) => $response != null))) as $statusCode) {
+			foreach (array_unique(array_map(fn (ControllerMethodResponse $response) => $response->statusCode, array_filter($responses, fn (?ControllerMethodResponse $response) => $response != null))) as $statusCode) {
 				if ($statusCode < 500 && (!array_key_exists($statusCode, $responseDescriptions) || $responseDescriptions[$statusCode] == "")) {
 					Logger::error($context, "Missing description for status code " . $statusCode);
 				}
@@ -111,7 +109,7 @@ class ControllerMethod {
 					if ($docParameterName == $methodParameterName) {
 						if ($docParameterType == "@param") {
 							$paramTag = $docParameter;
-						} else if ($docParameterType == "@psalm-param") {
+						} elseif ($docParameterType == "@psalm-param") {
 							$psalmParamTag = $docParameter;
 						} else {
 							Logger::panic($context, "Unknown param type " . $docParameterType);
@@ -125,7 +123,7 @@ class ControllerMethod {
 				// but pull the description from @param and @psalm-param because usually only one of them has it.
 				if ($psalmParamTag->description !== "") {
 					$description = $psalmParamTag->description;
-				} else if ($paramTag->description !== "") {
+				} elseif ($paramTag->description !== "") {
 					$description = $paramTag->description;
 				} else {
 					$description = "";
@@ -160,13 +158,13 @@ class ControllerMethod {
 				}
 
 				$param = new ControllerMethodParameter($context, $definitions, $methodParameterName, $methodParameter, $type);
-			} else if ($psalmParamTag !== null) {
+			} elseif ($psalmParamTag !== null) {
 				$type = OpenApiType::resolve($context, $definitions, $psalmParamTag);
 				$param = new ControllerMethodParameter($context, $definitions, $methodParameterName, $methodParameter, $type);
-			} else if ($paramTag !== null) {
+			} elseif ($paramTag !== null) {
 				$type = OpenApiType::resolve($context, $definitions, $paramTag);
 				$param = new ControllerMethodParameter($context, $definitions, $methodParameterName, $methodParameter, $type);
-			} else if ($allowMissingDocs) {
+			} elseif ($allowMissingDocs) {
 				$param = new ControllerMethodParameter($context, $definitions, $methodParameterName, $methodParameter, null);
 			} else {
 				Logger::error($context, "Missing doc parameter for '" . $methodParameterName . "'");
@@ -192,7 +190,7 @@ class ControllerMethod {
 		if (count($methodDescription) == 1) {
 			$methodSummary = $methodDescription[0];
 			$methodDescription = [];
-		} else if (count($methodDescription) > 1) {
+		} elseif (count($methodDescription) > 1) {
 			$methodSummary = $methodDescription[0];
 			$methodDescription = array_slice($methodDescription, 1);
 		}

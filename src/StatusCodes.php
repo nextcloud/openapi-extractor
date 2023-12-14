@@ -2,7 +2,6 @@
 
 namespace OpenAPIExtractor;
 
-
 use Exception;
 use PhpParser\Node\Arg;
 use PHPStan\PhpDocParser\Ast\Type\ConstTypeNode;
@@ -16,7 +15,7 @@ class StatusCodes {
 	 * @return int[]
 	 * @throws Exception
 	 */
-	static function resolveType(string $context, ConstTypeNode|UnionTypeNode|Arg $type): array {
+	public static function resolveType(string $context, ConstTypeNode|UnionTypeNode|Arg $type): array {
 		$statusCodes = [];
 		if ($type instanceof TypeNode) {
 			$nodes = [];
@@ -100,7 +99,7 @@ class StatusCodes {
 		};
 	}
 
-	static function resolveException(string $context, string $name): ?int {
+	public static function resolveException(string $context, string $name): ?int {
 		if (!str_starts_with($name, "OCS")) {
 			return 500;
 		}

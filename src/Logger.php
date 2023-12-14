@@ -3,8 +3,8 @@
 namespace OpenAPIExtractor;
 
 class Logger {
-	static bool $exitOnError = true;
-	static bool $verbose = false;
+	public static bool $exitOnError = true;
+	public static bool $verbose = false;
 
 	protected static function log(LoggerLevel $level, string $context, string $text): void {
 		print(self::format($level, $context, $text));
