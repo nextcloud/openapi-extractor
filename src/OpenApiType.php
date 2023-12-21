@@ -68,13 +68,25 @@ class OpenApiType {
 				] : [],
 			);
 		}
+
+		$type = $this->type;
+		$defaultValue = $this->defaultValue;
+		$enum = $this->enum;
+		if ($isParameter && $type == "boolean") {
+			$type = "integer";
+			$enum = [0, 1];
+			if ($this->hasDefaultValue) {
+				$defaultValue = $defaultValue === true ? 1 : 0;
+			}
+		}
+
 		$values = array_merge(
 			$this->ref != null ? ["\$ref" => $this->ref] : [],
-			$this->type != null ? ["type" => $isParameter && $this->type == "boolean" ? "integer" : $this->type] : [],
+			$type != null ? ["type" => $type] : [],
 			$this->format != null ? ["format" => $this->format] : [],
 			$this->nullable ? ["nullable" => true] : [],
-			$this->hasDefaultValue && $this->defaultValue !== null ? ["default" => $isParameter && $this->type == "boolean" ? $this->defaultValue === true ? 1 : 0 : $this->defaultValue] : [],
-			$this->enum != null ? ["enum" => $this->enum] : [],
+			$this->hasDefaultValue && $defaultValue !== null ? ["default" => $defaultValue] : [],
+			$enum != null ? ["enum" => $enum] : [],
 			$this->description != null && $this->description != "" && !$isParameter ? ["description" => $this->description] : [],
 			$this->items != null ? ["items" => $this->items->toArray($openapiVersion)] : [],
 			$this->minLength !== null ? ["minLength" => $this->minLength] : [],
@@ -185,7 +197,7 @@ class OpenApiType {
 			$values = [];
 			/** @var ConstTypeNode $type */
 			foreach ($node->types as $type) {
-				$values[] = (int) $type->constExpr->value;
+				$values[] = (int)$type->constExpr->value;
 			}
 
 			if (count(array_filter($values, fn (string $value) => $value == '')) > 0) {
@@ -250,7 +262,7 @@ class OpenApiType {
 			return new OpenApiType(
 				type: "integer",
 				format: "int64",
-				enum: [(int) $node->constExpr->value],
+				enum: [(int)$node->constExpr->value],
 			);
 		}
 
