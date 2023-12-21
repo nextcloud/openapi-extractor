@@ -199,7 +199,7 @@ class ControllerMethod {
 			Logger::warning($context, "Summary ends with a punctuation mark");
 		}
 
-		return new ControllerMethod($parameters, array_values($responses), $returns, $responseDescriptions, $methodDescription, $methodSummary, $isDeprecated);
+		return new ControllerMethod($parameters, $responses, $returns, $responseDescriptions, $methodDescription, $methodSummary, $isDeprecated);
 	}
 
 }

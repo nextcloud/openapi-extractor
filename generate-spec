@@ -508,7 +508,12 @@ foreach ($routes as $route) {
 		}
 
 		$statusCodeResponses = array_filter($route->controllerMethod->responses, fn (?ControllerMethodResponse $response) => $response != null && $response->statusCode == $statusCode);
-		$headers = array_merge(...array_map(fn (ControllerMethodResponse $response) => $response->headers ?? [], $statusCodeResponses));
+		$headers = [];
+		foreach ($statusCodeResponses as $response) {
+			if ($response->headers !== null) {
+				$headers = array_merge($headers, $response->headers);
+			}
+		}
 
 		$mergedContentTypeResponses = [];
 		foreach (array_unique(array_map(fn (ControllerMethodResponse $response) => $response->contentType, array_filter($statusCodeResponses, fn (ControllerMethodResponse $response) => $response->contentType != null))) as $contentType) {

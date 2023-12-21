@@ -108,7 +108,7 @@ function rewriteRefs(array $spec): array {
 function collectCapabilities(array $spec): array {
 	$capabilities = [];
 	$readableAppID = Helpers::generateReadableAppID($spec["info"]["title"]);
-	foreach ($spec["components"]["schemas"] as $name => $schema) {
+	foreach (array_keys($spec["components"]["schemas"]) as $name) {
 		if ($name == "Capabilities" || $name == "PublicCapabilities") {
 			$capabilities[] = $readableAppID . $name;
 		}
