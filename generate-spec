@@ -133,7 +133,7 @@ $tags = [];
 $definitions = [];
 $definitionsPath = $sourceDir . "/ResponseDefinitions.php";
 if (file_exists($definitionsPath)) {
-	foreach ($nodeFinder->findInstanceOf(loadAST($definitionsPath), Class_::class) as $node) {
+	foreach ($nodeFinder->findInstanceOf($astParser->parse(file_get_contents($definitionsPath)), Class_::class) as $node) {
 		$doc = $node->getDocComment()?->getText();
 		if ($doc != null) {
 			$docNodes = $phpDocParser->parse(new TokenIterator($lexer->tokenize($doc)))->children;
@@ -148,7 +148,7 @@ if (file_exists($definitionsPath)) {
 		}
 	}
 	foreach (array_keys($definitions) as $name) {
-		$schemas[cleanSchemaName($name)] = OpenApiType::resolve("Response definitions", $definitions, $definitions[$name])->toArray($openapiVersion);
+		$schemas[Helpers::cleanSchemaName($name)] = OpenApiType::resolve("Response definitions", $definitions, $definitions[$name])->toArray($openapiVersion);
 	}
 } else {
 	Logger::debug("Response definitions", "No response definitions were loaded");
@@ -170,7 +170,7 @@ foreach ($capabilitiesFiles as $path) {
 	/**
 	 * @var Class_ $node
 	 */
-	foreach ($nodeFinder->findInstanceOf(loadAST($path), Class_::class) as $node) {
+	foreach ($nodeFinder->findInstanceOf($astParser->parse(file_get_contents($path)), Class_::class) as $node) {
 		$implementsCapability = count(array_filter($node->implements, fn (Name $name) => $name->getLast() == "ICapability")) > 0;
 		$implementsPublicCapability = count(array_filter($node->implements, fn (Name $name) => $name->getLast() == "IPublicCapability")) > 0;
 		if (!$implementsCapability && !$implementsPublicCapability) {
@@ -268,7 +268,7 @@ foreach ($parsedRoutes as $key => $value) {
 		$controllerName = ucfirst(str_replace("_", "", ucwords(explode("#", $routeName)[0], "_")));
 		$controllerClass = null;
 		/** @var Class_ $class */
-		foreach ($nodeFinder->findInstanceOf(loadAST($sourceDir . "/Controller/" . $controllerName . "Controller.php"), Class_::class) as $class) {
+		foreach ($nodeFinder->findInstanceOf($astParser->parse(file_get_contents($sourceDir . "/Controller/" . $controllerName . "Controller.php")), Class_::class) as $class) {
 			if ($class->name == $controllerName . "Controller") {
 				$controllerClass = $class;
 				break;
@@ -701,13 +701,3 @@ if ($useTags) {
 }
 
 file_put_contents($out, json_encode($openapi, Helpers::jsonFlags()));
-
-function cleanSchemaName(string $name): string {
-	global $readableAppID;
-	return substr($name, strlen($readableAppID));
-}
-
-function loadAST(string $filename): array {
-	global $astParser;
-	return $astParser->parse(file_get_contents($filename));
-}

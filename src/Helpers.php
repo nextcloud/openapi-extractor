@@ -148,4 +148,9 @@ class Helpers {
 
 		return false;
 	}
+
+	public static function cleanSchemaName(string $name): string {
+		global $readableAppID;
+		return substr($name, strlen($readableAppID));
+	}
 }
