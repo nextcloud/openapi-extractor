@@ -1273,9 +1273,9 @@
                 }
             }
         },
-        "/ocs/v2.php/apps/notifications/api/{apiVersion}/mixed-list": {
+        "/ocs/v2.php/apps/notifications/api/{apiVersion}/mixed-list-one": {
             "post": {
-                "operationId": "settings-list-of-int-string-and-bool",
+                "operationId": "settings-list-of-int-string-and-one-bool",
                 "summary": "A route with a list of 2 integers, 2 strings and 1 boolean",
                 "description": "This endpoint requires admin access",
                 "tags": [
@@ -1298,8 +1298,107 @@
                         "schema": {
                             "oneOf": [
                                 {
-                                    "type": "boolean"
+                                    "type": "integer",
+                                    "enum": [
+                                        0,
+                                        1
+                                    ]
                                 },
+                                {
+                                    "type": "string",
+                                    "enum": [
+                                        "yes",
+                                        "no"
+                                    ]
+                                },
+                                {
+                                    "type": "boolean",
+                                    "enum": [
+                                        true
+                                    ]
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "name": "apiVersion",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "v2"
+                            ],
+                            "default": "v2"
+                        }
+                    },
+                    {
+                        "name": "OCS-APIRequest",
+                        "in": "header",
+                        "description": "Required to be true for the API request to pass",
+                        "required": true,
+                        "schema": {
+                            "type": "boolean",
+                            "default": true
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Admin settings updated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "required": [
+                                        "ocs"
+                                    ],
+                                    "properties": {
+                                        "ocs": {
+                                            "type": "object",
+                                            "required": [
+                                                "meta",
+                                                "data"
+                                            ],
+                                            "properties": {
+                                                "meta": {
+                                                    "$ref": "#/components/schemas/OCSMeta"
+                                                },
+                                                "data": {}
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/ocs/v2.php/apps/notifications/api/{apiVersion}/mixed-list-all": {
+            "post": {
+                "operationId": "settings-list-of-int-string-and-all-bools",
+                "summary": "A route with a list of 2 integers, 2 strings and 1 boolean",
+                "description": "This endpoint requires admin access",
+                "tags": [
+                    "settings"
+                ],
+                "security": [
+                    {
+                        "bearer_auth": []
+                    },
+                    {
+                        "basic_auth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "weird",
+                        "in": "query",
+                        "description": "Weird list",
+                        "required": true,
+                        "schema": {
+                            "oneOf": [
                                 {
                                     "type": "integer",
                                     "enum": [
@@ -1312,6 +1411,13 @@
                                     "enum": [
                                         "yes",
                                         "no"
+                                    ]
+                                },
+                                {
+                                    "type": "boolean",
+                                    "enum": [
+                                        true,
+                                        false
                                     ]
                                 }
                             ]
@@ -1477,7 +1583,7 @@
                     {
                         "name": "yesOrNo",
                         "in": "query",
-                        "description": "Booleandefaulting to false",
+                        "description": "Boolean defaulting to false",
                         "schema": {
                             "type": "integer",
                             "default": 0,
@@ -1562,7 +1668,7 @@
                     {
                         "name": "yesOrNo",
                         "in": "query",
-                        "description": "Booleandefaulting to true",
+                        "description": "Boolean defaulting to true",
                         "schema": {
                             "type": "integer",
                             "default": 1,
