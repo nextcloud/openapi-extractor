@@ -43,5 +43,8 @@ return [
 		['name' => 'Settings#intParameterWithMin', 'url' => '/api/{apiVersion}/min', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
 		['name' => 'Settings#intParameterWithMax', 'url' => '/api/{apiVersion}/max', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
 		['name' => 'Settings#listOfIntStringAndBool', 'url' => '/api/{apiVersion}/mixed-list', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
+		['name' => 'Settings#booleanParameterRequired', 'url' => '/api/{apiVersion}/boolean', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
+		['name' => 'Settings#booleanParameterDefaultFalse', 'url' => '/api/{apiVersion}/boolean-false', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
+		['name' => 'Settings#booleanParameterDefaultTrue', 'url' => '/api/{apiVersion}/boolean-true', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
 	],
 ];

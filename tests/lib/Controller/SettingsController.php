@@ -221,4 +221,40 @@ class SettingsController extends OCSController {
 	public function listOfIntStringAndBool($weird): DataResponse {
 		return new DataResponse();
 	}
+
+	/**
+	 * A route with required boolean
+	 *
+	 * @param bool $yesOrNo Boolean required
+	 * @return DataResponse<Http::STATUS_OK, array<empty>, array{}>
+	 *
+	 * 200: Admin settings updated
+	 */
+	public function booleanParameterRequired(bool $yesOrNo): DataResponse {
+		return new DataResponse();
+	}
+
+	/**
+	 * A route with boolean defaulting to false
+	 *
+	 * @param bool $yesOrNo Booleandefaulting to false
+	 * @return DataResponse<Http::STATUS_OK, array<empty>, array{}>
+	 *
+	 * 200: Admin settings updated
+	 */
+	public function booleanParameterDefaultFalse(bool $yesOrNo = false): DataResponse {
+		return new DataResponse();
+	}
+
+	/**
+	 * A route with boolean defaulting to true
+	 *
+	 * @param bool $yesOrNo Booleandefaulting to true
+	 * @return DataResponse<Http::STATUS_OK, array<empty>, array{}>
+	 *
+	 * 200: Admin settings updated
+	 */
+	public function booleanParameterDefaultTrue(bool $yesOrNo = true): DataResponse {
+		return new DataResponse();
+	}
 }
