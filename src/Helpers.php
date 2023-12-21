@@ -57,7 +57,7 @@ class Helpers {
 		};
 	}
 
-	public static function mergeSchemas(array $schemas) {
+	public static function mergeSchemas(array $schemas): mixed {
 		if (!in_array(true, array_map(fn ($schema) => is_array($schema), $schemas))) {
 			$results = array_values(array_unique($schemas));
 			if (count($results) > 1) {
@@ -68,28 +68,31 @@ class Helpers {
 
 		$keys = [];
 		foreach ($schemas as $schema) {
-			foreach ($schema as $key => $value) {
+			foreach (array_keys($schema) as $key) {
 				$keys[] = $key;
 			}
 		}
 		$result = [];
+		/** @var string $key */
 		foreach ($keys as $key) {
 			if ($key == "required") {
-				$result["required"] = array_unique(array_merge(...array_map(function (array $schema) {
+				$required = [];
+				foreach ($schemas as $schema) {
 					if (array_key_exists("required", $schema)) {
-						return $schema["required"];
+						$required = array_merge($required, $schema["required"]);
 					}
-					return [];
-				}, $schemas)));
+				}
+				$result["required"] = array_unique($required);
 				continue;
 			}
 
-			$result[$key] = self::mergeSchemas(array_filter(array_map(function (array $schema) use ($key) {
+			$subSchemas = [];
+			foreach ($schemas as $schema) {
 				if (array_key_exists($key, $schema)) {
-					return $schema[$key];
+					$subSchemas[] = $schema[$key];
 				}
-				return null;
-			}, $schemas), fn ($schema) => $schema != null));
+			}
+			$result[$key] = self::mergeSchemas($subSchemas);
 		}
 
 		return $result;
@@ -123,7 +126,7 @@ class Helpers {
 		return $schema;
 	}
 
-	public static function cleanEmptyResponseArray(array|stdClass $schema): array|stdClass {
+	public static function cleanEmptyResponseArray(array $schema): array|stdClass {
 		if (key_exists("type", $schema) && $schema["type"] == "array" && key_exists("maxLength", $schema) && $schema["maxLength"] === 0) {
 			return new stdClass();
 		}
@@ -147,5 +150,10 @@ class Helpers {
 		}
 
 		return false;
+	}
+
+	public static function cleanSchemaName(string $name): string {
+		global $readableAppID;
+		return substr($name, strlen($readableAppID));
 	}
 }

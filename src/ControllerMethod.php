@@ -13,7 +13,7 @@ use PHPStan\PhpDocParser\Parser\TokenIterator;
 class ControllerMethod {
 	/**
 	 * @param ControllerMethodParameter[] $parameters
-	 * @param ControllerMethodResponse[] $responses
+	 * @param list<ControllerMethodResponse|null> $responses
 	 * @param OpenApiType[] $returns
 	 * @param array<int, string> $responseDescription
 	 * @param string[] $description
@@ -199,7 +199,7 @@ class ControllerMethod {
 			Logger::warning($context, "Summary ends with a punctuation mark");
 		}
 
-		return new ControllerMethod($parameters, array_values($responses), $returns, $responseDescriptions, $methodDescription, $methodSummary, $isDeprecated);
+		return new ControllerMethod($parameters, $responses, $returns, $responseDescriptions, $methodDescription, $methodSummary, $isDeprecated);
 	}
 
 }

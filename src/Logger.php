@@ -34,6 +34,9 @@ class Logger {
 		self::log(LoggerLevel::Warning, $context, $text);
 	}
 
+	/**
+	 * @throws LoggerException
+	 */
 	public static function error(string $context, string $text): void {
 		if (self::$exitOnError) {
 			throw new LoggerException(LoggerLevel::Error, $context, $text);
@@ -42,6 +45,10 @@ class Logger {
 		}
 	}
 
+	/**
+	 * @throws LoggerException
+	 * @psalm-return no-return
+	 */
 	public static function panic(string $context, string $text): void {
 		throw new LoggerException(LoggerLevel::Error, $context, $text);
 	}

@@ -46,7 +46,7 @@ class ControllerMethodParameter {
 			return -self::exprToValue($context, $expr->expr);
 		}
 		if ($expr instanceof Array_) {
-			$values = array_map(fn (ArrayItem $item) => self::exprToValue($context, $item), $expr->items);
+			$values = array_map(fn (ArrayItem $item): mixed => self::exprToValue($context, $item), $expr->items);
 			$filteredValues = array_filter($values, fn (mixed $value) => $value !== null);
 			if (count($filteredValues) != count($values)) {
 				return null;

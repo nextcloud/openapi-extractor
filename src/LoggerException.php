@@ -5,6 +5,7 @@ namespace OpenAPIExtractor;
 use Exception;
 
 class LoggerException extends Exception {
+	/** @psalm-suppress MissingParamType False-positive */
 	public function __construct(
 		public LoggerLevel $level,
 		public string $context,
