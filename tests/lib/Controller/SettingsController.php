@@ -257,4 +257,16 @@ class SettingsController extends OCSController {
 	public function booleanParameterDefaultTrue(bool $yesOrNo = true): DataResponse {
 		return new DataResponse();
 	}
+
+	/**
+	 * A route with numeric
+	 *
+	 * @param numeric $value Some numeric value
+	 * @return DataResponse<Http::STATUS_OK, array<empty>, array{}>
+	 *
+	 * 200: Admin settings updated
+	 */
+	public function numericParameter(mixed $value): DataResponse {
+		return new DataResponse();
+	}
 }
