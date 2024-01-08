@@ -308,6 +308,7 @@ class OpenApiType {
 			"negative-int" => new OpenApiType(type: "integer", format: "int64", maximum: -1),
 			"non-positive-int" => new OpenApiType(type: "integer", format: "int64", maximum: 0),
 			"bool", "boolean", "true", "false" => new OpenApiType(type: "boolean"),
+			"numeric" => new OpenApiType(type: "number"),
 			"double" => new OpenApiType(type: "number", format: "double"),
 			"float" => new OpenApiType(type: "number", format: "float"),
 			"mixed", "empty", "array" => new OpenApiType(type: "object"),

@@ -46,5 +46,6 @@ return [
 		['name' => 'Settings#booleanParameterRequired', 'url' => '/api/{apiVersion}/boolean', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
 		['name' => 'Settings#booleanParameterDefaultFalse', 'url' => '/api/{apiVersion}/boolean-false', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
 		['name' => 'Settings#booleanParameterDefaultTrue', 'url' => '/api/{apiVersion}/boolean-true', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
+		['name' => 'Settings#numericParameter', 'url' => '/api/{apiVersion}/numeric', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
 	],
 ];
