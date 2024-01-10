@@ -235,9 +235,13 @@ if (count($parsedRoutes) == 0) {
 
 $routes = [];
 foreach ($parsedRoutes as $key => $value) {
-	if ($key != "routes" && $key != "ocs") {
+	$isOCS = $key === "ocs";
+	$isIndex = $key === "routes";
+
+	if (!$isOCS && !$isIndex) {
 		continue;
 	}
+
 	foreach ($value as $route) {
 		$routeName = $route["name"];
 
@@ -253,10 +257,10 @@ foreach ($parsedRoutes as $key => $value) {
 		if (str_ends_with($url, "/")) {
 			$url = substr($url, 0, -1);
 		}
-		if ($key == "routes") {
+		if ($isIndex) {
 			$url = "/index.php" . $root . $url;
 		}
-		if ($key == "ocs") {
+		if ($isOCS) {
 			$url = "/ocs/v2.php" . $root . $url;
 		}
 
@@ -320,7 +324,6 @@ foreach ($parsedRoutes as $key => $value) {
 		}
 
 		$isCSRFRequired = !Helpers::classMethodHasAnnotationOrAttribute($methodFunction, "NoCSRFRequired");
-		$isOCS = $controllerClass->extends != "Controller" && $controllerClass->extends != "ApiController";
 		if ($isCSRFRequired && !$isOCS) {
 			Logger::debug($routeName, "Route ignored because of required CSRF in a non-OCS controller");
 			continue;
