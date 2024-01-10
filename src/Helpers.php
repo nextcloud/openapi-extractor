@@ -6,8 +6,13 @@ use Exception;
 use PhpParser\Node;
 use PhpParser\Node\Arg;
 use PhpParser\Node\AttributeGroup;
+use PhpParser\Node\Expr;
 use PhpParser\Node\Expr\Array_;
+use PhpParser\Node\Expr\ArrayItem;
 use PhpParser\Node\Expr\ClassConstFetch;
+use PhpParser\Node\Expr\ConstFetch;
+use PhpParser\Node\Expr\UnaryMinus;
+use PhpParser\Node\Scalar\LNumber;
 use PhpParser\Node\Scalar\String_;
 use PhpParser\Node\Stmt\Class_;
 use PhpParser\Node\Stmt\ClassMethod;
@@ -259,5 +264,43 @@ class Helpers {
 			}
 		});
 		return $refs;
+	}
+
+	public static function exprToValue(string $context, Expr $expr): mixed {
+		if ($expr instanceof ConstFetch) {
+			$value = $expr->name->getLast();
+			return match ($value) {
+				'null' => null,
+				'true' => true,
+				'false' => false,
+				default => Logger::panic($context, "Unable to evaluate constant value '$value'"),
+			};
+		}
+		if ($expr instanceof String_) {
+			return $expr->value;
+		}
+		if ($expr instanceof LNumber) {
+			return intval($expr->value);
+		}
+		if ($expr instanceof UnaryMinus) {
+			return -self::exprToValue($context, $expr->expr);
+		}
+		if ($expr instanceof Array_) {
+			$values = array_map(static fn (ArrayItem $item): mixed => self::exprToValue($context, $item), $expr->items);
+			$filteredValues = array_filter($values, static fn (mixed $value) => $value !== null);
+			if (count($filteredValues) !== count($values)) {
+				return null;
+			}
+			return $values;
+		}
+		if ($expr instanceof ArrayItem) {
+			return self::exprToValue($context, $expr->value);
+		}
+		if ($expr instanceof Expr\ClassConstFetch || $expr instanceof Expr\BinaryOp) {
+			// Not supported
+			return null;
+		}
+
+		Logger::panic($context, "Unable to evaluate expression '" . get_class($expr) . "'");
 	}
 }
