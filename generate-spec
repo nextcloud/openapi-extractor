@@ -11,6 +11,7 @@ foreach ([__DIR__ . "/../../autoload.php", __DIR__ . "/vendor/autoload.php"] as 
 }
 
 use Ahc\Cli\Input\Command;
+use DirectoryIterator;
 use PhpParser\Node\Expr\New_;
 use PhpParser\Node\Name;
 use PhpParser\Node\Stmt\Class_;
@@ -233,6 +234,20 @@ if (count($parsedRoutes) == 0) {
 	Logger::warning("Routes", "No routes were loaded");
 }
 
+$controllers = [];
+$controllersDir = $sourceDir . "/Controller";
+if (file_exists($controllersDir)) {
+	$dir = new DirectoryIterator($controllersDir);
+	foreach ($dir as $file) {
+		$filePath = $file->getPathname();
+		if (!str_ends_with($filePath, "Controller.php")) {
+			continue;
+		}
+
+		$controllers[basename($filePath, "Controller.php")] = $astParser->parse(file_get_contents($filePath));
+	}
+}
+
 $routes = [];
 foreach ($parsedRoutes as $key => $value) {
 	$isOCS = $key === "ocs";
@@ -272,7 +287,7 @@ foreach ($parsedRoutes as $key => $value) {
 		$controllerName = ucfirst(str_replace("_", "", ucwords(explode("#", $routeName)[0], "_")));
 		$controllerClass = null;
 		/** @var Class_ $class */
-		foreach ($nodeFinder->findInstanceOf($astParser->parse(file_get_contents($sourceDir . "/Controller/" . $controllerName . "Controller.php")), Class_::class) as $class) {
+		foreach ($nodeFinder->findInstanceOf($controllers[$controllerName] ?? [], Class_::class) as $class) {
 			if ($class->name == $controllerName . "Controller") {
 				$controllerClass = $class;
 				break;
