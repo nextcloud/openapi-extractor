@@ -65,3 +65,7 @@ Afterward in your repository settings set the OpenAPI workflow to be required fo
 ## Usage
 
 Checkout the OpenAPI tutorial at https://docs.nextcloud.com/server/latest/developer_manual/client_apis/OCS/ocs-openapi.html to see how you can use openapi-extractor.
+
+### 🐢 Performance
+
+Make sure that you have xdebug turned off when generating OpenAPI specs, otherwise it can take multiple minutes instead of seconds.
