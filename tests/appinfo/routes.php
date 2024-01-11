@@ -30,10 +30,11 @@ return [
 		['name' => 'AdminSettings#movedToDefaultScope', 'url' => '/api/{apiVersion}/default-admin-overwritten', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
 		['name' => 'AdminSettings#movedToSettingsTag', 'url' => '/api/{apiVersion}/moved-with-tag', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
 
-		['name' => 'Settings#federationByController', 'url' => '/api/{apiVersion}/controller-scope', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
+		['name' => 'Federation#federationByController', 'url' => '/api/{apiVersion}/controller-scope', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
+		['name' => 'Federation#movedToDefaultScope', 'url' => '/api/{apiVersion}/default-scope', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
+
 		['name' => 'Settings#ignoreByDeprecatedAttributeOnMethod', 'url' => '/api/{apiVersion}/ignore-openapi-attribute', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
 		['name' => 'Settings#ignoreByScopeOnMethod', 'url' => '/api/{apiVersion}/ignore-method-scope', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
-		['name' => 'Settings#movedToDefaultScope', 'url' => '/api/{apiVersion}/default-scope', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
 		['name' => 'Settings#movedToAdminScope', 'url' => '/api/{apiVersion}/admin-scope', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
 		['name' => 'Settings#defaultAndAdminScope', 'url' => '/api/{apiVersion}/default-and-admin-scope', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
 		['name' => 'Settings#nestedSchemas', 'url' => '/api/{apiVersion}/nested-schemas', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
