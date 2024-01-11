@@ -772,13 +772,16 @@ foreach ($scopePaths as $scope => $paths) {
 		foreach ($urlRoutes as $httpMethod => $routeData) {
 			foreach ($routeData['responses'] as $statusCode => $responseData) {
 				if (isset($responseData['content']['application/json'])) {
-					$usedSchemas = array_merge($usedSchemas, Helpers::collectUsedRefs($responseData['content']['application/json']['schema']));
+					if (is_array($responseData['content']['application/json']['schema'])) {
+						$newSchemas = Helpers::collectUsedRefs($responseData['content']['application/json']['schema']);
+						$usedSchemas = array_merge($usedSchemas, $newSchemas);
+					}
 				} elseif (isset($responseData['content']['*/*']['schema']['type'], $responseData['content']['*/*']['schema']['format'])
 					&& $responseData['content']['*/*']['schema']['type'] === 'string'
 					&& $responseData['content']['*/*']['schema']['format'] === 'binary') {
 					Logger::info("app", "Binary response from '$httpMethod $url' - Skipping schema reading");
 				} else {
-					Logger::warning("app", "Could not read used schemas for response to '$httpMethod $url' with status code $statusCode");
+					Logger::info("app", "Could not read used schemas for response to '$httpMethod $url' with status code $statusCode");
 				}
 			}
 		}
