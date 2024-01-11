@@ -771,7 +771,11 @@ foreach ($scopePaths as $scope => $paths) {
 	foreach ($paths as $url => $urlRoutes) {
 		foreach ($urlRoutes as $httpMethod => $routeData) {
 			foreach ($routeData['responses'] as $statusCode => $responseData) {
-				$usedSchemas = array_merge($usedSchemas, Helpers::collectUsedRefs($responseData['content']['application/json']['schema']));
+				if (isset($responseData['content']['application/json'])) {
+					$usedSchemas = array_merge($usedSchemas, Helpers::collectUsedRefs($responseData['content']['application/json']['schema']));
+				} else {
+					Logger::warning("app", "Could not read used schemas for response to '$httpMethod $url' with status code $statusCode");
+				}
 			}
 		}
 	}
