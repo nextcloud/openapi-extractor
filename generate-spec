@@ -781,7 +781,7 @@ foreach ($scopePaths as $scope => $paths) {
 	}
 
 	$scopedSchemas = [];
-	foreach ($usedSchemas as $usedSchema) {
+	while ($usedSchema = array_shift($usedSchemas)) {
 		if (!str_starts_with($usedSchema, '#/components/schemas/')) {
 			continue;
 		}
@@ -790,6 +790,18 @@ foreach ($scopePaths as $scope => $paths) {
 
 		if (!isset($schemas[$schemaName])) {
 			Logger::error("app", "Schema $schemaName used by scope $scope is not defined");
+		}
+
+		// Queue potential sub-refs for exporting as well
+		if (isset($schemas[$schemaName]['allOf'])) {
+			foreach ($schemas[$schemaName]['allOf'] as $subType) {
+				$newRefs = Helpers::collectUsedRefs($subType);
+				foreach ($newRefs as $newRef) {
+					if (!isset($scopedSchemas[substr($newRef, strlen('#/components/schemas/'))])) {
+						$usedSchemas[] = $newRef;
+					}
+				}
+			}
 		}
 
 		$scopedSchemas[$schemaName] = $schemas[$schemaName];
