@@ -377,6 +377,8 @@ foreach ($parsedRoutes as $key => $value) {
 			}
 		}
 
+		$routeTags = Helpers::getAttributeTagsByScope($classMethod, 'OpenAPI', $routeName, $tagName, reset($scopes));
+
 		if ($isOCS && !array_key_exists("OCSMeta", $schemas)) {
 			$schemas["OCSMeta"] = [
 				"type" => "object",
@@ -428,7 +430,7 @@ foreach ($parsedRoutes as $key => $value) {
 			$routes[$scope] ??= [];
 			$routes[$scope][] = new Route(
 				$routeName,
-				$tagName,
+				$routeTags[$scope] ?? [$tagName],
 				$methodName,
 				$postfix,
 				$verb,
@@ -451,8 +453,10 @@ $tagNames = [];
 if ($useTags) {
 	foreach ($routes as $scope => $scopeRoutes) {
 		foreach ($scopeRoutes as $route) {
-			if (!in_array($route->tag, $tagNames)) {
-				$tagNames[] = $route->tag;
+			foreach ($route->tags as $tag) {
+				if (!in_array($tag, $tagNames)) {
+					$tagNames[] = $tag;
+				}
 			}
 		}
 	}
@@ -614,7 +618,7 @@ foreach ($routes as $scope => $scopeRoutes) {
 			);
 		}
 
-        $operationId = [$route->tag, ...Helpers::splitOnUppercaseFollowedByNonUppercase($route->methodName)];
+		$operationId = [...$route->tags, ...Helpers::splitOnUppercaseFollowedByNonUppercase($route->methodName)];
 		if ($route->postfix != null) {
 			$operationId[] = $route->postfix;
 		}
@@ -638,7 +642,7 @@ foreach ($routes as $scope => $scopeRoutes) {
 			$route->controllerMethod->summary != null ? ["summary" => $route->controllerMethod->summary] : [],
 			count($route->controllerMethod->description) > 0 ? ["description" => implode("\n", $route->controllerMethod->description)] : [],
 			$route->controllerMethod->isDeprecated ? ["deprecated" => true] : [],
-			$useTags ? ["tags" => [$route->tag]] : [],
+			$useTags ? ["tags" => $route->tags] : [],
 			count($security) > 0 ? ["security" => $security] : [],
 			count($queryParameters) > 0 || count($pathParameters) > 0 || $route->isOCS ? [
 				"parameters" => array_merge(

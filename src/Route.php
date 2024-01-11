@@ -5,7 +5,7 @@ namespace OpenAPIExtractor;
 class Route {
 	public function __construct(
 		public string $name,
-		public string $tag,
+		public array $tags,
 		public string $methodName,
 		public ?string $postfix,
 		public string $verb,
