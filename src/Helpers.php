@@ -253,13 +253,17 @@ class Helpers {
 		if (isset($data['$ref'])) {
 			$refs[] = [$data['$ref']];
 		}
-		if (isset($data['properties'])) {
-			foreach ($data['properties'] as $property) {
-				if (is_array($property)) {
-					$refs[] = self::collectUsedRefs($property);
+
+		foreach (['allOf', 'oneOf', 'anyOf', 'properties', 'additionalProperties'] as $group) {
+			if (isset($data[$group]) && is_array($data[$group])) {
+				foreach ($data[$group] as $property) {
+					if (is_array($property)) {
+						$refs[] = self::collectUsedRefs($property);
+					}
 				}
 			}
 		}
+
 		if (isset($data['items'])) {
 			$refs[] = self::collectUsedRefs($data['items']);
 		}
