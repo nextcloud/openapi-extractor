@@ -17,7 +17,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: openapi-${{ github.head_ref || github.run_id }}
+  group: openapi-repositories-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 
 jobs:
