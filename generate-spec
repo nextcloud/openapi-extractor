@@ -302,7 +302,7 @@ foreach ($parsedRoutes as $key => $value) {
 			continue;
 		}
 
-		$controllerScopes = Helpers::getAttributeScopes($controllerClass, 'OpenAPI', $routeName);
+		$controllerScopes = Helpers::getOpenAPIAttributeScopes($controllerClass, $routeName);
 		if (in_array('ignore', $controllerScopes, true)) {
 			Logger::info($routeName, "Controller '" . $controllerName . "' ignored because of OpenAPI attribute");
 			continue;
@@ -361,7 +361,7 @@ foreach ($parsedRoutes as $key => $value) {
 			continue;
 		}
 
-		$scopes = Helpers::getAttributeScopes($classMethod, 'OpenAPI', $routeName);
+		$scopes = Helpers::getOpenAPIAttributeScopes($classMethod, $routeName);
 		if (in_array('ignore', $scopes, true)) {
 			Logger::info($routeName, "Route ignored because of OpenAPI attribute");
 			continue;
@@ -377,7 +377,7 @@ foreach ($parsedRoutes as $key => $value) {
 			}
 		}
 
-		$routeTags = Helpers::getAttributeTagsByScope($classMethod, 'OpenAPI', $routeName, $tagName, reset($scopes));
+		$routeTags = Helpers::getOpenAPIAttributeTagsByScope($classMethod, $routeName, $tagName, reset($scopes));
 
 		if ($isOCS && !array_key_exists("OCSMeta", $schemas)) {
 			$schemas["OCSMeta"] = [

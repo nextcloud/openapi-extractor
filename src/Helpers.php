@@ -15,6 +15,8 @@ use PhpParser\Node\Stmt\ClassMethod;
 use stdClass;
 
 class Helpers {
+	public const OPENAPI_ATTRIBUTE_CLASSNAME = 'OpenAPI';
+
 	public static function generateReadableAppID(string $appID): string {
 		return implode("", array_map(fn (string $s) => ucfirst($s), explode("_", $appID)));
 	}
@@ -159,7 +161,7 @@ class Helpers {
 	protected static function getScopeNameFromAttributeArgument(Arg $arg, string $routeName): ?string {
 		if ($arg->name->name === 'scope') {
 			if ($arg->value instanceof ClassConstFetch) {
-				if ($arg->value->class->getLast() === 'OpenAPI') {
+				if ($arg->value->class->getLast() === self::OPENAPI_ATTRIBUTE_CLASSNAME) {
 					return self::getScopeNameFromConst($arg->value);
 				}
 			} elseif ($arg->value instanceof String_) {
@@ -183,13 +185,13 @@ class Helpers {
 		};
 	}
 
-	public static function getAttributeScopes(ClassMethod|Class_|Node $node, string $annotation, string $routeName): array {
+	public static function getOpenAPIAttributeScopes(ClassMethod|Class_|Node $node, string $routeName): array {
 		$scopes = [];
 
 		/** @var AttributeGroup $attrGroup */
 		foreach ($node->attrGroups as $attrGroup) {
 			foreach ($attrGroup->attrs as $attr) {
-				if ($attr->name->getLast() === $annotation) {
+				if ($attr->name->getLast() === self::OPENAPI_ATTRIBUTE_CLASSNAME) {
 					if (empty($attr->args)) {
 						$scopes[] = 'default';
 						continue;
@@ -208,13 +210,13 @@ class Helpers {
 		return $scopes;
 	}
 
-	public static function getAttributeTagsByScope(ClassMethod|Class_|Node $node, string $annotation, string $routeName, string $defaultTag, string $defaultScope): array {
+	public static function getOpenAPIAttributeTagsByScope(ClassMethod|Class_|Node $node, string $routeName, string $defaultTag, string $defaultScope): array {
 		$tags = [];
 
 		/** @var AttributeGroup $attrGroup */
 		foreach ($node->attrGroups as $attrGroup) {
 			foreach ($attrGroup->attrs as $attr) {
-				if ($attr->name->getLast() === $annotation) {
+				if ($attr->name->getLast() === self::OPENAPI_ATTRIBUTE_CLASSNAME) {
 					if (empty($attr->args)) {
 						$tags[$defaultScope] = [$defaultTag];
 						continue;
