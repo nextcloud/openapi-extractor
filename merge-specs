@@ -97,8 +97,8 @@ function loadSpec(string $path): array {
 
 function rewriteRefs(array $spec): array {
 	$readableAppID = Helpers::generateReadableAppID($spec["info"]["title"]);
-	array_walk_recursive($spec, function (string &$item, string $key) use ($readableAppID) {
-		if ($key == "\$ref" && $item != "#/components/schemas/OCSMeta") {
+	array_walk_recursive($spec, function (mixed &$item, string $key) use ($readableAppID) {
+		if ($key === '$ref' && $item !== '#/components/schemas/OCSMeta') {
 			$item = str_replace("#/components/schemas/", "#/components/schemas/" . $readableAppID, $item);
 		}
 	});
