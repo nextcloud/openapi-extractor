@@ -158,8 +158,8 @@ class Helpers {
 		return substr($name, strlen($readableAppID));
 	}
 
-	protected static function getScopeNameFromAttributeArgument(Arg $arg, string $routeName): ?string {
-		if ($arg->name->name === 'scope') {
+	protected static function getScopeNameFromAttributeArgument(Arg $arg, int $key, string $routeName): ?string {
+		if ($arg->name?->name === 'scope' || ($arg->name === null && $key === 0)) {
 			if ($arg->value instanceof ClassConstFetch) {
 				if ($arg->value->class->getLast() === self::OPENAPI_ATTRIBUTE_CLASSNAME) {
 					return self::getScopeNameFromConst($arg->value);
@@ -197,8 +197,8 @@ class Helpers {
 						continue;
 					}
 
-					foreach ($attr->args as $arg) {
-						$scope = self::getScopeNameFromAttributeArgument($arg, $routeName);
+					foreach ($attr->args as $key => $arg) {
+						$scope = self::getScopeNameFromAttributeArgument($arg, (int) $key, $routeName);
 						if ($scope !== null) {
 							$scopes[] = $scope;
 						}
@@ -224,13 +224,15 @@ class Helpers {
 
 					$foundTags = [];
 					$foundScopeName = null;
-					foreach ($attr->args as $arg) {
-						$foundScopeName = self::getScopeNameFromAttributeArgument($arg, $routeName);
+					foreach ($attr->args as $key => $arg) {
+						$foundScopeName = self::getScopeNameFromAttributeArgument($arg, (int) $key, $routeName);
 
-						if ($arg->name->name !== 'tags') {
+						if ($arg->name?->name !== 'tags' && ($arg->name !== null || $key !== 1)) {
 							continue;
 						}
+
 						if (!$arg->value instanceof Array_) {
+
 							continue;
 						}
 
@@ -244,6 +246,8 @@ class Helpers {
 					if (!empty($foundTags)) {
 						$tags[$foundScopeName ?: $defaultScope] = $foundTags;
 					}
+
+
 				}
 			}
 		}

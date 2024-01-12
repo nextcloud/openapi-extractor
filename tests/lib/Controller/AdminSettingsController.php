@@ -66,4 +66,16 @@ class AdminSettingsController extends OCSController {
 	public function movedToSettingsTag(): DataResponse {
 		return new DataResponse();
 	}
+
+	/**
+	 * Route in default scope with tags
+	 *
+	 * @return DataResponse<Http::STATUS_OK, array<empty>, array{}>
+	 *
+	 * 200: Personal settings updated
+	 */
+	#[OpenAPI(OpenAPI::SCOPE_ADMINISTRATION, ['settings', 'admin-settings'])]
+	public function movedToSettingsTagUnnamed(): DataResponse {
+		return new DataResponse();
+	}
 }

@@ -70,6 +70,20 @@ class SettingsController extends OCSController {
 	/**
 	 * @NoAdminRequired
 	 *
+	 * Route is ignored because of scope on the method but without `scope: ` name
+	 *
+	 * @return DataResponse<Http::STATUS_OK, array<empty>, array{}>
+	 *
+	 * 200: OK
+	 */
+	#[OpenAPI(OpenAPI::SCOPE_IGNORE)]
+	public function ignoreByUnnamedScopeOnMethod(): DataResponse {
+		return new DataResponse();
+	}
+
+	/**
+	 * @NoAdminRequired
+	 *
 	 * Route is only in the admin scope due to defined scope
 	 *
 	 * @return DataResponse<Http::STATUS_OK, NotificationsPushDevice, array{}>
