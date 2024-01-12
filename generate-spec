@@ -297,15 +297,24 @@ foreach ($parsedRoutes as $key => $value) {
 			Logger::error($routeName, "Controller '" . $controllerName . "' not found");
 			continue;
 		}
-		if (Helpers::classMethodHasAnnotationOrAttribute($controllerClass, "IgnoreOpenAPI")) {
-			Logger::debug($routeName, "Controller '" . $controllerName . "' ignored because of IgnoreOpenAPI attribute");
-			continue;
-		}
 
 		$controllerScopes = Helpers::getOpenAPIAttributeScopes($controllerClass, $routeName);
+		if (Helpers::classMethodHasAnnotationOrAttribute($controllerClass, "IgnoreOpenAPI")) {
+			if (count($controllerScopes) === 0 || (in_array('ignore', $controllerScopes, true) && count($controllerScopes) === 1)) {
+				Logger::info($routeName, "Controller '" . $controllerName . "' ignored because of IgnoreOpenAPI attribute");
+				continue;
+			}
+
+			Logger::panic($routeName, "Controller '" . $controllerName . "' is marked as ignore but also has other scopes");
+		}
+
 		if (in_array('ignore', $controllerScopes, true)) {
-			Logger::info($routeName, "Controller '" . $controllerName . "' ignored because of OpenAPI attribute");
-			continue;
+			if (count($controllerScopes) === 1) {
+				Logger::info($routeName, "Controller '" . $controllerName . "' ignored because of OpenAPI attribute");
+				continue;
+			}
+
+			Logger::panic($routeName, "Controller '" . $controllerName . "' is marked as ignore but also has other scopes");
 		}
 
 		$tagName = implode("_", array_map(fn (string $s) => strtolower($s), Helpers::splitOnUppercaseFollowedByNonUppercase($controllerName)));
@@ -355,16 +364,24 @@ foreach ($parsedRoutes as $key => $value) {
 		$isAdmin = !Helpers::classMethodHasAnnotationOrAttribute($methodFunction, "NoAdminRequired") && !$isPublic;
 		$isDeprecated = Helpers::classMethodHasAnnotationOrAttribute($methodFunction, "deprecated");
 		$isIgnored = Helpers::classMethodHasAnnotationOrAttribute($methodFunction, "IgnoreOpenAPI");
+		$scopes = Helpers::getOpenAPIAttributeScopes($classMethod, $routeName);
 
 		if ($isIgnored) {
-			Logger::debug($routeName, "Route ignored because of IgnoreOpenAPI attribute");
-			continue;
+			if (count($scopes) === 0 || (in_array('ignore', $scopes, true) && count($scopes) === 1)) {
+				Logger::debug($routeName, "Route ignored because of IgnoreOpenAPI attribute");
+				continue;
+			}
+
+			Logger::panic($routeName, "Route is marked as ignore but also has other scopes");
 		}
 
-		$scopes = Helpers::getOpenAPIAttributeScopes($classMethod, $routeName);
 		if (in_array('ignore', $scopes, true)) {
-			Logger::info($routeName, "Route ignored because of OpenAPI attribute");
-			continue;
+			if (count($scopes) === 1) {
+				Logger::info($routeName, "Route ignored because of OpenAPI attribute");
+				continue;
+			}
+
+			Logger::panic($routeName, "Route is marked as ignore but also has other scopes");
 		}
 
 		if (empty($scopes)) {
