@@ -220,7 +220,7 @@ class Helpers {
 						continue;
 					}
 
-					$foundsTags = [];
+					$foundTags = [];
 					$foundScopeName = null;
 					foreach ($attr->args as $arg) {
 						$foundScopeName = self::getScopeNameFromAttributeArgument($arg, $routeName);
@@ -230,7 +230,7 @@ class Helpers {
 								foreach ($arg->value->items as $item) {
 									if ($item instanceof ArrayItem) {
 										if ($item->value instanceof String_) {
-											$foundsTags[] = $item->value->value;
+											$foundTags[] = $item->value->value;
 										}
 									}
 								}
@@ -238,8 +238,8 @@ class Helpers {
 						}
 					}
 
-					if (!empty($foundsTags)) {
-						$tags[$foundScopeName ?: $defaultScope] = $foundsTags;
+					if (!empty($foundTags)) {
+						$tags[$foundScopeName ?: $defaultScope] = $foundTags;
 					}
 				}
 			}
