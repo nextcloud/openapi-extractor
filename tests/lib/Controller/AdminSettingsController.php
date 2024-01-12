@@ -68,7 +68,7 @@ class AdminSettingsController extends OCSController {
 	}
 
 	/**
-	 * Route in default scope with tags
+	 * Route in default scope with tags but without named parameters on the attribute
 	 *
 	 * @return DataResponse<Http::STATUS_OK, array<empty>, array{}>
 	 *

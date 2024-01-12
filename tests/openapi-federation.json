@@ -50,7 +50,7 @@
         "/ocs/v2.php/apps/notifications/api/{apiVersion}/controller-scope": {
             "post": {
                 "operationId": "federation-federation-by-controller",
-                "summary": "Route is ignored because of scope on the controller",
+                "summary": "Route is in federation scope as per controller scope",
                 "tags": [
                     "federation"
                 ],

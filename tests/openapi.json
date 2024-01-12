@@ -249,7 +249,7 @@
         "/ocs/v2.php/apps/notifications/api/{apiVersion}/default-scope": {
             "post": {
                 "operationId": "federation-moved-to-default-scope",
-                "summary": "Route is only in the default scope",
+                "summary": "Route is only in the default scope (moved from federation)",
                 "tags": [
                     "federation"
                 ],
@@ -391,7 +391,7 @@
         "/ocs/v2.php/apps/notifications/api/{apiVersion}/nested-schemas": {
             "post": {
                 "operationId": "settings-nested-schemas",
-                "summary": "Route is ignored because of scope on the controller",
+                "summary": "Route is referencing nested schemas",
                 "tags": [
                     "settings"
                 ],
@@ -467,7 +467,7 @@
         "/ocs/v2.php/apps/notifications/api/{apiVersion}/list-schemas": {
             "post": {
                 "operationId": "settings-list-schemas",
-                "summary": "Route is ignored because of scope on the controller",
+                "summary": "Route is referencing a schema which is a list of schemas",
                 "tags": [
                     "settings"
                 ],

@@ -43,7 +43,7 @@ class FederationController extends OCSController {
 	/**
 	 * @NoAdminRequired
 	 *
-	 * Route is ignored because of scope on the controller
+	 * Route is in federation scope as per controller scope
 	 *
 	 * @return DataResponse<Http::STATUS_OK, array<empty>, array{}>
 	 *
@@ -56,7 +56,7 @@ class FederationController extends OCSController {
 	/**
 	 * @NoAdminRequired
 	 *
-	 * Route is only in the default scope
+	 * Route is only in the default scope (moved from federation)
 	 *
 	 * @return DataResponse<Http::STATUS_OK, array<empty>, array{}>
 	 *

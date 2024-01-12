@@ -124,7 +124,7 @@ class SettingsController extends OCSController {
 	/**
 	 * @NoAdminRequired
 	 *
-	 * Route is ignored because of scope on the controller
+	 * Route is referencing nested schemas
 	 *
 	 * @return DataResponse<Http::STATUS_OK, list<NotificationsNotification>, array{}>
 	 *
@@ -137,7 +137,7 @@ class SettingsController extends OCSController {
 	/**
 	 * @NoAdminRequired
 	 *
-	 * Route is ignored because of scope on the controller
+	 * Route is referencing a schema which is a list of schemas
 	 *
 	 * @return DataResponse<Http::STATUS_OK, NotificationsCollection, array{}>
 	 *
