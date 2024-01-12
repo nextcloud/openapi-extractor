@@ -227,15 +227,16 @@ class Helpers {
 					foreach ($attr->args as $arg) {
 						$foundScopeName = self::getScopeNameFromAttributeArgument($arg, $routeName);
 
-						if ($arg->name->name === 'tags') {
-							if ($arg->value instanceof Array_) {
-								foreach ($arg->value->items as $item) {
-									if ($item instanceof ArrayItem) {
-										if ($item->value instanceof String_) {
-											$foundTags[] = $item->value->value;
-										}
-									}
-								}
+						if ($arg->name->name !== 'tags') {
+							continue;
+						}
+						if (!$arg->value instanceof Array_) {
+							continue;
+						}
+
+						foreach ($arg->value->items as $item) {
+							if ($item instanceof ArrayItem && $item->value instanceof String_) {
+								$foundTags[] = $item->value->value;
 							}
 						}
 					}
@@ -257,11 +258,13 @@ class Helpers {
 		}
 
 		foreach (['allOf', 'oneOf', 'anyOf', 'properties', 'additionalProperties'] as $group) {
-			if (isset($data[$group]) && is_array($data[$group])) {
-				foreach ($data[$group] as $property) {
-					if (is_array($property)) {
-						$refs[] = self::collectUsedRefs($property);
-					}
+			if (!isset($data[$group]) || !is_array($data[$group])) {
+				continue;
+			}
+
+			foreach ($data[$group] as $property) {
+				if (is_array($property)) {
+					$refs[] = self::collectUsedRefs($property);
 				}
 			}
 		}
