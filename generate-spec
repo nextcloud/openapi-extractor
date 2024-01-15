@@ -12,6 +12,8 @@ foreach ([__DIR__ . "/../../autoload.php", __DIR__ . "/vendor/autoload.php"] as 
 
 use Ahc\Cli\Input\Command;
 use DirectoryIterator;
+use PhpParser\Node\AttributeGroup;
+use PhpParser\Node\Expr\ClassConstFetch;
 use PhpParser\Node\Expr\New_;
 use PhpParser\Node\Name;
 use PhpParser\Node\Stmt\Class_;
@@ -249,6 +251,72 @@ if (file_exists($controllersDir)) {
 }
 
 $routes = [];
+foreach ($controllers as $controllerName => $stmts) {
+	$controllerClass = null;
+	/** @var Class_ $class */
+	foreach ($nodeFinder->findInstanceOf($stmts, Class_::class) as $class) {
+		if ($class->name->name === $controllerName . 'Controller') {
+			$controllerClass = $class;
+			break;
+		}
+	}
+	if ($controllerClass === null) {
+		Logger::error($controllerName, "Controller '$controllerName' not found");
+		continue;
+	}
+
+	/** @var ClassMethod $classMethod */
+	foreach ($nodeFinder->findInstanceOf($controllerClass->stmts, ClassMethod::class) as $classMethod) {
+		$name = substr($class->name->name, 0, -strlen('Controller')) . '#' . $classMethod->name->name;
+
+		/** @var AttributeGroup $attrGroup */
+		foreach ($classMethod->attrGroups as $attrGroup) {
+			foreach ($attrGroup->attrs as $attr) {
+				if ($attr->name->getLast() !== 'Route' && $attr->name->getLast() !== 'ApiRoute' && $attr->name->getLast() !== 'FrontpageRoute') {
+					continue;
+				}
+
+				$key = match ($attr->name->getLast()) {
+					'Route' => null,
+					'ApiRoute' => 'ocs',
+					'FrontpageRoute' => 'routes',
+				};
+				$args = [
+					'name' => $name,
+				];
+				for ($i = 0, $iMax = count($attr->args); $i < $iMax; $i++) {
+					$arg = $attr->args[$i];
+
+					if ($arg->name !== null) {
+						$argName = $arg->name->name;
+					} else {
+						$argNames = ['verb', 'url', 'requirements', 'defaults', 'root', 'postfix'];
+						if ($attr->name->getLast() === 'Route') {
+							array_unshift($argNames, 'type');
+						}
+						$argName = $argNames[$i];
+					}
+
+					if ($argName === 'type' && $arg->value instanceof ClassConstFetch) {
+						$type = $arg->value->name->name;
+						$key = match ($type) {
+							'TYPE_API' => 'ocs',
+							'TYPE_FRONTPAGE' => 'routes',
+							default => Logger::panic($name, 'Unknown Route type: ' . $type),
+						};
+						continue;
+					}
+
+					$args[$argName] = Helpers::exprToValue($name, $arg->value);
+				}
+
+				$parsedRoutes[$key] ??= [];
+				$parsedRoutes[$key][] = $args;
+			}
+		}
+	}
+}
+
 foreach ($parsedRoutes as $key => $value) {
 	$isOCS = $key === "ocs";
 	$isIndex = $key === "routes";
