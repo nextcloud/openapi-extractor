@@ -265,6 +265,10 @@ class Helpers {
 		return $refs;
 	}
 
+	/**
+	 * @throws LoggerException
+	 * @throws UnsupportedExprException
+	 */
 	public static function exprToValue(string $context, Expr $expr): mixed {
 		if ($expr instanceof ConstFetch) {
 			$value = $expr->name->getLast();
@@ -287,20 +291,20 @@ class Helpers {
 		if ($expr instanceof Array_) {
 			$array = [];
 			foreach ($expr->items as $item) {
-				$value = self::exprToValue($context, $item->value);
-				if ($item->key !== null) {
-					$array[self::exprToValue($context, $item->key)] = $value;
-				} else {
-					$array[] = $value;
+				try {
+					$value = self::exprToValue($context, $item->value);
+					if ($item->key !== null) {
+						$array[self::exprToValue($context, $item->key)] = $value;
+					} else {
+						$array[] = $value;
+					}
+				} catch (UnsupportedExprException $e) {
+					Logger::debug($context, $e);
 				}
 			}
 			return $array;
 		}
-		if ($expr instanceof Expr\ClassConstFetch || $expr instanceof Expr\BinaryOp) {
-			// Not supported
-			return null;
-		}
 
-		Logger::panic($context, "Unable to evaluate expression '" . get_class($expr) . "'");
+		throw new UnsupportedExprException($expr, $context);
 	}
 }

@@ -14,8 +14,12 @@ class ControllerMethodParameter {
 			$this->type = OpenApiType::resolve($context, $definitions, $methodParameter->type);
 		}
 		if ($methodParameter->default != null) {
-			$this->type->hasDefaultValue = true;
-			$this->type->defaultValue = Helpers::exprToValue($context, $methodParameter->default);
+			try {
+				$this->type->defaultValue = Helpers::exprToValue($context, $methodParameter->default);
+				$this->type->hasDefaultValue = true;
+			} catch (UnsupportedExprException $e) {
+				Logger::debug($context, $e);
+			}
 		}
 	}
 }
