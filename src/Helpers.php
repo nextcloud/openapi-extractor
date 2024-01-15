@@ -8,7 +8,6 @@ use PhpParser\Node\Arg;
 use PhpParser\Node\AttributeGroup;
 use PhpParser\Node\Expr;
 use PhpParser\Node\Expr\Array_;
-use PhpParser\Node\Expr\ArrayItem;
 use PhpParser\Node\Expr\ClassConstFetch;
 use PhpParser\Node\Expr\ConstFetch;
 use PhpParser\Node\Expr\UnaryMinus;
@@ -286,15 +285,16 @@ class Helpers {
 			return -self::exprToValue($context, $expr->expr);
 		}
 		if ($expr instanceof Array_) {
-			$values = array_map(static fn (ArrayItem $item): mixed => self::exprToValue($context, $item), $expr->items);
-			$filteredValues = array_filter($values, static fn (mixed $value) => $value !== null);
-			if (count($filteredValues) !== count($values)) {
-				return null;
+			$array = [];
+			foreach ($expr->items as $item) {
+				$value = self::exprToValue($context, $item->value);
+				if ($item->key !== null) {
+					$array[self::exprToValue($context, $item->key)] = $value;
+				} else {
+					$array[] = $value;
+				}
 			}
-			return $values;
-		}
-		if ($expr instanceof ArrayItem) {
-			return self::exprToValue($context, $expr->value);
+			return $array;
 		}
 		if ($expr instanceof Expr\ClassConstFetch || $expr instanceof Expr\BinaryOp) {
 			// Not supported
