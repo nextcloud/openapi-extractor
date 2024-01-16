@@ -723,3 +723,5 @@ if ($useTags) {
 }
 
 file_put_contents($out, json_encode($openapi, Helpers::jsonFlags()));
+
+Logger::info("app", "Generated ". count($routes). " routes!");
