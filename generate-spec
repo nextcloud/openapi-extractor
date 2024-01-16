@@ -584,8 +584,7 @@ foreach ($routes as $route) {
 		);
 	}
 
-	$operationId = [$route->tag];
-	$operationId = array_merge($operationId, array_map(fn (string $s) => Helpers::mapVerb(strtolower($s)), Helpers::splitOnUppercaseFollowedByNonUppercase($route->methodName)));
+	$operationId = [$route->tag, ...Helpers::splitOnUppercaseFollowedByNonUppercase($route->methodName)];
 	if ($route->postfix != null) {
 		$operationId[] = $route->postfix;
 	}
@@ -605,7 +604,7 @@ foreach ($routes as $route) {
 	}
 
 	$operation = array_merge(
-		["operationId" => implode("-", $operationId)],
+		["operationId" => strtolower(implode("-", $operationId))],
 		$route->controllerMethod->summary != null ? ["summary" => $route->controllerMethod->summary] : [],
 		count($route->controllerMethod->description) > 0 ? ["description" => implode("\n", $route->controllerMethod->description)] : [],
 		$route->controllerMethod->isDeprecated ? ["deprecated" => true] : [],

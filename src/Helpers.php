@@ -50,13 +50,6 @@ class Helpers {
 		return preg_split('/(?=[A-Z][^A-Z])/', $str, -1, PREG_SPLIT_NO_EMPTY);
 	}
 
-	public static function mapVerb(string $verb): string {
-		return match ($verb) {
-			"index" => "list",
-			default => $verb,
-		};
-	}
-
 	public static function mergeSchemas(array $schemas): mixed {
 		if (!in_array(true, array_map(fn ($schema) => is_array($schema), $schemas))) {
 			$results = array_values(array_unique($schemas));
