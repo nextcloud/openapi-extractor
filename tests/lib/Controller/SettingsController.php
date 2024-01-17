@@ -38,22 +38,7 @@ use OCP\AppFramework\OCSController;
  * @psalm-import-type NotificationsNotification from ResponseDefinitions
  * @psalm-import-type NotificationsCollection from ResponseDefinitions
  */
-#[OpenAPI(scope: OpenAPI::SCOPE_FEDERATION)]
 class SettingsController extends OCSController {
-
-	/**
-	 * @NoAdminRequired
-	 *
-	 * Route is ignored because of scope on the controller
-	 *
-	 * @return DataResponse<Http::STATUS_OK, array<empty>, array{}>
-	 *
-	 * 200: OK
-	 */
-	public function federationByController(): DataResponse {
-		return new DataResponse();
-	}
-
 	/**
 	 * @NoAdminRequired
 	 *
@@ -85,14 +70,14 @@ class SettingsController extends OCSController {
 	/**
 	 * @NoAdminRequired
 	 *
-	 * Route is only in the default scope
+	 * Route is ignored because of scope on the method but without `scope: ` name
 	 *
 	 * @return DataResponse<Http::STATUS_OK, array<empty>, array{}>
 	 *
-	 * 200: Personal settings updated
+	 * 200: OK
 	 */
-	#[OpenAPI]
-	public function movedToDefaultScope(): DataResponse {
+	#[OpenAPI(OpenAPI::SCOPE_IGNORE)]
+	public function ignoreByUnnamedScopeOnMethod(): DataResponse {
 		return new DataResponse();
 	}
 
@@ -139,7 +124,7 @@ class SettingsController extends OCSController {
 	/**
 	 * @NoAdminRequired
 	 *
-	 * Route is ignored because of scope on the controller
+	 * Route is referencing nested schemas
 	 *
 	 * @return DataResponse<Http::STATUS_OK, list<NotificationsNotification>, array{}>
 	 *
@@ -152,7 +137,7 @@ class SettingsController extends OCSController {
 	/**
 	 * @NoAdminRequired
 	 *
-	 * Route is ignored because of scope on the controller
+	 * Route is referencing a schema which is a list of schemas
 	 *
 	 * @return DataResponse<Http::STATUS_OK, NotificationsCollection, array{}>
 	 *

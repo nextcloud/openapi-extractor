@@ -26,25 +26,37 @@ declare(strict_types=1);
 
 namespace OCA\Notifications\Controller;
 
+use OCA\Notifications\ResponseDefinitions;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\OpenAPI;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\AppFramework\OCSController;
 
-class AdminSettingsController extends OCSController {
+/**
+ * @psalm-import-type NotificationsPushDevice from ResponseDefinitions
+ * @psalm-import-type NotificationsNotification from ResponseDefinitions
+ * @psalm-import-type NotificationsCollection from ResponseDefinitions
+ */
+#[OpenAPI(scope: OpenAPI::SCOPE_FEDERATION)]
+class FederationController extends OCSController {
+
 	/**
-	 * Route is only in the admin scope because there is no "NoAdminRequired" annotation or attribute
+	 * @NoAdminRequired
+	 *
+	 * Route is in federation scope as per controller scope
 	 *
 	 * @return DataResponse<Http::STATUS_OK, array<empty>, array{}>
 	 *
-	 * 200: Personal settings updated
+	 * 200: OK
 	 */
-	public function adminScopeImplicitFromAdminRequired(): DataResponse {
+	public function federationByController(): DataResponse {
 		return new DataResponse();
 	}
 
 	/**
-	 * Route is in the default scope because the method overwrites with the Attribute
+	 * @NoAdminRequired
+	 *
+	 * Route is only in the default scope (moved from federation)
 	 *
 	 * @return DataResponse<Http::STATUS_OK, array<empty>, array{}>
 	 *
@@ -52,30 +64,6 @@ class AdminSettingsController extends OCSController {
 	 */
 	#[OpenAPI]
 	public function movedToDefaultScope(): DataResponse {
-		return new DataResponse();
-	}
-
-	/**
-	 * Route in default scope with tags
-	 *
-	 * @return DataResponse<Http::STATUS_OK, array<empty>, array{}>
-	 *
-	 * 200: Personal settings updated
-	 */
-	#[OpenAPI(tags: ['settings', 'admin-settings'])]
-	public function movedToSettingsTag(): DataResponse {
-		return new DataResponse();
-	}
-
-	/**
-	 * Route in default scope with tags but without named parameters on the attribute
-	 *
-	 * @return DataResponse<Http::STATUS_OK, array<empty>, array{}>
-	 *
-	 * 200: Personal settings updated
-	 */
-	#[OpenAPI(OpenAPI::SCOPE_ADMINISTRATION, ['settings', 'admin-settings'])]
-	public function movedToSettingsTagUnnamed(): DataResponse {
 		return new DataResponse();
 	}
 }

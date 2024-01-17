@@ -297,9 +297,24 @@ foreach ($parsedRoutes as $key => $value) {
 			Logger::error($routeName, "Controller '" . $controllerName . "' not found");
 			continue;
 		}
+
+		$controllerScopes = Helpers::getOpenAPIAttributeScopes($controllerClass, $routeName);
 		if (Helpers::classMethodHasAnnotationOrAttribute($controllerClass, "IgnoreOpenAPI")) {
-			Logger::debug($routeName, "Controller '" . $controllerName . "' ignored because of IgnoreOpenAPI attribute");
-			continue;
+			if (count($controllerScopes) === 0 || (in_array('ignore', $controllerScopes, true) && count($controllerScopes) === 1)) {
+				Logger::info($routeName, "Controller '" . $controllerName . "' ignored because of IgnoreOpenAPI attribute");
+				continue;
+			}
+
+			Logger::panic($routeName, "Controller '" . $controllerName . "' is marked as ignore but also has other scopes");
+		}
+
+		if (in_array('ignore', $controllerScopes, true)) {
+			if (count($controllerScopes) === 1) {
+				Logger::info($routeName, "Controller '" . $controllerName . "' ignored because of OpenAPI attribute");
+				continue;
+			}
+
+			Logger::panic($routeName, "Controller '" . $controllerName . "' is marked as ignore but also has other scopes");
 		}
 
 		$tagName = implode("_", array_map(fn (string $s) => strtolower($s), Helpers::splitOnUppercaseFollowedByNonUppercase($controllerName)));
@@ -349,11 +364,37 @@ foreach ($parsedRoutes as $key => $value) {
 		$isAdmin = !Helpers::classMethodHasAnnotationOrAttribute($methodFunction, "NoAdminRequired") && !$isPublic;
 		$isDeprecated = Helpers::classMethodHasAnnotationOrAttribute($methodFunction, "deprecated");
 		$isIgnored = Helpers::classMethodHasAnnotationOrAttribute($methodFunction, "IgnoreOpenAPI");
+		$scopes = Helpers::getOpenAPIAttributeScopes($classMethod, $routeName);
 
 		if ($isIgnored) {
-			Logger::debug($routeName, "Route ignored because of IgnoreOpenAPI attribute");
-			continue;
+			if (count($scopes) === 0 || (in_array('ignore', $scopes, true) && count($scopes) === 1)) {
+				Logger::debug($routeName, "Route ignored because of IgnoreOpenAPI attribute");
+				continue;
+			}
+
+			Logger::panic($routeName, "Route is marked as ignore but also has other scopes");
 		}
+
+		if (in_array('ignore', $scopes, true)) {
+			if (count($scopes) === 1) {
+				Logger::info($routeName, "Route ignored because of OpenAPI attribute");
+				continue;
+			}
+
+			Logger::panic($routeName, "Route is marked as ignore but also has other scopes");
+		}
+
+		if (empty($scopes)) {
+			if (!empty($controllerScopes)) {
+				$scopes = $controllerScopes;
+			} elseif ($isAdmin) {
+				$scopes = ['administration'];
+			} else {
+				$scopes = ['default'];
+			}
+		}
+
+		$routeTags = Helpers::getOpenAPIAttributeTagsByScope($classMethod, $routeName, $tagName, reset($scopes));
 
 		if ($isOCS && !array_key_exists("OCSMeta", $schemas)) {
 			$schemas["OCSMeta"] = [
@@ -402,21 +443,24 @@ foreach ($parsedRoutes as $key => $value) {
 			continue;
 		}
 
-		$routes[] = new Route(
-			$routeName,
-			$tagName,
-			$methodName,
-			$postfix,
-			$verb,
-			$url,
-			$requirements,
-			$defaults,
-			$classMethodInfo,
-			$isOCS,
-			$isCORS,
-			$isCSRFRequired,
-			$isPublic,
-		);
+		foreach ($scopes as $scope) {
+			$routes[$scope] ??= [];
+			$routes[$scope][] = new Route(
+				$routeName,
+				$routeTags[$scope] ?? [$tagName],
+				$methodName,
+				$postfix,
+				$verb,
+				$url,
+				$requirements,
+				$defaults,
+				$classMethodInfo,
+				$isOCS,
+				$isCORS,
+				$isCSRFRequired,
+				$isPublic,
+			);
+		}
 
 		Logger::debug($routeName, "Route generated");
 	}
@@ -424,228 +468,240 @@ foreach ($parsedRoutes as $key => $value) {
 
 $tagNames = [];
 if ($useTags) {
-	foreach ($routes as $route) {
-		if (!in_array($route->tag, $tagNames)) {
-			$tagNames[] = $route->tag;
+	foreach ($routes as $scope => $scopeRoutes) {
+		foreach ($scopeRoutes as $route) {
+			foreach ($route->tags as $tag) {
+				if (!in_array($tag, $tagNames)) {
+					$tagNames[] = $tag;
+				}
+			}
 		}
 	}
 }
 
-foreach ($routes as $route) {
-	$pathParameters = [];
-	$urlParameters = [];
+$scopePaths = [];
 
-	preg_match_all("/{[^}]*}/", $route->url, $urlParameters);
-	$urlParameters = array_map(fn (string $name) => substr($name, 1, -1), $urlParameters[0]);
+foreach ($routes as $scope => $scopeRoutes) {
+	foreach ($scopeRoutes as $route) {
+		$pathParameters = [];
+		$urlParameters = [];
 
-	foreach ($urlParameters as $urlParameter) {
-		$matchingParameters = array_filter($route->controllerMethod->parameters, function (ControllerMethodParameter $param) use ($urlParameter) {
-			return $param->name == $urlParameter;
-		});
-		$requirement = array_key_exists($urlParameter, $route->requirements) ? $route->requirements[$urlParameter] : null;
-		if (count($matchingParameters) == 1) {
-			$parameter = $matchingParameters[array_keys($matchingParameters)[0]];
-			if ($parameter?->methodParameter == null && ($route->requirements == null || !array_key_exists($urlParameter, $route->requirements))) {
-				Logger::error($route->name, "Unable to find parameter for '" . $urlParameter . "'");
-				continue;
-			}
+		preg_match_all("/{[^}]*}/", $route->url, $urlParameters);
+		$urlParameters = array_map(fn (string $name) => substr($name, 1, -1), $urlParameters[0]);
 
-			$schema = $parameter->type->toArray($openapiVersion, true);
-			$description = $parameter?->docType != null && $parameter->docType->description != "" ? Helpers::cleanDocComment($parameter->docType->description) : null;
-		} else {
-			$schema = [
-				"type" => "string",
-			];
-			$description = null;
-		}
-
-		if ($requirement != null) {
-			if (!str_starts_with($requirement, "^")) {
-				$requirement = "^" . $requirement;
-			}
-			if (!str_ends_with($requirement, "$")) {
-				$requirement = $requirement . "$";
-			}
-		}
-
-		if ($schema["type"] == "string") {
-			if ($urlParameter == "apiVersion") {
-				if ($requirement == null) {
-					Logger::error($route->name, "Missing requirement for apiVersion");
+		foreach ($urlParameters as $urlParameter) {
+			$matchingParameters = array_filter($route->controllerMethod->parameters, function (ControllerMethodParameter $param) use ($urlParameter) {
+				return $param->name == $urlParameter;
+			});
+			$requirement = array_key_exists($urlParameter, $route->requirements) ? $route->requirements[$urlParameter] : null;
+			if (count($matchingParameters) == 1) {
+				$parameter = $matchingParameters[array_keys($matchingParameters)[0]];
+				if ($parameter?->methodParameter == null && ($route->requirements == null || !array_key_exists($urlParameter, $route->requirements))) {
+					Logger::error($route->name, "Unable to find parameter for '" . $urlParameter . "'");
 					continue;
 				}
-				preg_match("/^\^\(([v0-9-.|]*)\)\\$$/m", $requirement, $matches);
-				if (count($matches) == 2) {
-					$enum = explode("|", $matches[1]);
-				} else {
-					Logger::error($route->name, "Invalid requirement for apiVersion");
-					continue;
-				}
-				$schema["enum"] = $enum;
-				$schema["default"] = end($enum);
-			} elseif ($requirement != null) {
-				$schema["pattern"] = $requirement;
-			}
-		}
 
-		if (array_key_exists($urlParameter, $route->defaults)) {
-			$schema["default"] = $route->defaults[$urlParameter];
-		}
-
-		$pathParameters[] = array_merge(
-			[
-				"name" => $urlParameter,
-				"in" => "path",
-			],
-			$description != null ? ["description" => $description] : [],
-			[
-				"required" => true,
-				"schema" => $schema,
-			],
-		);
-	}
-
-	$queryParameters = [];
-	foreach ($route->controllerMethod->parameters as $parameter) {
-		$alreadyInPath = false;
-		foreach ($pathParameters as $pathParameter) {
-			if ($pathParameter["name"] == $parameter->name) {
-				$alreadyInPath = true;
-				break;
-			}
-		}
-		if (!$alreadyInPath) {
-			$queryParameters[] = $parameter;
-		}
-	}
-
-	$mergedResponses = [];
-	foreach (array_unique(array_map(fn (ControllerMethodResponse $response) => $response->statusCode, array_filter($route->controllerMethod->responses, fn (?ControllerMethodResponse $response) => $response != null))) as $statusCode) {
-		if ($firstStatusCode && count($mergedResponses) > 0) {
-			break;
-		}
-
-		$statusCodeResponses = array_filter($route->controllerMethod->responses, fn (?ControllerMethodResponse $response) => $response != null && $response->statusCode == $statusCode);
-		$headers = [];
-		foreach ($statusCodeResponses as $response) {
-			if ($response->headers !== null) {
-				$headers = array_merge($headers, $response->headers);
-			}
-		}
-
-		$mergedContentTypeResponses = [];
-		foreach (array_unique(array_map(fn (ControllerMethodResponse $response) => $response->contentType, array_filter($statusCodeResponses, fn (ControllerMethodResponse $response) => $response->contentType != null))) as $contentType) {
-			if ($firstContentType && count($mergedContentTypeResponses) > 0) {
-				break;
-			}
-
-			/** @var ControllerMethodResponse[] $contentTypeResponses */
-			$contentTypeResponses = array_values(array_filter($statusCodeResponses, fn (ControllerMethodResponse $response) => $response->contentType == $contentType));
-
-			$hasEmpty = count(array_filter($contentTypeResponses, fn (ControllerMethodResponse $response) => $response->type == null)) > 0;
-			$uniqueResponses = array_values(array_intersect_key($contentTypeResponses, array_unique(array_map(fn (ControllerMethodResponse $response) => $response->type->toArray($openapiVersion), array_filter($contentTypeResponses, fn (ControllerMethodResponse $response) => $response->type != null)), SORT_REGULAR)));
-			if (count($uniqueResponses) == 1) {
-				if ($hasEmpty) {
-					$mergedContentTypeResponses[$contentType] = [];
-				} else {
-					$schema = Helpers::cleanEmptyResponseArray($contentTypeResponses[0]->type->toArray($openapiVersion));
-					$mergedContentTypeResponses[$contentType] = ["schema" => Helpers::wrapOCSResponse($route, $contentTypeResponses[0], $schema)];
-				}
+				$schema = $parameter->type->toArray($openapiVersion, true);
+				$description = $parameter?->docType != null && $parameter->docType->description != "" ? Helpers::cleanDocComment($parameter->docType->description) : null;
 			} else {
-				$mergedContentTypeResponses[$contentType] = [
-					"schema" => [
-						[$hasEmpty ? "anyOf" : "oneOf" => array_map(function (ControllerMethodResponse $response) use ($route, $openapiVersion) {
-							$schema = Helpers::cleanEmptyResponseArray($response->type->toArray($openapiVersion));
-							return Helpers::wrapOCSResponse($route, $response, $schema);
-						}, $uniqueResponses)],
-					],
+				$schema = [
+					"type" => "string",
 				];
+				$description = null;
+			}
+
+			if ($requirement != null) {
+				if (!str_starts_with($requirement, "^")) {
+					$requirement = "^" . $requirement;
+				}
+				if (!str_ends_with($requirement, "$")) {
+					$requirement = $requirement . "$";
+				}
+			}
+
+			if ($schema["type"] == "string") {
+				if ($urlParameter == "apiVersion") {
+					if ($requirement == null) {
+						Logger::error($route->name, "Missing requirement for apiVersion");
+						continue;
+					}
+					preg_match("/^\^\(([v0-9-.|]*)\)\\$$/m", $requirement, $matches);
+					if (count($matches) == 2) {
+						$enum = explode("|", $matches[1]);
+					} else {
+						Logger::error($route->name, "Invalid requirement for apiVersion");
+						continue;
+					}
+					$schema["enum"] = $enum;
+					$schema["default"] = end($enum);
+				} elseif ($requirement != null) {
+					$schema["pattern"] = $requirement;
+				}
+			}
+
+			if (array_key_exists($urlParameter, $route->defaults)) {
+				$schema["default"] = $route->defaults[$urlParameter];
+			}
+
+			$pathParameters[] = array_merge(
+				[
+					"name" => $urlParameter,
+					"in" => "path",
+				],
+				$description != null ? ["description" => $description] : [],
+				[
+					"required" => true,
+					"schema" => $schema,
+				],
+			);
+		}
+
+		$queryParameters = [];
+		foreach ($route->controllerMethod->parameters as $parameter) {
+			$alreadyInPath = false;
+			foreach ($pathParameters as $pathParameter) {
+				if ($pathParameter["name"] == $parameter->name) {
+					$alreadyInPath = true;
+					break;
+				}
+			}
+			if (!$alreadyInPath) {
+				$queryParameters[] = $parameter;
 			}
 		}
 
-		$mergedResponses[$statusCode] = array_merge(
-			[
-				"description" => array_key_exists($statusCode, $route->controllerMethod->responseDescription) ? $route->controllerMethod->responseDescription[$statusCode] : "",
-			],
-			count($headers) > 0 ? [
-				"headers" => array_combine(
-					array_keys($headers),
-					array_map(
-						fn (OpenApiType $type) => [
-							"schema" => $type->toArray($openapiVersion),
+		$mergedResponses = [];
+		foreach (array_unique(array_map(fn (ControllerMethodResponse $response) => $response->statusCode, array_filter($route->controllerMethod->responses, fn (?ControllerMethodResponse $response) => $response != null))) as $statusCode) {
+			if ($firstStatusCode && count($mergedResponses) > 0) {
+				break;
+			}
+
+			$statusCodeResponses = array_filter($route->controllerMethod->responses, fn (?ControllerMethodResponse $response) => $response != null && $response->statusCode == $statusCode);
+			$headers = [];
+			foreach ($statusCodeResponses as $response) {
+				if ($response->headers !== null) {
+					$headers = array_merge($headers, $response->headers);
+				}
+			}
+
+			$mergedContentTypeResponses = [];
+			foreach (array_unique(array_map(fn (ControllerMethodResponse $response) => $response->contentType, array_filter($statusCodeResponses, fn (ControllerMethodResponse $response) => $response->contentType != null))) as $contentType) {
+				if ($firstContentType && count($mergedContentTypeResponses) > 0) {
+					break;
+				}
+
+				/** @var ControllerMethodResponse[] $contentTypeResponses */
+				$contentTypeResponses = array_values(array_filter($statusCodeResponses, fn (ControllerMethodResponse $response) => $response->contentType == $contentType));
+
+				$hasEmpty = count(array_filter($contentTypeResponses, fn (ControllerMethodResponse $response) => $response->type == null)) > 0;
+				$uniqueResponses = array_values(array_intersect_key($contentTypeResponses, array_unique(array_map(fn (ControllerMethodResponse $response) => $response->type->toArray($openapiVersion), array_filter($contentTypeResponses, fn (ControllerMethodResponse $response) => $response->type != null)), SORT_REGULAR)));
+				if (count($uniqueResponses) == 1) {
+					if ($hasEmpty) {
+						$mergedContentTypeResponses[$contentType] = [];
+					} else {
+						$schema = Helpers::cleanEmptyResponseArray($contentTypeResponses[0]->type->toArray($openapiVersion));
+						$mergedContentTypeResponses[$contentType] = ["schema" => Helpers::wrapOCSResponse($route, $contentTypeResponses[0], $schema)];
+					}
+				} else {
+					$mergedContentTypeResponses[$contentType] = [
+						"schema" => [
+							[$hasEmpty ? "anyOf" : "oneOf" => array_map(function (ControllerMethodResponse $response) use ($route, $openapiVersion) {
+								$schema = Helpers::cleanEmptyResponseArray($response->type->toArray($openapiVersion));
+								return Helpers::wrapOCSResponse($route, $response, $schema);
+							}, $uniqueResponses)],
 						],
-						array_values($headers),
+					];
+				}
+			}
+
+			$mergedResponses[$statusCode] = array_merge(
+				[
+					"description" => array_key_exists($statusCode, $route->controllerMethod->responseDescription) ? $route->controllerMethod->responseDescription[$statusCode] : "",
+				],
+				count($headers) > 0 ? [
+					"headers" => array_combine(
+						array_keys($headers),
+						array_map(
+							fn (OpenApiType $type) => [
+								"schema" => $type->toArray($openapiVersion),
+							],
+							array_values($headers),
+						),
 					),
+				] : [],
+				count($mergedContentTypeResponses) > 0 ? [
+					"content" => $mergedContentTypeResponses,
+				] : [],
+			);
+		}
+
+		$operationId = [...$route->tags, ...Helpers::splitOnUppercaseFollowedByNonUppercase($route->methodName)];
+		if ($route->postfix != null) {
+			$operationId[] = $route->postfix;
+		}
+
+		$security = [];
+		if ($route->isPublic) {
+			// Add empty authentication, meaning that it's optional. We can't know if there is a difference in behaviour for authenticated vs. unauthenticated access on public pages (e.g. capabilities)
+			$security[] = new stdClass();
+		}
+		if (!$route->isCORS) {
+			// Bearer auth is not allowed on CORS routes
+			$security[] = ["bearer_auth" => []];
+		}
+		if (!$route->isCSRFRequired || $route->isOCS) {
+			// Add basic auth last, so it's only fallback if bearer is available
+			$security[] = ["basic_auth" => []];
+		}
+
+		$operation = array_merge(
+			["operationId" => strtolower(implode("-", $operationId))],
+			$route->controllerMethod->summary != null ? ["summary" => $route->controllerMethod->summary] : [],
+			count($route->controllerMethod->description) > 0 ? ["description" => implode("\n", $route->controllerMethod->description)] : [],
+			$route->controllerMethod->isDeprecated ? ["deprecated" => true] : [],
+			$useTags ? ["tags" => $route->tags] : [],
+			count($security) > 0 ? ["security" => $security] : [],
+			count($queryParameters) > 0 || count($pathParameters) > 0 || $route->isOCS ? [
+				"parameters" => array_merge(
+					array_map(fn (ControllerMethodParameter $parameter) => array_merge(
+						[
+							"name" => $parameter->name . ($parameter->type->type == "array" ? "[]" : ""),
+							"in" => "query",
+						],
+						$parameter->docType != null && $parameter->docType->description != "" ? ["description" => Helpers::cleanDocComment($parameter->docType->description)] : [],
+						!$parameter->type->nullable && !$parameter->type->hasDefaultValue ? ["required" => true] : [],
+						["schema" => $parameter->type->toArray($openapiVersion, true),],
+					), $queryParameters),
+					$pathParameters,
+					$route->isOCS ? [[
+						"name" => "OCS-APIRequest",
+						"in" => "header",
+						"description" => "Required to be true for the API request to pass",
+						"required" => true,
+						"schema" => [
+							"type" => "boolean",
+							"default" => true,
+						],
+					]] : [],
 				),
 			] : [],
-			count($mergedContentTypeResponses) > 0 ? [
-				"content" => $mergedContentTypeResponses,
-			] : [],
+			["responses" => $mergedResponses],
 		);
-	}
 
-	$operationId = [$route->tag, ...Helpers::splitOnUppercaseFollowedByNonUppercase($route->methodName)];
-	if ($route->postfix != null) {
-		$operationId[] = $route->postfix;
-	}
+		$scopePaths[$scope] ??= [];
+		$scopePaths[$scope][$route->url] ??= [];
 
-	$security = [];
-	if ($route->isPublic) {
-		// Add empty authentication, meaning that it's optional. We can't know if there is a difference in behaviour for authenticated vs. unauthenticated access on public pages (e.g. capabilities)
-		$security[] = new stdClass();
-	}
-	if (!$route->isCORS) {
-		// Bearer auth is not allowed on CORS routes
-		$security[] = ["bearer_auth" => []];
-	}
-	if (!$route->isCSRFRequired || $route->isOCS) {
-		// Add basic auth last, so it's only fallback if bearer is available
-		$security[] = ["basic_auth" => []];
-	}
+		if (!array_key_exists($route->url, $openapi["paths"])) {
+			$openapi["paths"][$route->url] = [];
+		}
 
-	$operation = array_merge(
-		["operationId" => strtolower(implode("-", $operationId))],
-		$route->controllerMethod->summary != null ? ["summary" => $route->controllerMethod->summary] : [],
-		count($route->controllerMethod->description) > 0 ? ["description" => implode("\n", $route->controllerMethod->description)] : [],
-		$route->controllerMethod->isDeprecated ? ["deprecated" => true] : [],
-		$useTags ? ["tags" => [$route->tag]] : [],
-		count($security) > 0 ? ["security" => $security] : [],
-		count($queryParameters) > 0 || count($pathParameters) > 0 || $route->isOCS ? [
-			"parameters" => array_merge(
-				array_map(fn (ControllerMethodParameter $parameter) => array_merge(
-					[
-						"name" => $parameter->name . ($parameter->type->type == "array" ? "[]" : ""),
-						"in" => "query",
-					],
-					$parameter->docType != null && $parameter->docType->description != "" ? ["description" => Helpers::cleanDocComment($parameter->docType->description)] : [],
-					!$parameter->type->nullable && !$parameter->type->hasDefaultValue ? ["required" => true] : [],
-					["schema" => $parameter->type->toArray($openapiVersion, true),],
-				), $queryParameters),
-				$pathParameters,
-				$route->isOCS ? [[
-					"name" => "OCS-APIRequest",
-					"in" => "header",
-					"description" => "Required to be true for the API request to pass",
-					"required" => true,
-					"schema" => [
-						"type" => "boolean",
-						"default" => true,
-					],
-				]] : [],
-			),
-		] : [],
-		["responses" => $mergedResponses],
-	);
-	if (!array_key_exists($route->url, $openapi["paths"])) {
-		$openapi["paths"][$route->url] = [];
-	}
+		$verb = strtolower($route->verb);
+		if (array_key_exists($verb, $scopePaths[$scope][$route->url])) {
+			Logger::error($route->name, "Operation '" . $route->verb . "' already set for path '" . $route->url . "'");
+		}
 
-	$verb = strtolower($route->verb);
-	if (array_key_exists($verb, $openapi["paths"][$route->url])) {
-		Logger::error($route->name, "Operation '" . $route->verb . "' already set for path '" . $route->url . "'");
+		$scopePaths[$scope][$route->url][$verb] = $operation;
 	}
-
-	$openapi["paths"][$route->url][$verb] = $operation;
 }
 
 if ($appIsCore) {
@@ -688,7 +744,7 @@ if ($appIsCore) {
 			],
 		],
 	];
-	$openapi["paths"]["/status.php"] = [
+	$scopePaths['default']['/status.php'] = [
 		"get" => [
 			"operationId" => "get-status",
 			"responses" => [
@@ -711,17 +767,106 @@ if (count($schemas) == 0 && count($routes) == 0) {
 	Logger::error("app", "No spec generated");
 }
 
-if (count($openapi["paths"]) == 0) {
-	$openapi["paths"] = new stdClass();
-}
-
 ksort($schemas);
-$openapi["components"]["schemas"] = count($schemas) == 0 ? new stdClass() : $schemas;
 
 if ($useTags) {
 	$openapi["tags"] = $tags;
 }
 
-file_put_contents($out, json_encode($openapi, Helpers::jsonFlags()));
+$hasSingleScope = count($scopePaths) <= 1;
+$fullScopePathArrays = [];
 
-Logger::info("app", "Generated ". count($routes). " routes!");
+if (!$hasSingleScope) {
+	$scopePaths['full'] = [];
+}
+
+foreach ($scopePaths as $scope => $paths) {
+	$openapiScope = $openapi;
+
+	$scopeSuffix = ($hasSingleScope || $scope === 'default') ? '' : '-' . $scope;
+	$openapiScope['info']['title'] .= $scopeSuffix;
+	$openapiScope['paths'] = $paths;
+
+	if ($scope !== 'full' && !$hasSingleScope) {
+		$fullScopePathArrays[] = $paths;
+	}
+
+	if ($scope === 'full') {
+		$openapiScope['paths'] = array_merge(...$fullScopePathArrays);
+		$openapiScope['components']['schemas'] = $schemas;
+	} else {
+		$usedSchemas = [];
+		foreach ($paths as $url => $urlRoutes) {
+			foreach ($urlRoutes as $httpMethod => $routeData) {
+				foreach ($routeData['responses'] as $statusCode => $responseData) {
+					if (empty($responseData['content'])) {
+						continue;
+					}
+
+					foreach ($responseData['content'] as $contentType => $contentData) {
+						if (isset($contentData['schema']) && is_array($contentData['schema'])) {
+							$newSchemas = Helpers::collectUsedRefs($contentData['schema']);
+							$usedSchemas = array_merge($usedSchemas, $newSchemas);
+						}
+					}
+				}
+			}
+		}
+
+		$scopedSchemas = [];
+		while ($usedSchema = array_shift($usedSchemas)) {
+			if (!str_starts_with($usedSchema, '#/components/schemas/')) {
+				continue;
+			}
+
+			$schemaName = substr($usedSchema, strlen('#/components/schemas/'));
+
+			if (!isset($schemas[$schemaName])) {
+				Logger::error("app", "Schema $schemaName used by scope $scope is not defined");
+			}
+
+			$newRefs = Helpers::collectUsedRefs($schemas[$schemaName]);
+			foreach ($newRefs as $newRef) {
+				if (!isset($scopedSchemas[substr($newRef, strlen('#/components/schemas/'))])) {
+					$usedSchemas[] = $newRef;
+				}
+			}
+
+			$scopedSchemas[$schemaName] = $schemas[$schemaName];
+		}
+
+		if (isset($schemas['Capabilities'])) {
+			$scopedSchemas['Capabilities'] = $schemas['Capabilities'];
+		}
+		if (isset($schemas['PublicCapabilities'])) {
+			$scopedSchemas['PublicCapabilities'] = $schemas['PublicCapabilities'];
+		}
+
+		if (count($scopedSchemas) === 0) {
+			$scopedSchemas = new \stdClass();
+		}
+
+		$openapiScope['components']['schemas'] = $scopedSchemas;
+	}
+
+	$pathsCount = count($openapiScope['paths']);
+	if ($pathsCount === 0) {
+		// Make sure the paths array is always a dictionary
+		$openapiScope['paths'] = new \stdClass();
+	}
+
+	$startExtension = strrpos($out, '.');
+	if ($startExtension !== false) {
+		// Path + filename (without extension)
+		$path = substr($out, 0, $startExtension);
+		// Extension
+		$extension = substr($out, $startExtension);
+		$scopeOut = $path . $scopeSuffix . $extension;
+	} else {
+		$scopeOut = $out . $scopeSuffix;
+	}
+
+	file_put_contents($scopeOut, json_encode($openapiScope, Helpers::jsonFlags()));
+
+	Logger::info('app', 'Generated scope ' . $scope . ' with ' . $pathsCount . ' routes!');
+}

@@ -4,11 +4,18 @@ namespace OpenAPIExtractor;
 
 use Exception;
 use PhpParser\Node;
+use PhpParser\Node\Arg;
+use PhpParser\Node\AttributeGroup;
+use PhpParser\Node\Expr\Array_;
+use PhpParser\Node\Expr\ClassConstFetch;
+use PhpParser\Node\Scalar\String_;
 use PhpParser\Node\Stmt\Class_;
 use PhpParser\Node\Stmt\ClassMethod;
 use stdClass;
 
 class Helpers {
+	public const OPENAPI_ATTRIBUTE_CLASSNAME = 'OpenAPI';
+
 	public static function generateReadableAppID(string $appID): string {
 		return implode("", array_map(fn (string $s) => ucfirst($s), explode("_", $appID)));
 	}
@@ -133,7 +140,7 @@ class Helpers {
 			return true;
 		}
 
-		/** @var Node\AttributeGroup $attrGroup */
+		/** @var AttributeGroup $attrGroup */
 		foreach ($node->attrGroups as $attrGroup) {
 			foreach ($attrGroup->attrs as $attr) {
 				if ($attr->name->getLast() == $annotation) {
@@ -148,5 +155,123 @@ class Helpers {
 	public static function cleanSchemaName(string $name): string {
 		global $readableAppID;
 		return substr($name, strlen($readableAppID));
+	}
+
+	protected static function getScopeNameFromAttributeArgument(Arg $arg, int $key, string $routeName): ?string {
+		if ($arg->name?->name === 'scope' || ($arg->name === null && $key === 0)) {
+			if ($arg->value instanceof ClassConstFetch) {
+				if ($arg->value->class->getLast() === self::OPENAPI_ATTRIBUTE_CLASSNAME) {
+					return self::getScopeNameFromConst($arg->value);
+				}
+			} elseif ($arg->value instanceof String_) {
+				return $arg->value->value;
+			} else {
+				Logger::panic($routeName, 'Can not interpret value of scope provided in OpenAPI(scope: …) attribute. Please use string or OpenAPI::SCOPE_* constants');
+			}
+		}
+
+		return null;
+	}
+
+	protected static function getScopeNameFromConst(ClassConstFetch $scope): string {
+		return match ($scope->name->name) {
+			'SCOPE_DEFAULT' => 'default',
+			'SCOPE_ADMINISTRATION' => 'administration',
+			'SCOPE_FEDERATION' => 'federation',
+			'SCOPE_IGNORE' => 'ignore',
+			// Fall back for future scopes assuming we follow the pattern (cut of 'SCOPE_' and lower case)
+			default => strtolower(substr($scope->name->name, 6)),
+		};
+	}
+
+	public static function getOpenAPIAttributeScopes(ClassMethod|Class_|Node $node, string $routeName): array {
+		$scopes = [];
+
+		/** @var AttributeGroup $attrGroup */
+		foreach ($node->attrGroups as $attrGroup) {
+			foreach ($attrGroup->attrs as $attr) {
+				if ($attr->name->getLast() === self::OPENAPI_ATTRIBUTE_CLASSNAME) {
+					if (empty($attr->args)) {
+						$scopes[] = 'default';
+						continue;
+					}
+
+					foreach ($attr->args as $key => $arg) {
+						$scope = self::getScopeNameFromAttributeArgument($arg, (int) $key, $routeName);
+						if ($scope !== null) {
+							$scopes[] = $scope;
+						}
+					}
+				}
+			}
+		}
+
+		return $scopes;
+	}
+
+	public static function getOpenAPIAttributeTagsByScope(ClassMethod|Class_|Node $node, string $routeName, string $defaultTag, string $defaultScope): array {
+		$tags = [];
+
+		/** @var AttributeGroup $attrGroup */
+		foreach ($node->attrGroups as $attrGroup) {
+			foreach ($attrGroup->attrs as $attr) {
+				if ($attr->name->getLast() === self::OPENAPI_ATTRIBUTE_CLASSNAME) {
+					if (empty($attr->args)) {
+						$tags[$defaultScope] = [$defaultTag];
+						continue;
+					}
+
+					$foundTags = [];
+					$foundScopeName = null;
+					foreach ($attr->args as $key => $arg) {
+						$foundScopeName = self::getScopeNameFromAttributeArgument($arg, (int) $key, $routeName);
+
+						if ($arg->name?->name !== 'tags' && ($arg->name !== null || $key !== 1)) {
+							continue;
+						}
+
+						if (!$arg->value instanceof Array_) {
+							Logger::panic($routeName, 'Can not read value of tags provided in OpenAPI attribute for route ' . $routeName);
+						}
+
+						foreach ($arg->value->items as $item) {
+							if ($item?->value instanceof String_) {
+								$foundTags[] = $item->value->value;
+							}
+						}
+					}
+
+					if (!empty($foundTags)) {
+						$tags[$foundScopeName ?: $defaultScope] = $foundTags;
+					}
+				}
+			}
+		}
+
+		return $tags;
+	}
+
+	public static function collectUsedRefs(array $data): array {
+		$refs = [];
+		if (isset($data['$ref'])) {
+			$refs[] = [$data['$ref']];
+		}
+
+		foreach (['allOf', 'oneOf', 'anyOf', 'properties', 'additionalProperties'] as $group) {
+			if (!isset($data[$group]) || !is_array($data[$group])) {
+				continue;
+			}
+
+			foreach ($data[$group] as $property) {
+				if (is_array($property)) {
+					$refs[] = self::collectUsedRefs($property);
+				}
+			}
+		}
+
+		if (isset($data['items'])) {
+			$refs[] = self::collectUsedRefs($data['items']);
+		}
+		return array_merge(...$refs);
 	}
 }
