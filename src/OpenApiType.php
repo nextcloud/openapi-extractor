@@ -289,6 +289,12 @@ class OpenApiType {
 			}
 		}
 
+		foreach (array_map(static fn (OpenApiType $type) => $type->type, $nonEnums) as $type) {
+			if (array_key_exists($type, $enums)) {
+				unset($enums[$type]);
+			}
+		}
+
 		return array_merge($nonEnums, array_map(fn (string $type) => new OpenApiType(type: $type, enum: $enums[$type]), array_keys($enums)));
 	}
 
