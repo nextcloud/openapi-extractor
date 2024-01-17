@@ -783,10 +783,6 @@ if (!$hasSingleScope) {
 foreach ($scopePaths as $scope => $paths) {
 	$openapiScope = $openapi;
 
-	if (count($paths) == 0) {
-		$paths = new stdClass();
-	}
-
 	$scopeSuffix = ($hasSingleScope || $scope === 'default') ? '' : '-' . $scope;
 	$openapiScope['info']['title'] .= $scopeSuffix;
 	$openapiScope['paths'] = $paths;
@@ -849,6 +845,12 @@ foreach ($scopePaths as $scope => $paths) {
 		$openapiScope['components']['schemas'] = $scopedSchemas;
 	}
 
+	$pathsCount = count($openapiScope['paths']);
+	if ($pathsCount === 0) {
+		// Make sure the paths array is always a dictionary
+		$openapiScope['paths'] = new \stdClass();
+	}
+
 	$startExtension = strrpos($out, '.');
 	if ($startExtension !== false) {
 		// Path + filename (without extension)
@@ -862,5 +864,5 @@ foreach ($scopePaths as $scope => $paths) {
 
 	file_put_contents($scopeOut, json_encode($openapiScope, Helpers::jsonFlags()));
 
-	Logger::info('app', 'Generated scope ' . $scope . ' with ' . count($openapiScope['paths']) . ' routes!');
+	Logger::info('app', 'Generated scope ' . $scope . ' with ' . $pathsCount . ' routes!');
 }
