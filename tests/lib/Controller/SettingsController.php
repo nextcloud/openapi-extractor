@@ -271,6 +271,78 @@ class SettingsController extends OCSController {
 	}
 
 	/**
+	 * A route with boolean or true
+	 *
+	 * @param bool|true $yesOrNo boolean or true
+	 * @return DataResponse<Http::STATUS_OK, array<empty>, array{}>
+	 *
+	 * 200: Admin settings updated
+	 */
+	public function booleanTrueParameter(bool $yesOrNo): DataResponse {
+		return new DataResponse();
+	}
+
+	/**
+	 * A route with boolean or false
+	 *
+	 * @param bool|false $yesOrNo boolean or false
+	 * @return DataResponse<Http::STATUS_OK, array<empty>, array{}>
+	 *
+	 * 200: Admin settings updated
+	 */
+	public function booleanFalseParameter(bool $yesOrNo): DataResponse {
+		return new DataResponse();
+	}
+
+	/**
+	 * A route with boolean or true or false
+	 *
+	 * @param bool|true|false $yesOrNo boolean or true or false
+	 * @return DataResponse<Http::STATUS_OK, array<empty>, array{}>
+	 *
+	 * 200: Admin settings updated
+	 */
+	public function booleanTrueFalseParameter(bool $yesOrNo): DataResponse {
+		return new DataResponse();
+	}
+
+	/**
+	 * A route with true or false
+	 *
+	 * @param true|false $yesOrNo true or false
+	 * @return DataResponse<Http::STATUS_OK, array<empty>, array{}>
+	 *
+	 * 200: Admin settings updated
+	 */
+	public function trueFalseParameter(bool $yesOrNo): DataResponse {
+		return new DataResponse();
+	}
+
+	/**
+	 * A route with string or 'test'
+	 *
+	 * @param string|'test' $value string or 'test'
+	 * @return DataResponse<Http::STATUS_OK, array<empty>, array{}>
+	 *
+	 * 200: Admin settings updated
+	 */
+	public function stringValueParameter(string $value): DataResponse {
+		return new DataResponse();
+	}
+
+	/**
+	 * A route with int or 0
+	 *
+	 * @param int|0 $value int or 0
+	 * @return DataResponse<Http::STATUS_OK, array<empty>, array{}>
+	 *
+	 * 200: Admin settings updated
+	 */
+	public function intValueParameter(int $value): DataResponse {
+		return new DataResponse();
+	}
+
+	/**
 	 * A route with numeric
 	 *
 	 * @param numeric $value Some numeric value
