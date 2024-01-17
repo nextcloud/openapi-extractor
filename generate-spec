@@ -773,7 +773,7 @@ if ($useTags) {
 	$openapi["tags"] = $tags;
 }
 
-$hasSingleScope = count($scopePaths) === 1;
+$hasSingleScope = count($scopePaths) <= 1;
 $fullScopePathArrays = [];
 
 if (!$hasSingleScope) {
