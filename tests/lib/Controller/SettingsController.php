@@ -196,6 +196,54 @@ class SettingsController extends OCSController {
 	}
 
 	/**
+	 * A route with a non negative integer
+	 *
+	 * @param non-negative-int $limit not negative
+	 * @return DataResponse<Http::STATUS_OK, array<empty>, array{}>
+	 *
+	 * 200: Admin settings updated
+	 */
+	public function intParameterNonNegative(int $limit): DataResponse {
+		return new DataResponse();
+	}
+
+	/**
+	 * A route with a positive integer
+	 *
+	 * @param positive-int $limit positive
+	 * @return DataResponse<Http::STATUS_OK, array<empty>, array{}>
+	 *
+	 * 200: Admin settings updated
+	 */
+	public function intParameterPositive(int $limit): DataResponse {
+		return new DataResponse();
+	}
+
+	/**
+	 * A route with a negative integer
+	 *
+	 * @param negative-int $limit negative
+	 * @return DataResponse<Http::STATUS_OK, array<empty>, array{}>
+	 *
+	 * 200: Admin settings updated
+	 */
+	public function intParameterNegative(int $limit): DataResponse {
+		return new DataResponse();
+	}
+
+	/**
+	 * A route with a non positive integer
+	 *
+	 * @param non-positive-int $limit non positive
+	 * @return DataResponse<Http::STATUS_OK, array<empty>, array{}>
+	 *
+	 * 200: Admin settings updated
+	 */
+	public function intParameterNonPositive(int $limit): DataResponse {
+		return new DataResponse();
+	}
+
+	/**
 	 * A route with a list of 2 integers, 2 strings and 1 boolean
 	 *
 	 * @param 0|1|'yes'|'no'|true $weird Weird list
