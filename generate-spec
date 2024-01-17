@@ -861,6 +861,6 @@ foreach ($scopePaths as $scope => $paths) {
 	}
 
 	file_put_contents($scopeOut, json_encode($openapiScope, Helpers::jsonFlags()));
-}
 
-Logger::info("app", "Generated ". count($routes). " routes!");
+	Logger::info('app', 'Generated scope ' . $scope . ' with ' . count($openapiScope['paths']) . ' routes!');
+}
