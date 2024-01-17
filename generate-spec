@@ -842,6 +842,10 @@ foreach ($scopePaths as $scope => $paths) {
 			$scopedSchemas['PublicCapabilities'] = $schemas['PublicCapabilities'];
 		}
 
+		if (count($scopedSchemas) === 0) {
+			$scopedSchemas = new \stdClass();
+		}
+
 		$openapiScope['components']['schemas'] = $scopedSchemas;
 	}
 
