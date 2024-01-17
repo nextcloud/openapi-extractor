@@ -7,7 +7,6 @@ use PhpParser\Node;
 use PhpParser\Node\Arg;
 use PhpParser\Node\AttributeGroup;
 use PhpParser\Node\Expr\Array_;
-use PhpParser\Node\Expr\ArrayItem;
 use PhpParser\Node\Expr\ClassConstFetch;
 use PhpParser\Node\Scalar\String_;
 use PhpParser\Node\Stmt\Class_;
@@ -232,12 +231,11 @@ class Helpers {
 						}
 
 						if (!$arg->value instanceof Array_) {
-
-							continue;
+							Logger::panic($routeName, 'Can not read value of tags provided in OpenAPI attribute for route ' . $routeName);
 						}
 
 						foreach ($arg->value->items as $item) {
-							if ($item instanceof ArrayItem && $item->value instanceof String_) {
+							if ($item?->value instanceof String_) {
 								$foundTags[] = $item->value->value;
 							}
 						}
@@ -246,8 +244,6 @@ class Helpers {
 					if (!empty($foundTags)) {
 						$tags[$foundScopeName ?: $defaultScope] = $foundTags;
 					}
-
-
 				}
 			}
 		}
