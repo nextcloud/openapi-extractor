@@ -778,6 +778,13 @@ $fullScopePathArrays = [];
 
 if (!$hasSingleScope) {
 	$scopePaths['full'] = [];
+} elseif (count($scopePaths) === 0) {
+	if (isset($schemas['Capabilities']) || isset($schemas['PublicCapabilities'])) {
+		Logger::info('app', 'Generating default scope without routes to populate capabilities');
+		$scopePaths['default'] = [];
+	} else {
+		Logger::panic('app', 'No routes or capabilities defined');
+	}
 }
 
 foreach ($scopePaths as $scope => $paths) {
