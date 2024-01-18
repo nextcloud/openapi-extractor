@@ -29,8 +29,8 @@ class Route {
 			}
 			return include($path);
 		} elseif (str_contains($content, "registerRoutes")) {
-			preg_match("/registerRoutes\(.*?\\\$this,.*?(\[[^;]*)\);/s", $content, $matches);
-			return self::includeRoutes("<?php\nreturn " . $matches[1] . ";");
+			preg_match_all("/registerRoutes\(.*?\\\$this,.*?(\[[^;]*)\);/s", $content, $matches);
+			return array_merge(...array_map(fn (string $match) => self::includeRoutes("<?php\nreturn " . $match . ";"), $matches[1]));
 		} else {
 			Logger::panic("Routes", "Unknown routes.php format");
 		}
