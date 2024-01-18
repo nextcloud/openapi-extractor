@@ -253,25 +253,11 @@ class Helpers {
 
 	public static function collectUsedRefs(array $data): array {
 		$refs = [];
-		if (isset($data['$ref'])) {
-			$refs[] = [$data['$ref']];
-		}
-
-		foreach (['allOf', 'oneOf', 'anyOf', 'properties', 'additionalProperties'] as $group) {
-			if (!isset($data[$group]) || !is_array($data[$group])) {
-				continue;
+		array_walk_recursive($data, function ($value, $key) use (&$refs) {
+			if ($key === '$ref') {
+				$refs[] = $value;
 			}
-
-			foreach ($data[$group] as $property) {
-				if (is_array($property)) {
-					$refs[] = self::collectUsedRefs($property);
-				}
-			}
-		}
-
-		if (isset($data['items'])) {
-			$refs[] = self::collectUsedRefs($data['items']);
-		}
-		return array_merge(...$refs);
+		});
+		return $refs;
 	}
 }
