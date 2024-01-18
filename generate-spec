@@ -851,6 +851,8 @@ foreach ($scopePaths as $scope => $paths) {
 
 		if (count($scopedSchemas) === 0) {
 			$scopedSchemas = new \stdClass();
+		} else {
+			ksort($scopedSchemas);
 		}
 
 		$openapiScope['components']['schemas'] = $scopedSchemas;
