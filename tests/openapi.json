@@ -20,27 +20,32 @@
             }
         },
         "schemas": {
-            "OCSMeta": {
+            "Collection": {
+                "type": "array",
+                "items": {
+                    "$ref": "#/components/schemas/Item"
+                }
+            },
+            "Item": {
                 "type": "object",
                 "required": [
-                    "status",
-                    "statuscode"
+                    "label",
+                    "link",
+                    "type",
+                    "primary"
                 ],
                 "properties": {
-                    "status": {
+                    "label": {
                         "type": "string"
                     },
-                    "statuscode": {
-                        "type": "integer"
-                    },
-                    "message": {
+                    "link": {
                         "type": "string"
                     },
-                    "totalitems": {
+                    "type": {
                         "type": "string"
                     },
-                    "itemsperpage": {
-                        "type": "string"
+                    "primary": {
+                        "type": "boolean"
                     }
                 }
             },
@@ -119,12 +124,6 @@
                     }
                 }
             },
-            "Collection": {
-                "type": "array",
-                "items": {
-                    "$ref": "#/components/schemas/Item"
-                }
-            },
             "NotificationAction": {
                 "type": "object",
                 "required": [
@@ -148,26 +147,27 @@
                     }
                 }
             },
-            "Item": {
+            "OCSMeta": {
                 "type": "object",
                 "required": [
-                    "label",
-                    "link",
-                    "type",
-                    "primary"
+                    "status",
+                    "statuscode"
                 ],
                 "properties": {
-                    "label": {
+                    "status": {
                         "type": "string"
                     },
-                    "link": {
+                    "statuscode": {
+                        "type": "integer"
+                    },
+                    "message": {
                         "type": "string"
                     },
-                    "type": {
+                    "totalitems": {
                         "type": "string"
                     },
-                    "primary": {
-                        "type": "boolean"
+                    "itemsperpage": {
+                        "type": "string"
                     }
                 }
             }
