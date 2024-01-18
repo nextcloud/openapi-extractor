@@ -783,7 +783,7 @@ if (!$hasSingleScope) {
 foreach ($scopePaths as $scope => $paths) {
 	$openapiScope = $openapi;
 
-	$scopeSuffix = ($hasSingleScope || $scope === 'default') ? '' : '-' . $scope;
+	$scopeSuffix = $scope === 'default' ? '' : '-' . $scope;
 	$openapiScope['info']['title'] .= $scopeSuffix;
 	$openapiScope['paths'] = $paths;
 
