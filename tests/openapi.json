@@ -178,7 +178,7 @@
             "post": {
                 "operationId": "admin_settings-moved-to-default-scope",
                 "summary": "Route is in the default scope because the method overwrites with the Attribute",
-                "description": "This endpoint requires admin access",
+                "description": "This endpoint requires admin access.",
                 "tags": [
                     "admin_settings"
                 ],

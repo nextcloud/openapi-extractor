@@ -84,7 +84,7 @@
             "post": {
                 "operationId": "admin_settings-admin-scope-implicit-from-admin-required",
                 "summary": "Route is only in the admin scope because there is no \"NoAdminRequired\" annotation or attribute",
-                "description": "This endpoint requires admin access",
+                "description": "This endpoint requires admin access.",
                 "tags": [
                     "admin_settings"
                 ],
@@ -156,7 +156,7 @@
             "post": {
                 "operationId": "settings-admin-settings-moved-to-settings-tag",
                 "summary": "Route in default scope with tags",
-                "description": "This endpoint requires admin access",
+                "description": "This endpoint requires admin access.",
                 "tags": [
                     "settings",
                     "admin-settings"
@@ -229,7 +229,7 @@
             "post": {
                 "operationId": "settings-admin-settings-moved-to-settings-tag-unnamed",
                 "summary": "Route in default scope with tags but without named parameters on the attribute",
-                "description": "This endpoint requires admin access",
+                "description": "This endpoint requires admin access.",
                 "tags": [
                     "settings",
                     "admin-settings"
@@ -446,7 +446,7 @@
             "post": {
                 "operationId": "settings-list-of-int-parameters",
                 "summary": "A route with a limited set of possible integers",
-                "description": "This endpoint requires admin access",
+                "description": "This endpoint requires admin access.",
                 "tags": [
                     "settings"
                 ],
@@ -540,7 +540,7 @@
             "post": {
                 "operationId": "settings-int-parameter-with-min-and-max",
                 "summary": "A route with a min and max integers",
-                "description": "This endpoint requires admin access",
+                "description": "This endpoint requires admin access.",
                 "tags": [
                     "settings"
                 ],
@@ -624,7 +624,7 @@
             "post": {
                 "operationId": "settings-int-parameter-with-min",
                 "summary": "A route with a min integers",
-                "description": "This endpoint requires admin access",
+                "description": "This endpoint requires admin access.",
                 "tags": [
                     "settings"
                 ],
@@ -707,7 +707,7 @@
             "post": {
                 "operationId": "settings-int-parameter-with-max",
                 "summary": "A route with a max integers",
-                "description": "This endpoint requires admin access",
+                "description": "This endpoint requires admin access.",
                 "tags": [
                     "settings"
                 ],
@@ -790,7 +790,7 @@
             "post": {
                 "operationId": "settings-int-parameter-non-negative",
                 "summary": "A route with a non negative integer",
-                "description": "This endpoint requires admin access",
+                "description": "This endpoint requires admin access.",
                 "tags": [
                     "settings"
                 ],
@@ -873,7 +873,7 @@
             "post": {
                 "operationId": "settings-int-parameter-positive",
                 "summary": "A route with a positive integer",
-                "description": "This endpoint requires admin access",
+                "description": "This endpoint requires admin access.",
                 "tags": [
                     "settings"
                 ],
@@ -956,7 +956,7 @@
             "post": {
                 "operationId": "settings-int-parameter-negative",
                 "summary": "A route with a negative integer",
-                "description": "This endpoint requires admin access",
+                "description": "This endpoint requires admin access.",
                 "tags": [
                     "settings"
                 ],
@@ -1039,7 +1039,7 @@
             "post": {
                 "operationId": "settings-int-parameter-non-positive",
                 "summary": "A route with a non positive integer",
-                "description": "This endpoint requires admin access",
+                "description": "This endpoint requires admin access.",
                 "tags": [
                     "settings"
                 ],
@@ -1122,7 +1122,7 @@
             "post": {
                 "operationId": "settings-list-of-int-string-and-one-bool",
                 "summary": "A route with a list of 2 integers, 2 strings and 1 boolean",
-                "description": "This endpoint requires admin access",
+                "description": "This endpoint requires admin access.",
                 "tags": [
                     "settings"
                 ],
@@ -1224,7 +1224,7 @@
             "post": {
                 "operationId": "settings-list-of-int-string-and-all-bools",
                 "summary": "A route with a list of 2 integers, 2 strings and 1 boolean",
-                "description": "This endpoint requires admin access",
+                "description": "This endpoint requires admin access.",
                 "tags": [
                     "settings"
                 ],
@@ -1327,7 +1327,7 @@
             "post": {
                 "operationId": "settings-boolean-parameter-required",
                 "summary": "A route with required boolean",
-                "description": "This endpoint requires admin access",
+                "description": "This endpoint requires admin access.",
                 "tags": [
                     "settings"
                 ],
@@ -1412,7 +1412,7 @@
             "post": {
                 "operationId": "settings-boolean-parameter-default-false",
                 "summary": "A route with boolean defaulting to false",
-                "description": "This endpoint requires admin access",
+                "description": "This endpoint requires admin access.",
                 "tags": [
                     "settings"
                 ],
@@ -1497,7 +1497,7 @@
             "post": {
                 "operationId": "settings-boolean-parameter-default-true",
                 "summary": "A route with boolean defaulting to true",
-                "description": "This endpoint requires admin access",
+                "description": "This endpoint requires admin access.",
                 "tags": [
                     "settings"
                 ],
@@ -1582,7 +1582,7 @@
             "post": {
                 "operationId": "settings-boolean-true-parameter",
                 "summary": "A route with boolean or true",
-                "description": "This endpoint requires admin access",
+                "description": "This endpoint requires admin access.",
                 "tags": [
                     "settings"
                 ],
@@ -1667,7 +1667,7 @@
             "post": {
                 "operationId": "settings-boolean-false-parameter",
                 "summary": "A route with boolean or false",
-                "description": "This endpoint requires admin access",
+                "description": "This endpoint requires admin access.",
                 "tags": [
                     "settings"
                 ],
@@ -1752,7 +1752,7 @@
             "post": {
                 "operationId": "settings-boolean-true-false-parameter",
                 "summary": "A route with boolean or true or false",
-                "description": "This endpoint requires admin access",
+                "description": "This endpoint requires admin access.",
                 "tags": [
                     "settings"
                 ],
@@ -1837,7 +1837,7 @@
             "post": {
                 "operationId": "settings-true-false-parameter",
                 "summary": "A route with true or false",
-                "description": "This endpoint requires admin access",
+                "description": "This endpoint requires admin access.",
                 "tags": [
                     "settings"
                 ],
@@ -1922,7 +1922,7 @@
             "post": {
                 "operationId": "settings-string-value-parameter",
                 "summary": "A route with string or 'test'",
-                "description": "This endpoint requires admin access",
+                "description": "This endpoint requires admin access.",
                 "tags": [
                     "settings"
                 ],
@@ -2003,7 +2003,7 @@
             "post": {
                 "operationId": "settings-int-value-parameter",
                 "summary": "A route with int or 0",
-                "description": "This endpoint requires admin access",
+                "description": "This endpoint requires admin access.",
                 "tags": [
                     "settings"
                 ],
@@ -2085,7 +2085,7 @@
             "post": {
                 "operationId": "settings-numeric-parameter",
                 "summary": "A route with numeric",
-                "description": "This endpoint requires admin access",
+                "description": "This endpoint requires admin access.",
                 "tags": [
                     "settings"
                 ],
@@ -2107,6 +2107,78 @@
                             "type": "number"
                         }
                     },
+                    {
+                        "name": "apiVersion",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "v2"
+                            ],
+                            "default": "v2"
+                        }
+                    },
+                    {
+                        "name": "OCS-APIRequest",
+                        "in": "header",
+                        "description": "Required to be true for the API request to pass",
+                        "required": true,
+                        "schema": {
+                            "type": "boolean",
+                            "default": true
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Admin settings updated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "required": [
+                                        "ocs"
+                                    ],
+                                    "properties": {
+                                        "ocs": {
+                                            "type": "object",
+                                            "required": [
+                                                "meta",
+                                                "data"
+                                            ],
+                                            "properties": {
+                                                "meta": {
+                                                    "$ref": "#/components/schemas/OCSMeta"
+                                                },
+                                                "data": {}
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/ocs/v2.php/apps/notifications/api/{apiVersion}/password-confirmation": {
+            "post": {
+                "operationId": "settings-password-confirmation-required",
+                "summary": "A route with password confirmation required",
+                "description": "This endpoint requires admin access.\nThis endpoint requires confirming the password.",
+                "tags": [
+                    "settings"
+                ],
+                "security": [
+                    {
+                        "bearer_auth": []
+                    },
+                    {
+                        "basic_auth": []
+                    }
+                ],
+                "parameters": [
                     {
                         "name": "apiVersion",
                         "in": "path",

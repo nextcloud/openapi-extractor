@@ -30,6 +30,7 @@ use OCA\Notifications\ResponseDefinitions;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\IgnoreOpenAPI;
 use OCP\AppFramework\Http\Attribute\OpenAPI;
+use OCP\AppFramework\Http\Attribute\PasswordConfirmationRequired;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\AppFramework\OCSController;
 
@@ -384,6 +385,18 @@ class SettingsController extends OCSController {
 	 * 200: Admin settings updated
 	 */
 	public function numericParameter(mixed $value): DataResponse {
+		return new DataResponse();
+	}
+
+	/**
+	 * A route with password confirmation required
+	 *
+	 * @return DataResponse<Http::STATUS_OK, array<empty>, array{}>
+	 *
+	 * 200: Admin settings updated
+	 */
+	#[PasswordConfirmationRequired]
+	public function passwordConfirmationRequired(): DataResponse {
 		return new DataResponse();
 	}
 }

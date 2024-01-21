@@ -61,5 +61,6 @@ return [
 		['name' => 'Settings#stringValueParameter', 'url' => '/api/{apiVersion}/string-value', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
 		['name' => 'Settings#intValueParameter', 'url' => '/api/{apiVersion}/int-value', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
 		['name' => 'Settings#numericParameter', 'url' => '/api/{apiVersion}/numeric', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
+		['name' => 'Settings#passwordConfirmationRequired', 'url' => '/api/{apiVersion}/password-confirmation', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
 	],
 ];
