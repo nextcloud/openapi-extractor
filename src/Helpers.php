@@ -6,8 +6,12 @@ use Exception;
 use PhpParser\Node;
 use PhpParser\Node\Arg;
 use PhpParser\Node\AttributeGroup;
+use PhpParser\Node\Expr;
 use PhpParser\Node\Expr\Array_;
 use PhpParser\Node\Expr\ClassConstFetch;
+use PhpParser\Node\Expr\ConstFetch;
+use PhpParser\Node\Expr\UnaryMinus;
+use PhpParser\Node\Scalar\LNumber;
 use PhpParser\Node\Scalar\String_;
 use PhpParser\Node\Stmt\Class_;
 use PhpParser\Node\Stmt\ClassMethod;
@@ -259,5 +263,48 @@ class Helpers {
 			}
 		});
 		return $refs;
+	}
+
+	/**
+	 * @throws LoggerException
+	 * @throws UnsupportedExprException
+	 */
+	public static function exprToValue(string $context, Expr $expr): mixed {
+		if ($expr instanceof ConstFetch) {
+			$value = $expr->name->getLast();
+			return match ($value) {
+				'null' => null,
+				'true' => true,
+				'false' => false,
+				default => Logger::panic($context, "Unable to evaluate constant value '$value'"),
+			};
+		}
+		if ($expr instanceof String_) {
+			return $expr->value;
+		}
+		if ($expr instanceof LNumber) {
+			return intval($expr->value);
+		}
+		if ($expr instanceof UnaryMinus) {
+			return -self::exprToValue($context, $expr->expr);
+		}
+		if ($expr instanceof Array_) {
+			$array = [];
+			foreach ($expr->items as $item) {
+				try {
+					$value = self::exprToValue($context, $item->value);
+					if ($item->key !== null) {
+						$array[self::exprToValue($context, $item->key)] = $value;
+					} else {
+						$array[] = $value;
+					}
+				} catch (UnsupportedExprException $e) {
+					Logger::debug($context, $e);
+				}
+			}
+			return $array;
+		}
+
+		throw new UnsupportedExprException($expr, $context);
 	}
 }

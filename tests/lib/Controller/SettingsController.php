@@ -386,4 +386,28 @@ class SettingsController extends OCSController {
 	public function numericParameter(mixed $value): DataResponse {
 		return new DataResponse();
 	}
+
+	/**
+	 * A route with list
+	 *
+	 * @param list<string> $value Some array value
+	 * @return DataResponse<Http::STATUS_OK, array<empty>, array{}>
+	 *
+	 * 200: Admin settings updated
+	 */
+	public function arrayListParameter(array $value = ['test']): DataResponse {
+		return new DataResponse();
+	}
+
+	/**
+	 * A route with keyed array
+	 *
+	 * @param array<string, string> $value Some array value
+	 * @return DataResponse<Http::STATUS_OK, array<empty>, array{}>
+	 *
+	 * 200: Admin settings updated
+	 */
+	public function arrayKeyedParameter(array $value = ['test' => 'abc']): DataResponse {
+		return new DataResponse();
+	}
 }
