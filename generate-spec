@@ -240,12 +240,17 @@ $controllers = [];
 $controllersDir = $sourceDir . "/Controller";
 if (file_exists($controllersDir)) {
 	$dir = new DirectoryIterator($controllersDir);
+	$controllerFiles = [];
 	foreach ($dir as $file) {
 		$filePath = $file->getPathname();
 		if (!str_ends_with($filePath, "Controller.php")) {
 			continue;
 		}
+		$controllerFiles[] = $filePath;
+	}
+	sort($controllerFiles);
 
+	foreach ($controllerFiles as $filePath) {
 		$controllers[basename($filePath, "Controller.php")] = $astParser->parse(file_get_contents($filePath));
 	}
 }
