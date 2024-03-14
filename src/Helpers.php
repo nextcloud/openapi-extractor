@@ -240,7 +240,12 @@ class Helpers {
 
 						foreach ($arg->value->items as $item) {
 							if ($item?->value instanceof String_) {
-								$foundTags[] = $item->value->value;
+								$tag = $item->value->value;
+								$pattern = "/^[0-9a-zA-Z_-]+$/";
+								if (!preg_match($pattern, $tag)) {
+									Logger::error($routeName, 'Tag "' . $tag . '" has to match pattern "' . $pattern . '"');
+								}
+								$foundTags[] = $tag;
 							}
 						}
 					}
