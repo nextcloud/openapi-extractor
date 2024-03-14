@@ -18,47 +18,9 @@ This tool should be added as a dev dependency to the `composer.json` of your app
 }
 ```
 
-## Create a CI workflow
+## Create a CI workflow to check the specifications are up-to-date
 
-Put the following at `.github/workflows/openapi.yml`:
-
-```yaml
-name: OpenAPI
-
-on:
-  pull_request:
-  push:
-    branches:
-      - main
-
-jobs:
-  openapi:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-
-      - name: Set up php
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.2'
-          extensions: xml
-          coverage: none
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Composer install
-        run: composer i
-
-      - name: OpenAPI checker
-        run: |
-          composer exec generate-spec
-          if [ -n "$(git status --porcelain openapi.json)" ]; then
-            git diff
-            exit 1
-          fi
-```
+The Workflow template repository has a template available: https://github.com/nextcloud/.github/blob/master/workflow-templates/openapi.yml
 
 Afterward in your repository settings set the OpenAPI workflow to be required for merging pull requests.
 
