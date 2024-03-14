@@ -42,11 +42,14 @@ class Helpers {
 			"agpl" => "AGPL-3.0-only",
 			default => Logger::panic("license", "Unable to convert " . $license . " to SPDX identifier"),
 		};
-		return array_merge([
+
+		$out = [
 			"name" => "agpl",
-		],
-			version_compare($openapiVersion, "3.1.0", ">=") ? ["identifier" => $identifier] : [],
-		);
+		];
+		if (version_compare($openapiVersion, "3.1.0", ">=")) {
+			$out["identifier"] = $identifier;
+		}
+		return $out;
 	}
 
 	public static function jsonFlags(): int {
