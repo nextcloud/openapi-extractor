@@ -232,9 +232,6 @@ if ($capabilities == null && $publicCapabilities == null) {
 }
 
 $parsedRoutes = file_exists($appinfoDir . "/routes.php") ? Route::parseRoutes($appinfoDir . "/routes.php") : [];
-if (count($parsedRoutes) == 0) {
-	Logger::warning("Routes", "No routes were loaded");
-}
 
 $controllers = [];
 $controllersDir = $sourceDir . "/Controller";
@@ -320,6 +317,10 @@ foreach ($controllers as $controllerName => $stmts) {
 			}
 		}
 	}
+}
+
+if (count($parsedRoutes) === 0) {
+	Logger::warning("Routes", "No routes were loaded");
 }
 
 foreach ($parsedRoutes as $key => $value) {
