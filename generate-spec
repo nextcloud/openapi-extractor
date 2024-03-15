@@ -43,6 +43,7 @@ $command
 	->option('--no-tags', 'Use no tags')
 	->option('--continue-on-error', 'Continue on error')
 	->option('--openapi-version', 'OpenAPI version to use', null, '3.0.3')
+	->option('--parameters-to-body', 'Put all parameters into the JSON body')
 	->option('--verbose', 'Verbose logging')
 	->parse($_SERVER["argv"]);
 
@@ -55,6 +56,7 @@ $useTags = $command->tags ?? true;
 Logger::$exitOnError = !($command->continueOnError ?? false);
 Logger::$verbose = $command->verbose ?? false;
 $openapiVersion = $command->openapiVersion ?? '3.0.3';
+$parametersToBody = $command->parametersToBody ?? false;
 
 if ($dir == "") {
 	$dir = ".";
@@ -151,7 +153,7 @@ if (file_exists($definitionsPath)) {
 		}
 	}
 	foreach (array_keys($definitions) as $name) {
-		$schemas[Helpers::cleanSchemaName($name)] = OpenApiType::resolve("Response definitions", $definitions, $definitions[$name])->toArray($openapiVersion);
+		$schemas[Helpers::cleanSchemaName($name)] = OpenApiType::resolve("Response definitions", $definitions, $definitions[$name])->toArray();
 	}
 } else {
 	Logger::debug("Response definitions", "No response definitions were loaded");
@@ -212,7 +214,7 @@ foreach ($capabilitiesFiles as $path) {
 			continue;
 		}
 
-		$schema = $type->toArray($openapiVersion);
+		$schema = $type->toArray();
 
 		if ($implementsPublicCapability) {
 			$publicCapabilities = $publicCapabilities == null ? $schema : Helpers::mergeSchemas([$publicCapabilities, $schema]);
@@ -574,7 +576,7 @@ foreach ($routes as $scope => $scopeRoutes) {
 					continue;
 				}
 
-				$schema = $parameter->type->toArray($openapiVersion, true);
+				$schema = $parameter->type->toArray(true);
 				$description = $parameter?->docType != null && $parameter->docType->description != "" ? Helpers::cleanDocComment($parameter->docType->description) : null;
 			} else {
 				$schema = [
@@ -667,19 +669,19 @@ foreach ($routes as $scope => $scopeRoutes) {
 				$contentTypeResponses = array_values(array_filter($statusCodeResponses, fn (ControllerMethodResponse $response) => $response->contentType == $contentType));
 
 				$hasEmpty = count(array_filter($contentTypeResponses, fn (ControllerMethodResponse $response) => $response->type == null)) > 0;
-				$uniqueResponses = array_values(array_intersect_key($contentTypeResponses, array_unique(array_map(fn (ControllerMethodResponse $response) => $response->type->toArray($openapiVersion), array_filter($contentTypeResponses, fn (ControllerMethodResponse $response) => $response->type != null)), SORT_REGULAR)));
+				$uniqueResponses = array_values(array_intersect_key($contentTypeResponses, array_unique(array_map(fn (ControllerMethodResponse $response) => $response->type->toArray(), array_filter($contentTypeResponses, fn (ControllerMethodResponse $response) => $response->type != null)), SORT_REGULAR)));
 				if (count($uniqueResponses) == 1) {
 					if ($hasEmpty) {
 						$mergedContentTypeResponses[$contentType] = [];
 					} else {
-						$schema = Helpers::cleanEmptyResponseArray($contentTypeResponses[0]->type->toArray($openapiVersion));
+						$schema = Helpers::cleanEmptyResponseArray($contentTypeResponses[0]->type->toArray());
 						$mergedContentTypeResponses[$contentType] = ["schema" => Helpers::wrapOCSResponse($route, $contentTypeResponses[0], $schema)];
 					}
 				} else {
 					$mergedContentTypeResponses[$contentType] = [
 						"schema" => [
-							[$hasEmpty ? "anyOf" : "oneOf" => array_map(function (ControllerMethodResponse $response) use ($route, $openapiVersion) {
-								$schema = Helpers::cleanEmptyResponseArray($response->type->toArray($openapiVersion));
+							[$hasEmpty ? "anyOf" : "oneOf" => array_map(function (ControllerMethodResponse $response) use ($route) {
+								$schema = Helpers::cleanEmptyResponseArray($response->type->toArray());
 								return Helpers::wrapOCSResponse($route, $response, $schema);
 							}, $uniqueResponses)],
 						],
@@ -695,7 +697,7 @@ foreach ($routes as $scope => $scopeRoutes) {
 					array_keys($headers),
 					array_map(
 						fn (OpenApiType $type) => [
-							"schema" => $type->toArray($openapiVersion),
+							"schema" => $type->toArray(),
 						],
 						array_values($headers),
 					),
@@ -745,24 +747,65 @@ foreach ($routes as $scope => $scopeRoutes) {
 			$operation["security"] = $security;
 		}
 		if (count($queryParameters) > 0 || count($pathParameters) > 0 || $route->isOCS) {
-			$parameters = [
-				...array_map(static function (ControllerMethodParameter $parameter) use ($openapiVersion) {
-					$out = [
-						"name" => $parameter->name . ($parameter->type->type === "array" ? "[]" : ""),
+			$requiredBodyParameters = [];
+			$bodyParameters = [];
+			$parameters = [];
+
+			foreach ($queryParameters as $queryParameter) {
+				// Non-atomic types have to be put into the body as the serialization is too complex for query parameters
+				// Booleans also have to be in the body because for query parameters 0/1 would have to be used which is not ergonomic.
+				$isBodyParameter = $parametersToBody ||
+					$queryParameter->type->type === "boolean" ||
+					$queryParameter->type->type === "object" ||
+					$queryParameter->type->type === "array" ||
+					$queryParameter->type->ref !== null ||
+					$queryParameter->type->anyOf !== null ||
+					$queryParameter->type->allOf !== null;
+				$required = !$queryParameter->type->nullable && !$queryParameter->type->hasDefaultValue;
+
+				if ($isBodyParameter) {
+					$bodyParameters[$queryParameter->name] = $queryParameter->type->toArray();
+					if ($required) {
+						$requiredBodyParameters[] = $queryParameter->name;
+					}
+				} else {
+					$parameter = [
+						"name" => $queryParameter->name,
 						"in" => "query",
 					];
-					if ($parameter->docType !== null && $parameter->docType->description !== "") {
-						$out["description"] = Helpers::cleanDocComment($parameter->docType->description);
+					if ($queryParameter->docType !== null && $queryParameter->docType->description !== "") {
+						$parameter["description"] = Helpers::cleanDocComment($queryParameter->docType->description);
 					}
-					if (!$parameter->type->nullable && !$parameter->type->hasDefaultValue) {
-						$out["required"] = true;
+					if ($required) {
+						$parameter["required"] = true;
 					}
-					$out["schema"] = $parameter->type->toArray($openapiVersion, true);
+					$parameter["schema"] = $queryParameter->type->toArray(true);
+					$parameters[] = $parameter;
+				}
+			}
 
-					return $out;
-				}, $queryParameters),
-				...$pathParameters,
-			];
+			if (count($bodyParameters) > 0) {
+				$required = count($requiredBodyParameters) > 0;
+
+				$schema = [
+					"type" => "object",
+				];
+				if ($required) {
+					$schema["required"] = $requiredBodyParameters;
+				}
+				$schema["properties"] = $bodyParameters;
+
+				$operation["requestBody"] = [
+					"required" => $required,
+					"content" => [
+						"application/json" => [
+							"schema" => $schema,
+						],
+					],
+				];
+			}
+
+			$parameters = array_merge($parameters, $pathParameters);
 			if ($route->isOCS) {
 				$parameters[] = [
 					"name" => "OCS-APIRequest",
@@ -775,7 +818,10 @@ foreach ($routes as $scope => $scopeRoutes) {
 					],
 				];
 			}
-			$operation["parameters"] = $parameters;
+
+			if (count($parameters) > 0) {
+				$operation["parameters"] = $parameters;
+			}
 		}
 		$operation["responses"] = $mergedResponses;
 
