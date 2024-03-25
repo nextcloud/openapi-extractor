@@ -82,7 +82,7 @@ class ControllerMethod {
 							} else {
 								$responseDescriptions[$statusCode] = $docNode->value->description;
 							}
-							$responses[] = new ControllerMethodResponse($docNode->value->type, $statusCode, "text/plain", new OpenApiType(type: "string"), null);
+							$responses[] = new ControllerMethodResponse($docNode->value->type, $statusCode, "application/json", new OpenApiType(type: "array", maxLength: 0), null);
 						}
 					}
 				}

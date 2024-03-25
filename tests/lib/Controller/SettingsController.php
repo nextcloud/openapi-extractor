@@ -31,6 +31,7 @@ use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\IgnoreOpenAPI;
 use OCP\AppFramework\Http\Attribute\OpenAPI;
 use OCP\AppFramework\Http\DataResponse;
+use OCP\AppFramework\OCS\OCSNotFoundException;
 use OCP\AppFramework\OCSController;
 
 /**
@@ -409,5 +410,19 @@ class SettingsController extends OCSController {
 	 */
 	public function arrayKeyedParameter(array $value = ['test' => 'abc']): DataResponse {
 		return new DataResponse();
+	}
+
+	/**
+	 * @NoAdminRequired
+	 *
+	 * Route throws an OCS exception
+	 *
+	 * @return DataResponse<Http::STATUS_OK, array<empty>, array{}>
+	 * @throws OCSNotFoundException Description of 404 because we throw all the time
+	 *
+	 * 200: Admin settings updated
+	 */
+	public function throwing(): DataResponse {
+		throw new OCSNotFoundException();
 	}
 }
