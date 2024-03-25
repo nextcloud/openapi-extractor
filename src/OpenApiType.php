@@ -130,6 +130,9 @@ class OpenApiType {
 			}
 			return new OpenApiType(type: "array", items: self::resolve($context, $definitions, $node->genericTypes[0]));
 		}
+		if ($node instanceof GenericTypeNode && $node->type->name === 'value-of') {
+			Logger::panic($context, "'value-of' is not supported");
+		}
 
 		if ($node instanceof ArrayShapeNode) {
 			$properties = [];
@@ -266,7 +269,11 @@ class OpenApiType {
 			);
 		}
 
-		Logger::panic($context, "Unable to resolve OpenAPI type for type '" . get_class($node) . "'");
+		if ($node instanceof ConstTypeNode) {
+			Logger::panic($context, 'Constants are not supported');
+		}
+
+		Logger::panic($context, "Unable to resolve OpenAPI type:\n" . var_export($node, true) . "\nPlease open an issue at https://github.com/nextcloud/openapi-extractor/issues/new with the error message and a link to your source code.");
 	}
 
 	/**
