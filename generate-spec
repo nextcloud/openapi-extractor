@@ -620,12 +620,12 @@ foreach ($routes as $scope => $scopeRoutes) {
 			$parameter = [
 				"name" => $urlParameter,
 				"in" => "path",
+				"required" => true,
+				"schema" => $schema,
 			];
 			if ($description !== null) {
 				$parameter["description"] = $description;
 			}
-			$parameter["required"] = true;
-			$parameter["schema"] = $schema;
 
 			$pathParameters[] = $parameter;
 		}
