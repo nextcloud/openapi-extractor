@@ -443,7 +443,7 @@ class SettingsController extends OCSController {
 	/**
 	 * A route 204 response
 	 *
-	 * @return DataResponse<Http::STATUS_NO_CONTENT, array<empty>, array{}>
+	 * @return DataResponse<Http::STATUS_NO_CONTENT, array<empty>, array{X-Custom: string}>
 	 *
 	 * 204: No settings
 	 */

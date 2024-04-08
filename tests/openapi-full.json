@@ -2497,7 +2497,14 @@
                 ],
                 "responses": {
                     "204": {
-                        "description": "No settings"
+                        "description": "No settings",
+                        "headers": {
+                            "X-Custom": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
                     }
                 }
             }
