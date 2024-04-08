@@ -258,14 +258,31 @@ class ResponseType {
 					$contentTypes = $contentTypes !== [] ? $contentTypes : [$type != null ? "*/*" : null];
 
 					foreach ($statusCodes as $statusCode) {
-						foreach ($contentTypes as $contentType) {
+						if ($statusCode === 204 || $statusCode === 304) {
+							if ($statusCode === 304) {
+								$customHeaders = array_filter(array_keys($headers), static fn (string $header) => str_starts_with(strtolower($header), 'x-'));
+								if (!empty($customHeaders)) {
+									Logger::error($context, 'Custom headers are not allowed for responses with status code 204 or 304. Found: ' . implode(', ', $customHeaders));
+								}
+							}
+
 							$responses[] = new ControllerMethodResponse(
 								$className,
 								$statusCode,
-								$contentType,
-								$type,
+								null,
+								null,
 								$headers,
 							);
+						} else {
+							foreach ($contentTypes as $contentType) {
+								$responses[] = new ControllerMethodResponse(
+									$className,
+									$statusCode,
+									$contentType,
+									$type,
+									$headers,
+								);
+							}
 						}
 					}
 

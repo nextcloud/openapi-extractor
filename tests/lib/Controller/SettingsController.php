@@ -439,4 +439,26 @@ class SettingsController extends OCSController {
 	public function throwingOther(): DataResponse {
 		throw new NotFoundException();
 	}
+
+	/**
+	 * A route 204 response
+	 *
+	 * @return DataResponse<Http::STATUS_NO_CONTENT, array<empty>, array{}>
+	 *
+	 * 204: No settings
+	 */
+	public function empty204(): DataResponse {
+		return new DataResponse();
+	}
+
+	/**
+	 * A route 304 response
+	 *
+	 * @return DataResponse<Http::STATUS_NOT_MODIFIED, array<empty>, array{}>
+	 *
+	 * 304: No settings
+	 */
+	public function empty304(): DataResponse {
+		return new DataResponse();
+	}
 }
