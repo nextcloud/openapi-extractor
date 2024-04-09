@@ -67,5 +67,7 @@ return [
 		['name' => 'Settings#throwingOther', 'url' => '/api/{apiVersion}/throwing/other', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
 		['name' => 'Settings#empty204', 'url' => '/api/{apiVersion}/204', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
 		['name' => 'Settings#empty304', 'url' => '/api/{apiVersion}/304', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
+		['name' => 'Settings#passwordConfirmationAnnotation', 'url' => '/api/{apiVersion}/passwordConfirmationAnnotation', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
+		['name' => 'Settings#passwordConfirmationAttribute', 'url' => '/api/{apiVersion}/passwordConfirmationAttribute', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
 	],
 ];

@@ -446,6 +446,7 @@ foreach ($parsedRoutes as $key => $value) {
 		$isAdmin = !Helpers::classMethodHasAnnotationOrAttribute($methodFunction, "NoAdminRequired") && !$isPublic;
 		$isDeprecated = Helpers::classMethodHasAnnotationOrAttribute($methodFunction, "deprecated");
 		$isIgnored = Helpers::classMethodHasAnnotationOrAttribute($methodFunction, "IgnoreOpenAPI");
+		$isPasswordConfirmation = Helpers::classMethodHasAnnotationOrAttribute($methodFunction, "PasswordConfirmationRequired");
 		$scopes = Helpers::getOpenAPIAttributeScopes($classMethod, $routeName);
 
 		if ($isIgnored) {
@@ -495,7 +496,7 @@ foreach ($parsedRoutes as $key => $value) {
 			];
 		}
 
-		$classMethodInfo = ControllerMethod::parse($routeName, $definitions, $methodFunction, $isAdmin, $isDeprecated);
+		$classMethodInfo = ControllerMethod::parse($routeName, $definitions, $methodFunction, $isAdmin, $isDeprecated, $isPasswordConfirmation);
 		if (count($classMethodInfo->returns) > 0) {
 			Logger::error($routeName, "Returns an invalid response");
 			continue;
