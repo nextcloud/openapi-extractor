@@ -24,6 +24,7 @@ jobs:
   openapi-repositories:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         php-versions: [ "8.1" ]
         repositories: [ "nextcloud/notifications", "nextcloud/server", "nextcloud/spreed" ]
