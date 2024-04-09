@@ -57,17 +57,14 @@ jobs:
         working-directory: temp-repository/
         run: ../generate-spec
 
-      - name: Generate OpenAPI - Core
-        if: matrix.repositories == 'nextcloud/server'
-        working-directory: temp-repository/
-        run: ../generate-spec 'core' 'core/openapi.json'
-
-      - name: Generate OpenAPI - Server apps
+      - name: Generate OpenAPI - Server
         if: matrix.repositories == 'nextcloud/server'
         working-directory: temp-repository/
         run: |
-          for path in apps/*/openapi.json; do
-            ../generate-spec "$(dirname "$path")" "$path" || exit 1
+          for path in core apps/*; do
+            if [ ! -f "$path/.noopenapi" ]; then
+              ../generate-spec "$path" "$path/openapi.json" || exit 1
+            fi
           done
 
       - name: Show changes of the API for assistance
