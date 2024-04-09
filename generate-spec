@@ -523,13 +523,21 @@ foreach ($parsedRoutes as $key => $value) {
 			continue;
 		}
 
+		$operationId = [
+			$tagName,
+			...Helpers::splitOnUppercaseFollowedByNonUppercase($methodName)
+		];
+		if ($postfix !== null) {
+			$operationId[] = $postfix;
+		}
+		$operationId = strtolower(implode("-", $operationId));
+
 		foreach ($scopes as $scope) {
 			$routes[$scope] ??= [];
 			$routes[$scope][] = new Route(
 				$routeName,
 				$routeTags[$scope] ?? [$tagName],
-				$methodName,
-				$postfix,
+				$operationId,
 				$verb,
 				$url,
 				$requirements,
@@ -714,11 +722,6 @@ foreach ($routes as $scope => $scopeRoutes) {
 			$mergedResponses[$statusCode] = $response;
 		}
 
-		$operationId = [...$route->tags, ...Helpers::splitOnUppercaseFollowedByNonUppercase($route->methodName)];
-		if ($route->postfix != null) {
-			$operationId[] = $route->postfix;
-		}
-
 		$security = [];
 		if ($route->isPublic) {
 			// Add empty authentication, meaning that it's optional. We can't know if there is a difference in behaviour for authenticated vs. unauthenticated access on public pages (e.g. capabilities)
@@ -734,7 +737,7 @@ foreach ($routes as $scope => $scopeRoutes) {
 		}
 
 		$operation = [
-			"operationId" => strtolower(implode("-", $operationId)),
+			"operationId" => $route->operationId,
 		];
 		if ($route->controllerMethod->summary !== null) {
 			$operation["summary"] = $route->controllerMethod->summary;
