@@ -329,6 +329,8 @@ if (count($parsedRoutes) === 0) {
 	Logger::warning("Routes", "No routes were loaded");
 }
 
+$operationIds = [];
+
 foreach ($parsedRoutes as $key => $value) {
 	$isOCS = $key === "ocs";
 	$isIndex = $key === "routes";
@@ -531,6 +533,11 @@ foreach ($parsedRoutes as $key => $value) {
 			$operationId[] = $postfix;
 		}
 		$operationId = strtolower(implode("-", $operationId));
+
+		if (in_array($operationId, $operationIds, true)) {
+			Logger::panic($routeName, 'Route is not unique! If you want to have two routes pointing to the same controller method you must specify a postfix on at least one of the routes.');
+		}
+		$operationIds[] = $operationId;
 
 		foreach ($scopes as $scope) {
 			$routes[$scope] ??= [];
