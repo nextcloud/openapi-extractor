@@ -21,7 +21,7 @@ class ControllerMethod {
 	public function __construct(public array $parameters, public array $responses, public array $returns, public array $responseDescription, public array $description, public ?string $summary, public bool $isDeprecated) {
 	}
 
-	public static function parse(string $context, array $definitions, ClassMethod $method, bool $isAdmin, bool $isDeprecated): ControllerMethod {
+	public static function parse(string $context, array $definitions, ClassMethod $method, bool $isAdmin, bool $isDeprecated, bool $isPasswordConfirmation): ControllerMethod {
 		global $phpDocParser, $lexer, $allowMissingDocs;
 
 		$parameters = [];
@@ -190,6 +190,10 @@ class ControllerMethod {
 
 		if ($isAdmin) {
 			$methodDescription[] = "This endpoint requires admin access";
+		}
+
+		if ($isPasswordConfirmation) {
+			$methodDescription[] = "This endpoint requires password confirmation";
 		}
 
 		if (count($methodDescription) == 1) {

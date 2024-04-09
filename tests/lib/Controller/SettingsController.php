@@ -30,6 +30,7 @@ use OCA\Notifications\ResponseDefinitions;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\IgnoreOpenAPI;
 use OCP\AppFramework\Http\Attribute\OpenAPI;
+use OCP\AppFramework\Http\Attribute\PasswordConfirmationRequired;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\AppFramework\OCS\OCSNotFoundException;
 use OCP\AppFramework\OCSController;
@@ -459,6 +460,30 @@ class SettingsController extends OCSController {
 	 * 304: No settings
 	 */
 	public function empty304(): DataResponse {
+		return new DataResponse();
+	}
+
+	/**
+	 * Route with password confirmation annotation
+	 *
+	 * @return DataResponse<Http::STATUS_OK, array<empty>, array{}>
+	 * @PasswordConfirmationRequired
+	 *
+	 * 200: OK
+	 */
+	public function passwordConfirmationAnnotation(): DataResponse {
+		return new DataResponse();
+	}
+
+	/**
+	 * Route with password confirmation attribute
+	 *
+	 * @return DataResponse<Http::STATUS_OK, array<empty>, array{}>
+	 *
+	 * 200: OK
+	 */
+	#[PasswordConfirmationRequired]
+	public function passwordConfirmationAttribute(): DataResponse {
 		return new DataResponse();
 	}
 }
