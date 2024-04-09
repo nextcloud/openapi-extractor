@@ -262,7 +262,7 @@ class ResponseType {
 							if ($statusCode === 304) {
 								$customHeaders = array_filter(array_keys($headers), static fn (string $header) => str_starts_with(strtolower($header), 'x-'));
 								if (!empty($customHeaders)) {
-									Logger::error($context, 'Custom headers are not allowed for responses with status code 204 or 304. Found: ' . implode(', ', $customHeaders));
+									Logger::error($context, 'Custom headers are not allowed for responses with status code 304. Found: ' . implode(', ', $customHeaders));
 								}
 							}
 
