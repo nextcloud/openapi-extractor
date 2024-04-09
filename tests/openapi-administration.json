@@ -154,7 +154,7 @@
         },
         "/ocs/v2.php/apps/notifications/api/{apiVersion}/moved-with-tag": {
             "post": {
-                "operationId": "settings-admin-settings-moved-to-settings-tag",
+                "operationId": "admin_settings-moved-to-settings-tag",
                 "summary": "Route in default scope with tags",
                 "description": "This endpoint requires admin access",
                 "tags": [
@@ -227,7 +227,7 @@
         },
         "/ocs/v2.php/apps/notifications/api/{apiVersion}/moved-with-unnamed-tag": {
             "post": {
-                "operationId": "settings-admin-settings-moved-to-settings-tag-unnamed",
+                "operationId": "admin_settings-moved-to-settings-tag-unnamed",
                 "summary": "Route in default scope with tags but without named parameters on the attribute",
                 "description": "This endpoint requires admin access",
                 "tags": [
