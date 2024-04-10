@@ -486,4 +486,31 @@ class SettingsController extends OCSController {
 	public function passwordConfirmationAttribute(): DataResponse {
 		return new DataResponse();
 	}
+
+	/**
+	 * Route with oneOf
+	 *
+	 * @return DataResponse<Http::STATUS_OK, string|int|double|bool, array{}>
+	 *
+	 * 200: OK
+	 */
+	#[PasswordConfirmationRequired]
+	public function oneOf(): DataResponse {
+		return new DataResponse();
+	}
+
+	/**
+	 * Route with anyOf
+	 *
+	 * @return DataResponse<Http::STATUS_OK, array{test: string}|array{test: string, abc: int}, array{}>|DataResponse<Http::STATUS_CREATED, array{foobar: string}|array{disco: string, abc: int}|array{test: string, abc: int}, array{}>|DataResponse<Http::STATUS_ACCEPTED, float|double, array{}>|DataResponse<Http::STATUS_RESET_CONTENT, int|double, array{}>
+	 *
+	 * 200: OK
+	 * 201: CREATED
+	 * 202: ACCEPTED
+	 * 205: RESET CONTENT
+	 */
+	#[PasswordConfirmationRequired]
+	public function anyOf(): DataResponse {
+		return new DataResponse();
+	}
 }

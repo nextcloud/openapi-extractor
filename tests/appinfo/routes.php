@@ -69,5 +69,7 @@ return [
 		['name' => 'Settings#empty304', 'url' => '/api/{apiVersion}/304', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
 		['name' => 'Settings#passwordConfirmationAnnotation', 'url' => '/api/{apiVersion}/passwordConfirmationAnnotation', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
 		['name' => 'Settings#passwordConfirmationAttribute', 'url' => '/api/{apiVersion}/passwordConfirmationAttribute', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
+		['name' => 'Settings#oneOf', 'url' => '/api/{apiVersion}/oneOf', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
+		['name' => 'Settings#anyOf', 'url' => '/api/{apiVersion}/anyOf', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
 	],
 ];

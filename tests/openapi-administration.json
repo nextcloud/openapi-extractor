@@ -2573,6 +2573,349 @@
                 }
             }
         },
+        "/ocs/v2.php/apps/notifications/api/{apiVersion}/oneOf": {
+            "post": {
+                "operationId": "settings-one-of",
+                "summary": "Route with oneOf",
+                "description": "This endpoint requires admin access\nThis endpoint requires password confirmation",
+                "tags": [
+                    "settings"
+                ],
+                "security": [
+                    {
+                        "bearer_auth": []
+                    },
+                    {
+                        "basic_auth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "apiVersion",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "v2"
+                            ],
+                            "default": "v2"
+                        }
+                    },
+                    {
+                        "name": "OCS-APIRequest",
+                        "in": "header",
+                        "description": "Required to be true for the API request to pass",
+                        "required": true,
+                        "schema": {
+                            "type": "boolean",
+                            "default": true
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "required": [
+                                        "ocs"
+                                    ],
+                                    "properties": {
+                                        "ocs": {
+                                            "type": "object",
+                                            "required": [
+                                                "meta",
+                                                "data"
+                                            ],
+                                            "properties": {
+                                                "meta": {
+                                                    "$ref": "#/components/schemas/OCSMeta"
+                                                },
+                                                "data": {
+                                                    "anyOf": [
+                                                        {
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "type": "integer",
+                                                            "format": "int64"
+                                                        },
+                                                        {
+                                                            "type": "number",
+                                                            "format": "double"
+                                                        },
+                                                        {
+                                                            "type": "boolean"
+                                                        }
+                                                    ]
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/ocs/v2.php/apps/notifications/api/{apiVersion}/anyOf": {
+            "post": {
+                "operationId": "settings-any-of",
+                "summary": "Route with anyOf",
+                "description": "This endpoint requires admin access\nThis endpoint requires password confirmation",
+                "tags": [
+                    "settings"
+                ],
+                "security": [
+                    {
+                        "bearer_auth": []
+                    },
+                    {
+                        "basic_auth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "apiVersion",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "v2"
+                            ],
+                            "default": "v2"
+                        }
+                    },
+                    {
+                        "name": "OCS-APIRequest",
+                        "in": "header",
+                        "description": "Required to be true for the API request to pass",
+                        "required": true,
+                        "schema": {
+                            "type": "boolean",
+                            "default": true
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "required": [
+                                        "ocs"
+                                    ],
+                                    "properties": {
+                                        "ocs": {
+                                            "type": "object",
+                                            "required": [
+                                                "meta",
+                                                "data"
+                                            ],
+                                            "properties": {
+                                                "meta": {
+                                                    "$ref": "#/components/schemas/OCSMeta"
+                                                },
+                                                "data": {
+                                                    "anyOf": [
+                                                        {
+                                                            "type": "object",
+                                                            "required": [
+                                                                "test"
+                                                            ],
+                                                            "properties": {
+                                                                "test": {
+                                                                    "type": "string"
+                                                                }
+                                                            }
+                                                        },
+                                                        {
+                                                            "type": "object",
+                                                            "required": [
+                                                                "test",
+                                                                "abc"
+                                                            ],
+                                                            "properties": {
+                                                                "test": {
+                                                                    "type": "string"
+                                                                },
+                                                                "abc": {
+                                                                    "type": "integer",
+                                                                    "format": "int64"
+                                                                }
+                                                            }
+                                                        }
+                                                    ]
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "201": {
+                        "description": "CREATED",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "required": [
+                                        "ocs"
+                                    ],
+                                    "properties": {
+                                        "ocs": {
+                                            "type": "object",
+                                            "required": [
+                                                "meta",
+                                                "data"
+                                            ],
+                                            "properties": {
+                                                "meta": {
+                                                    "$ref": "#/components/schemas/OCSMeta"
+                                                },
+                                                "data": {
+                                                    "anyOf": [
+                                                        {
+                                                            "type": "object",
+                                                            "required": [
+                                                                "foobar"
+                                                            ],
+                                                            "properties": {
+                                                                "foobar": {
+                                                                    "type": "string"
+                                                                }
+                                                            }
+                                                        },
+                                                        {
+                                                            "type": "object",
+                                                            "required": [
+                                                                "disco",
+                                                                "abc"
+                                                            ],
+                                                            "properties": {
+                                                                "disco": {
+                                                                    "type": "string"
+                                                                },
+                                                                "abc": {
+                                                                    "type": "integer",
+                                                                    "format": "int64"
+                                                                }
+                                                            }
+                                                        },
+                                                        {
+                                                            "type": "object",
+                                                            "required": [
+                                                                "test",
+                                                                "abc"
+                                                            ],
+                                                            "properties": {
+                                                                "test": {
+                                                                    "type": "string"
+                                                                },
+                                                                "abc": {
+                                                                    "type": "integer",
+                                                                    "format": "int64"
+                                                                }
+                                                            }
+                                                        }
+                                                    ]
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "202": {
+                        "description": "ACCEPTED",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "required": [
+                                        "ocs"
+                                    ],
+                                    "properties": {
+                                        "ocs": {
+                                            "type": "object",
+                                            "required": [
+                                                "meta",
+                                                "data"
+                                            ],
+                                            "properties": {
+                                                "meta": {
+                                                    "$ref": "#/components/schemas/OCSMeta"
+                                                },
+                                                "data": {
+                                                    "anyOf": [
+                                                        {
+                                                            "type": "number",
+                                                            "format": "float"
+                                                        },
+                                                        {
+                                                            "type": "number",
+                                                            "format": "double"
+                                                        }
+                                                    ]
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "205": {
+                        "description": "RESET CONTENT",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "required": [
+                                        "ocs"
+                                    ],
+                                    "properties": {
+                                        "ocs": {
+                                            "type": "object",
+                                            "required": [
+                                                "meta",
+                                                "data"
+                                            ],
+                                            "properties": {
+                                                "meta": {
+                                                    "$ref": "#/components/schemas/OCSMeta"
+                                                },
+                                                "data": {
+                                                    "anyOf": [
+                                                        {
+                                                            "type": "integer",
+                                                            "format": "int64"
+                                                        },
+                                                        {
+                                                            "type": "number",
+                                                            "format": "double"
+                                                        }
+                                                    ]
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/ocs/v2.php/tests/attribute-ocs/{param}": {
             "get": {
                 "operationId": "routing-attributeocs-route",

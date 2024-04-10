@@ -282,10 +282,30 @@ class OpenApiType {
 				return $type;
 			}
 
+			if ($isIntersection) {
+				return new OpenApiType(
+					nullable: $nullable,
+					allOf: $items,
+				);
+			}
+
+			$itemTypes = array_map(static function (OpenApiType $item) {
+				if ($item->type === 'integer') {
+					return 'number';
+				}
+				return $item->type;
+			}, $items);
+
+			if (!empty(array_filter($itemTypes, static fn (?string $type) => $type === null)) || count($itemTypes) !== count(array_unique($itemTypes))) {
+				return new OpenApiType(
+					nullable: $nullable,
+					anyOf: $items,
+				);
+			}
+
 			return new OpenApiType(
 				nullable: $nullable,
-				oneOf: $isUnion ? $items : null,
-				allOf: $isIntersection ? $items : null,
+				oneOf: $items,
 			);
 		}
 
