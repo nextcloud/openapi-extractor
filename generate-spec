@@ -63,7 +63,7 @@ if ($out == "") {
 	$out = "openapi.json";
 }
 
-$astParser = (new ParserFactory)->create(ParserFactory::PREFER_PHP7);
+$astParser = (new ParserFactory())->createForNewestSupportedVersion();
 $nodeFinder = new NodeFinder;
 
 $lexer = new Lexer();
