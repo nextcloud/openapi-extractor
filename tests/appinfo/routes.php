@@ -72,5 +72,6 @@ return [
 		['name' => 'Settings#oneOf', 'url' => '/api/{apiVersion}/oneOf', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
 		['name' => 'Settings#anyOf', 'url' => '/api/{apiVersion}/anyOf', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
 		['name' => 'Settings#floatDouble', 'url' => '/api/{apiVersion}/floatDouble', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
+		['name' => 'Settings#emptyArray', 'url' => '/api/{apiVersion}/emptyArray', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
 	],
 ];

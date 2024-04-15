@@ -136,7 +136,7 @@ class Helpers {
 	}
 
 	public static function cleanEmptyResponseArray(array $schema): array|stdClass {
-		if (key_exists("type", $schema) && $schema["type"] == "array" && key_exists("maxLength", $schema) && $schema["maxLength"] === 0) {
+		if (array_key_exists('type', $schema) && $schema['type'] === 'array' && array_key_exists('maxItems', $schema) && $schema['maxItems'] === 0) {
 			return new stdClass();
 		}
 

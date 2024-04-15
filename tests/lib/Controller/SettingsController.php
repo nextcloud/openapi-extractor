@@ -526,4 +526,16 @@ class SettingsController extends OCSController {
 	public function floatDouble(): DataResponse {
 		return new DataResponse();
 	}
+
+	/**
+	 * Route with empty array
+	 *
+	 * @return DataResponse<Http::STATUS_OK, array{test: array<empty>}, array{}>
+	 *
+	 * 200: OK
+	 */
+	#[PasswordConfirmationRequired]
+	public function emptyArray(): DataResponse {
+		return new DataResponse();
+	}
 }
