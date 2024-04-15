@@ -384,8 +384,8 @@ class OpenApiType {
 			"true" => new OpenApiType(type: "boolean", enum: [true]),
 			"false" => new OpenApiType(type: "boolean", enum: [false]),
 			"numeric" => new OpenApiType(type: "number"),
-			"double" => new OpenApiType(type: "number", format: "double"),
-			"float" => new OpenApiType(type: "number", format: "float"),
+			// https://www.php.net/manual/en/language.types.float.php: Both float and double are always stored with double precision
+			"float", "double" => new OpenApiType(type: "number", format: "double"),
 			"mixed", "empty", "array" => new OpenApiType(type: "object"),
 			"object", "stdClass" => new OpenApiType(type: "object", additionalProperties: true),
 			"null" => new OpenApiType(nullable: true),
