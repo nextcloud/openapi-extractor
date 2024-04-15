@@ -47,6 +47,8 @@ class OpenApiType {
 		public ?int $maxLength = null,
 		public ?int $minimum = null,
 		public ?int $maximum = null,
+		public ?int $minItems = null,
+		public ?int $maxItems = null,
 		public ?array $enum = null,
 	) {
 	}
@@ -120,6 +122,12 @@ class OpenApiType {
 		if ($this->maximum !== null) {
 			$values["maximum"] = $this->maximum;
 		}
+		if ($this->minItems !== null) {
+			$values["minItems"] = $this->minItems;
+		}
+		if ($this->maxItems !== null) {
+			$values["maxItems"] = $this->maxItems;
+		}
 		if ($this->required !== null) {
 			$values["required"] = $this->required;
 		}
@@ -166,7 +174,7 @@ class OpenApiType {
 		}
 		if ($node instanceof GenericTypeNode && ($node->type->name == "array" || $node->type->name == "list") && count($node->genericTypes) == 1) {
 			if ($node->genericTypes[0] instanceof IdentifierTypeNode && $node->genericTypes[0]->name == "empty") {
-				return new OpenApiType(type: "array", maxLength: 0);
+				return new OpenApiType(type: "array", maxItems: 0);
 			}
 			return new OpenApiType(type: "array", items: self::resolve($context, $definitions, $node->genericTypes[0]));
 		}
