@@ -502,7 +502,7 @@ class SettingsController extends OCSController {
 	/**
 	 * Route with anyOf
 	 *
-	 * @return DataResponse<Http::STATUS_OK, array{test: string}|array{test: string, abc: int}, array{}>|DataResponse<Http::STATUS_CREATED, array{foobar: string}|array{disco: string, abc: int}|array{test: string, abc: int}, array{}>|DataResponse<Http::STATUS_ACCEPTED, float|double, array{}>|DataResponse<Http::STATUS_RESET_CONTENT, int|double, array{}>
+	 * @return DataResponse<Http::STATUS_OK, array{test: string}|array{test: string, abc: int}, array{}>|DataResponse<Http::STATUS_CREATED, array{foobar: string}|array{disco: string, abc: int}|array{test: string, abc: int}, array{}>|DataResponse<Http::STATUS_ACCEPTED, float|numeric, array{}>|DataResponse<Http::STATUS_RESET_CONTENT, int|double, array{}>
 	 *
 	 * 200: OK
 	 * 201: CREATED
@@ -511,6 +511,19 @@ class SettingsController extends OCSController {
 	 */
 	#[PasswordConfirmationRequired]
 	public function anyOf(): DataResponse {
+		return new DataResponse();
+	}
+
+	/**
+	 * Route with float and double
+	 *
+	 * @return DataResponse<Http::STATUS_OK, float, array{}>|DataResponse<Http::STATUS_CREATED, double, array{}>
+	 *
+	 * 200: OK
+	 * 201: CREATED
+	 */
+	#[PasswordConfirmationRequired]
+	public function floatDouble(): DataResponse {
 		return new DataResponse();
 	}
 }
