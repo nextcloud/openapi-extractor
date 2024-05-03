@@ -66,6 +66,9 @@ $data = [
 ];
 
 foreach ($otherSpecPaths as $specPath) {
+	if ($specPath === $coreSpecPath) {
+		continue;
+	}
 	$spec = loadSpec($specPath);
 	$data["components"]["schemas"] = array_merge($data["components"]["schemas"], rewriteSchemaNames($spec));
 	$data["tags"] = array_merge($data["tags"], rewriteTags($spec));
