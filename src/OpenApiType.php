@@ -53,44 +53,13 @@ class OpenApiType {
 	) {
 	}
 
-	public function toArray(string $openapiVersion, bool $isParameter = false): array|stdClass {
-		$asContentString = $isParameter && (
-			$this->type == "object" ||
-			$this->ref !== null ||
-			$this->anyOf !== null ||
-			$this->allOf !== null);
-		if ($asContentString) {
-			$values = [
-				"type" => "string",
-			];
-			if ($this->nullable) {
-				$values["nullable"] = true;
-			}
-			if (version_compare($openapiVersion, "3.1.0", ">=")) {
-				$values["contentMediaType"] = "application/json";
-				$values["contentSchema"] = $this->toArray($openapiVersion);
-			}
-
-			return $values;
-		}
-
-		$type = $this->type;
-		$defaultValue = $this->defaultValue;
-		$enum = $this->enum;
-		if ($isParameter && $type == "boolean") {
-			$type = "integer";
-			$enum = [0, 1];
-			if ($this->hasDefaultValue) {
-				$defaultValue = $defaultValue === true ? 1 : 0;
-			}
-		}
-
+	public function toArray(bool $isParameter = false): array|stdClass {
 		$values = [];
 		if ($this->ref !== null) {
 			$values["\$ref"] = $this->ref;
 		}
-		if ($type !== null) {
-			$values["type"] = $type;
+		if ($this->type !== null) {
+			$values["type"] = $this->type;
 		}
 		if ($this->format !== null) {
 			$values["format"] = $this->format;
@@ -98,17 +67,17 @@ class OpenApiType {
 		if ($this->nullable) {
 			$values["nullable"] = true;
 		}
-		if ($this->hasDefaultValue && $defaultValue !== null) {
-			$values["default"] = $defaultValue;
+		if ($this->hasDefaultValue && $this->defaultValue !== null) {
+			$values["default"] = $this->defaultValue;
 		}
-		if ($enum !== null) {
-			$values["enum"] = $enum;
+		if ($this->enum !== null) {
+			$values["enum"] = $this->enum;
 		}
 		if ($this->description !== null && $this->description !== "" && !$isParameter) {
 			$values["description"] = $this->description;
 		}
 		if ($this->items !== null) {
-			$values["items"] = $this->items->toArray($openapiVersion);
+			$values["items"] = $this->items->toArray();
 		}
 		if ($this->minLength !== null) {
 			$values["minLength"] = $this->minLength;
@@ -133,24 +102,24 @@ class OpenApiType {
 		}
 		if ($this->properties !== null && count($this->properties) > 0) {
 			$values["properties"] = array_combine(array_keys($this->properties),
-				array_map(static fn (OpenApiType $property) => $property->toArray($openapiVersion), array_values($this->properties)),
+				array_map(static fn (OpenApiType $property) => $property->toArray(), array_values($this->properties)),
 			);
 		}
 		if ($this->additionalProperties !== null) {
 			if ($this->additionalProperties instanceof OpenApiType) {
-				$values["additionalProperties"] = $this->additionalProperties->toArray($openapiVersion);
+				$values["additionalProperties"] = $this->additionalProperties->toArray();
 			} else {
 				$values["additionalProperties"] = $this->additionalProperties;
 			}
 		}
 		if ($this->oneOf !== null) {
-			$values["oneOf"] = array_map(fn (OpenApiType $type) => $type->toArray($openapiVersion), $this->oneOf);
+			$values["oneOf"] = array_map(fn (OpenApiType $type) => $type->toArray(), $this->oneOf);
 		}
 		if ($this->anyOf !== null) {
-			$values["anyOf"] = array_map(fn (OpenApiType $type) => $type->toArray($openapiVersion), $this->anyOf);
+			$values["anyOf"] = array_map(fn (OpenApiType $type) => $type->toArray(), $this->anyOf);
 		}
 		if ($this->allOf !== null) {
-			$values["allOf"] = array_map(fn (OpenApiType $type) => $type->toArray($openapiVersion), $this->allOf);
+			$values["allOf"] = array_map(fn (OpenApiType $type) => $type->toArray(), $this->allOf);
 		}
 
 		return count($values) > 0 ? $values : new stdClass();

@@ -585,29 +585,39 @@
                         "basic_auth": []
                     }
                 ],
-                "parameters": [
-                    {
-                        "name": "limit",
-                        "in": "query",
-                        "description": "Maximum number of objects",
-                        "required": true,
-                        "schema": {
-                            "type": "integer",
-                            "format": "int64",
-                            "enum": [
-                                1,
-                                2,
-                                3,
-                                4,
-                                5,
-                                6,
-                                7,
-                                8,
-                                9,
-                                10
-                            ]
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "limit"
+                                ],
+                                "properties": {
+                                    "limit": {
+                                        "type": "integer",
+                                        "format": "int64",
+                                        "enum": [
+                                            1,
+                                            2,
+                                            3,
+                                            4,
+                                            5,
+                                            6,
+                                            7,
+                                            8,
+                                            9,
+                                            10
+                                        ],
+                                        "description": "Maximum number of objects"
+                                    }
+                                }
+                            }
                         }
-                    },
+                    }
+                },
+                "parameters": [
                     {
                         "name": "apiVersion",
                         "in": "path",
@@ -679,19 +689,29 @@
                         "basic_auth": []
                     }
                 ],
-                "parameters": [
-                    {
-                        "name": "limit",
-                        "in": "query",
-                        "description": "Between 5 and 10",
-                        "required": true,
-                        "schema": {
-                            "type": "integer",
-                            "format": "int64",
-                            "minimum": 5,
-                            "maximum": 10
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "limit"
+                                ],
+                                "properties": {
+                                    "limit": {
+                                        "type": "integer",
+                                        "format": "int64",
+                                        "description": "Between 5 and 10",
+                                        "minimum": 5,
+                                        "maximum": 10
+                                    }
+                                }
+                            }
                         }
-                    },
+                    }
+                },
+                "parameters": [
                     {
                         "name": "apiVersion",
                         "in": "path",
@@ -763,18 +783,28 @@
                         "basic_auth": []
                     }
                 ],
-                "parameters": [
-                    {
-                        "name": "limit",
-                        "in": "query",
-                        "description": "At least 5",
-                        "required": true,
-                        "schema": {
-                            "type": "integer",
-                            "format": "int64",
-                            "minimum": 5
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "limit"
+                                ],
+                                "properties": {
+                                    "limit": {
+                                        "type": "integer",
+                                        "format": "int64",
+                                        "description": "At least 5",
+                                        "minimum": 5
+                                    }
+                                }
+                            }
                         }
-                    },
+                    }
+                },
+                "parameters": [
                     {
                         "name": "apiVersion",
                         "in": "path",
@@ -846,18 +876,28 @@
                         "basic_auth": []
                     }
                 ],
-                "parameters": [
-                    {
-                        "name": "limit",
-                        "in": "query",
-                        "description": "At most 10",
-                        "required": true,
-                        "schema": {
-                            "type": "integer",
-                            "format": "int64",
-                            "maximum": 10
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "limit"
+                                ],
+                                "properties": {
+                                    "limit": {
+                                        "type": "integer",
+                                        "format": "int64",
+                                        "description": "At most 10",
+                                        "maximum": 10
+                                    }
+                                }
+                            }
                         }
-                    },
+                    }
+                },
+                "parameters": [
                     {
                         "name": "apiVersion",
                         "in": "path",
@@ -929,18 +969,28 @@
                         "basic_auth": []
                     }
                 ],
-                "parameters": [
-                    {
-                        "name": "limit",
-                        "in": "query",
-                        "description": "not negative",
-                        "required": true,
-                        "schema": {
-                            "type": "integer",
-                            "format": "int64",
-                            "minimum": 0
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "limit"
+                                ],
+                                "properties": {
+                                    "limit": {
+                                        "type": "integer",
+                                        "format": "int64",
+                                        "description": "not negative",
+                                        "minimum": 0
+                                    }
+                                }
+                            }
                         }
-                    },
+                    }
+                },
+                "parameters": [
                     {
                         "name": "apiVersion",
                         "in": "path",
@@ -1012,18 +1062,28 @@
                         "basic_auth": []
                     }
                 ],
-                "parameters": [
-                    {
-                        "name": "limit",
-                        "in": "query",
-                        "description": "positive",
-                        "required": true,
-                        "schema": {
-                            "type": "integer",
-                            "format": "int64",
-                            "minimum": 1
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "limit"
+                                ],
+                                "properties": {
+                                    "limit": {
+                                        "type": "integer",
+                                        "format": "int64",
+                                        "description": "positive",
+                                        "minimum": 1
+                                    }
+                                }
+                            }
                         }
-                    },
+                    }
+                },
+                "parameters": [
                     {
                         "name": "apiVersion",
                         "in": "path",
@@ -1095,18 +1155,28 @@
                         "basic_auth": []
                     }
                 ],
-                "parameters": [
-                    {
-                        "name": "limit",
-                        "in": "query",
-                        "description": "negative",
-                        "required": true,
-                        "schema": {
-                            "type": "integer",
-                            "format": "int64",
-                            "maximum": -1
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "limit"
+                                ],
+                                "properties": {
+                                    "limit": {
+                                        "type": "integer",
+                                        "format": "int64",
+                                        "description": "negative",
+                                        "maximum": -1
+                                    }
+                                }
+                            }
                         }
-                    },
+                    }
+                },
+                "parameters": [
                     {
                         "name": "apiVersion",
                         "in": "path",
@@ -1178,18 +1248,28 @@
                         "basic_auth": []
                     }
                 ],
-                "parameters": [
-                    {
-                        "name": "limit",
-                        "in": "query",
-                        "description": "non positive",
-                        "required": true,
-                        "schema": {
-                            "type": "integer",
-                            "format": "int64",
-                            "maximum": 0
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "limit"
+                                ],
+                                "properties": {
+                                    "limit": {
+                                        "type": "integer",
+                                        "format": "int64",
+                                        "description": "non positive",
+                                        "maximum": 0
+                                    }
+                                }
+                            }
                         }
-                    },
+                    }
+                },
+                "parameters": [
                     {
                         "name": "apiVersion",
                         "in": "path",
@@ -1261,37 +1341,47 @@
                         "basic_auth": []
                     }
                 ],
-                "parameters": [
-                    {
-                        "name": "weird",
-                        "in": "query",
-                        "description": "Weird list",
-                        "required": true,
-                        "schema": {
-                            "oneOf": [
-                                {
-                                    "type": "integer",
-                                    "enum": [
-                                        0,
-                                        1
-                                    ]
-                                },
-                                {
-                                    "type": "string",
-                                    "enum": [
-                                        "yes",
-                                        "no"
-                                    ]
-                                },
-                                {
-                                    "type": "boolean",
-                                    "enum": [
-                                        true
-                                    ]
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "weird"
+                                ],
+                                "properties": {
+                                    "weird": {
+                                        "description": "Weird list",
+                                        "oneOf": [
+                                            {
+                                                "type": "integer",
+                                                "enum": [
+                                                    0,
+                                                    1
+                                                ]
+                                            },
+                                            {
+                                                "type": "string",
+                                                "enum": [
+                                                    "yes",
+                                                    "no"
+                                                ]
+                                            },
+                                            {
+                                                "type": "boolean",
+                                                "enum": [
+                                                    true
+                                                ]
+                                            }
+                                        ]
+                                    }
                                 }
-                            ]
+                            }
                         }
-                    },
+                    }
+                },
+                "parameters": [
                     {
                         "name": "apiVersion",
                         "in": "path",
@@ -1363,38 +1453,48 @@
                         "basic_auth": []
                     }
                 ],
-                "parameters": [
-                    {
-                        "name": "weird",
-                        "in": "query",
-                        "description": "Weird list",
-                        "required": true,
-                        "schema": {
-                            "oneOf": [
-                                {
-                                    "type": "integer",
-                                    "enum": [
-                                        0,
-                                        1
-                                    ]
-                                },
-                                {
-                                    "type": "string",
-                                    "enum": [
-                                        "yes",
-                                        "no"
-                                    ]
-                                },
-                                {
-                                    "type": "boolean",
-                                    "enum": [
-                                        true,
-                                        false
-                                    ]
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "weird"
+                                ],
+                                "properties": {
+                                    "weird": {
+                                        "description": "Weird list",
+                                        "oneOf": [
+                                            {
+                                                "type": "integer",
+                                                "enum": [
+                                                    0,
+                                                    1
+                                                ]
+                                            },
+                                            {
+                                                "type": "string",
+                                                "enum": [
+                                                    "yes",
+                                                    "no"
+                                                ]
+                                            },
+                                            {
+                                                "type": "boolean",
+                                                "enum": [
+                                                    true,
+                                                    false
+                                                ]
+                                            }
+                                        ]
+                                    }
                                 }
-                            ]
+                            }
                         }
-                    },
+                    }
+                },
+                "parameters": [
                     {
                         "name": "apiVersion",
                         "in": "path",
@@ -1466,20 +1566,26 @@
                         "basic_auth": []
                     }
                 ],
-                "parameters": [
-                    {
-                        "name": "yesOrNo",
-                        "in": "query",
-                        "description": "Boolean required",
-                        "required": true,
-                        "schema": {
-                            "type": "integer",
-                            "enum": [
-                                0,
-                                1
-                            ]
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "yesOrNo"
+                                ],
+                                "properties": {
+                                    "yesOrNo": {
+                                        "type": "boolean",
+                                        "description": "Boolean required"
+                                    }
+                                }
+                            }
                         }
-                    },
+                    }
+                },
+                "parameters": [
                     {
                         "name": "apiVersion",
                         "in": "path",
@@ -1551,20 +1657,24 @@
                         "basic_auth": []
                     }
                 ],
-                "parameters": [
-                    {
-                        "name": "yesOrNo",
-                        "in": "query",
-                        "description": "Boolean defaulting to false",
-                        "schema": {
-                            "type": "integer",
-                            "default": 0,
-                            "enum": [
-                                0,
-                                1
-                            ]
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "yesOrNo": {
+                                        "type": "boolean",
+                                        "default": false,
+                                        "description": "Boolean defaulting to false"
+                                    }
+                                }
+                            }
                         }
-                    },
+                    }
+                },
+                "parameters": [
                     {
                         "name": "apiVersion",
                         "in": "path",
@@ -1636,20 +1746,24 @@
                         "basic_auth": []
                     }
                 ],
-                "parameters": [
-                    {
-                        "name": "yesOrNo",
-                        "in": "query",
-                        "description": "Boolean defaulting to true",
-                        "schema": {
-                            "type": "integer",
-                            "default": 1,
-                            "enum": [
-                                0,
-                                1
-                            ]
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "yesOrNo": {
+                                        "type": "boolean",
+                                        "default": true,
+                                        "description": "Boolean defaulting to true"
+                                    }
+                                }
+                            }
                         }
-                    },
+                    }
+                },
+                "parameters": [
                     {
                         "name": "apiVersion",
                         "in": "path",
@@ -1721,20 +1835,26 @@
                         "basic_auth": []
                     }
                 ],
-                "parameters": [
-                    {
-                        "name": "yesOrNo",
-                        "in": "query",
-                        "description": "boolean or true",
-                        "required": true,
-                        "schema": {
-                            "type": "integer",
-                            "enum": [
-                                0,
-                                1
-                            ]
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "yesOrNo"
+                                ],
+                                "properties": {
+                                    "yesOrNo": {
+                                        "type": "boolean",
+                                        "description": "boolean or true"
+                                    }
+                                }
+                            }
                         }
-                    },
+                    }
+                },
+                "parameters": [
                     {
                         "name": "apiVersion",
                         "in": "path",
@@ -1806,20 +1926,26 @@
                         "basic_auth": []
                     }
                 ],
-                "parameters": [
-                    {
-                        "name": "yesOrNo",
-                        "in": "query",
-                        "description": "boolean or false",
-                        "required": true,
-                        "schema": {
-                            "type": "integer",
-                            "enum": [
-                                0,
-                                1
-                            ]
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "yesOrNo"
+                                ],
+                                "properties": {
+                                    "yesOrNo": {
+                                        "type": "boolean",
+                                        "description": "boolean or false"
+                                    }
+                                }
+                            }
                         }
-                    },
+                    }
+                },
+                "parameters": [
                     {
                         "name": "apiVersion",
                         "in": "path",
@@ -1891,20 +2017,26 @@
                         "basic_auth": []
                     }
                 ],
-                "parameters": [
-                    {
-                        "name": "yesOrNo",
-                        "in": "query",
-                        "description": "boolean or true or false",
-                        "required": true,
-                        "schema": {
-                            "type": "integer",
-                            "enum": [
-                                0,
-                                1
-                            ]
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "yesOrNo"
+                                ],
+                                "properties": {
+                                    "yesOrNo": {
+                                        "type": "boolean",
+                                        "description": "boolean or true or false"
+                                    }
+                                }
+                            }
                         }
-                    },
+                    }
+                },
+                "parameters": [
                     {
                         "name": "apiVersion",
                         "in": "path",
@@ -1976,20 +2108,30 @@
                         "basic_auth": []
                     }
                 ],
-                "parameters": [
-                    {
-                        "name": "yesOrNo",
-                        "in": "query",
-                        "description": "true or false",
-                        "required": true,
-                        "schema": {
-                            "type": "integer",
-                            "enum": [
-                                0,
-                                1
-                            ]
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "yesOrNo"
+                                ],
+                                "properties": {
+                                    "yesOrNo": {
+                                        "type": "boolean",
+                                        "enum": [
+                                            true,
+                                            false
+                                        ],
+                                        "description": "true or false"
+                                    }
+                                }
+                            }
                         }
-                    },
+                    }
+                },
+                "parameters": [
                     {
                         "name": "apiVersion",
                         "in": "path",
@@ -2061,16 +2203,26 @@
                         "basic_auth": []
                     }
                 ],
-                "parameters": [
-                    {
-                        "name": "value",
-                        "in": "query",
-                        "description": "string or 'test'",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "value"
+                                ],
+                                "properties": {
+                                    "value": {
+                                        "type": "string",
+                                        "description": "string or 'test'"
+                                    }
+                                }
+                            }
                         }
-                    },
+                    }
+                },
+                "parameters": [
                     {
                         "name": "apiVersion",
                         "in": "path",
@@ -2142,17 +2294,27 @@
                         "basic_auth": []
                     }
                 ],
-                "parameters": [
-                    {
-                        "name": "value",
-                        "in": "query",
-                        "description": "int or 0",
-                        "required": true,
-                        "schema": {
-                            "type": "integer",
-                            "format": "int64"
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "value"
+                                ],
+                                "properties": {
+                                    "value": {
+                                        "type": "integer",
+                                        "format": "int64",
+                                        "description": "int or 0"
+                                    }
+                                }
+                            }
                         }
-                    },
+                    }
+                },
+                "parameters": [
                     {
                         "name": "apiVersion",
                         "in": "path",
@@ -2224,16 +2386,26 @@
                         "basic_auth": []
                     }
                 ],
-                "parameters": [
-                    {
-                        "name": "value",
-                        "in": "query",
-                        "description": "Some numeric value",
-                        "required": true,
-                        "schema": {
-                            "type": "number"
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "value"
+                                ],
+                                "properties": {
+                                    "value": {
+                                        "type": "number",
+                                        "description": "Some numeric value"
+                                    }
+                                }
+                            }
                         }
-                    },
+                    }
+                },
+                "parameters": [
                     {
                         "name": "apiVersion",
                         "in": "path",
@@ -2305,21 +2477,29 @@
                         "basic_auth": []
                     }
                 ],
-                "parameters": [
-                    {
-                        "name": "value[]",
-                        "in": "query",
-                        "description": "Some array value",
-                        "schema": {
-                            "type": "array",
-                            "default": [
-                                "test"
-                            ],
-                            "items": {
-                                "type": "string"
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "value": {
+                                        "type": "array",
+                                        "default": [
+                                            "test"
+                                        ],
+                                        "description": "Some array value",
+                                        "items": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
                             }
                         }
-                    },
+                    }
+                },
+                "parameters": [
                     {
                         "name": "apiVersion",
                         "in": "path",
@@ -2391,15 +2571,29 @@
                         "basic_auth": []
                     }
                 ],
-                "parameters": [
-                    {
-                        "name": "value",
-                        "in": "query",
-                        "description": "Some array value",
-                        "schema": {
-                            "type": "string"
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "value": {
+                                        "type": "object",
+                                        "default": {
+                                            "test": "abc"
+                                        },
+                                        "description": "Some array value",
+                                        "additionalProperties": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            }
                         }
-                    },
+                    }
+                },
+                "parameters": [
                     {
                         "name": "apiVersion",
                         "in": "path",
