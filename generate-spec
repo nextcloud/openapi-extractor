@@ -983,7 +983,7 @@ foreach ($scopePaths as $scope => $paths) {
 		$scopeOut = $out . $scopeSuffix;
 	}
 
-	file_put_contents($scopeOut, json_encode($openapiScope, Helpers::jsonFlags()));
+	file_put_contents($scopeOut, json_encode($openapiScope, Helpers::jsonFlags()) . "\n");
 
 	Logger::info('app', 'Generated scope ' . $scope . ' with ' . $pathsCount . ' routes!');
 }

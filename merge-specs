@@ -170,4 +170,4 @@ function rewriteOperations(array $spec): array {
 	return $spec["paths"];
 }
 
-file_put_contents($mergedSpecPath, json_encode($data, Helpers::jsonFlags()));
+file_put_contents($mergedSpecPath, json_encode($data, Helpers::jsonFlags()) . "\n");
