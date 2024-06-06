@@ -70,7 +70,13 @@ class ControllerMethod {
 					if ($docNode->value instanceof ReturnTagValueNode) {
 						$type = $docNode->value->type;
 
-						$responses = array_merge($responses, ResponseType::resolve($context, $type));
+						$resolvedResponses = ResponseType::resolve($context, $type);
+						$statusCodes = array_map(static fn (ControllerMethodResponse|null $response) => $response?->statusCode, $resolvedResponses);
+						$statusCodesDuplicates = array_filter(array_count_values($statusCodes), static fn (int $count) => $count > 1);
+						if (!empty($statusCodesDuplicates)) {
+							Logger::panic($context, 'Each status code can only be defined once, but '. implode(', ', $statusCodesDuplicates). ' was defined multiple times.');
+						}
+						$responses = array_merge($responses, $resolvedResponses);
 					}
 
 					if ($docNode->value instanceof ThrowsTagValueNode) {
