@@ -765,6 +765,7 @@ foreach ($routes as $scope => $scopeRoutes) {
 			$operation["security"] = $security;
 		}
 		if (count($bodyParameters) > 0 || count($pathParameters) > 0 || $route->isOCS) {
+			$verb = strtolower($route->verb);
 			$requiredBodyParameters = [];
 			$parameters = [];
 
@@ -773,9 +774,23 @@ foreach ($routes as $scope => $scopeRoutes) {
 				if ($required) {
 					$requiredBodyParameters[] = $bodyParameter->name;
 				}
+				if ($verb === 'get') {
+					$parameter = [
+						"name" => $bodyParameter->name,
+						"in" => "query",
+					];
+					if ($bodyParameter->docType !== null && $bodyParameter->docType->description !== "") {
+						$parameter["description"] = Helpers::cleanDocComment($bodyParameter->docType->description);
+					}
+					if ($required) {
+						$parameter["required"] = true;
+					}
+					$parameter["schema"] = $bodyParameter->type->toArray(true);
+					$parameters[] = $parameter;
+				}
 			}
 
-			if (count($bodyParameters) > 0) {
+			if (count($bodyParameters) > 0 && $verb !== 'get') {
 				$required = count($requiredBodyParameters) > 0;
 
 				$schema = [
