@@ -31,6 +31,9 @@ return [
 		['name' => 'AdminSettings#movedToSettingsTag', 'url' => '/api/{apiVersion}/moved-with-tag', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
 		['name' => 'AdminSettings#movedToSettingsTagUnnamed', 'url' => '/api/{apiVersion}/moved-with-unnamed-tag', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
 
+		['name' => 'ExAppSettings#exAppScopeAttribute', 'url' => '/api/{apiVersion}/ex-app-attribute', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
+		['name' => 'ExAppSettings#exAppScopeOverride', 'url' => '/api/{apiVersion}/ex-app-override', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
+
 		['name' => 'Federation#federationByController', 'url' => '/api/{apiVersion}/controller-scope', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
 		['name' => 'Federation#movedToDefaultScope', 'url' => '/api/{apiVersion}/default-scope', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
 

@@ -446,6 +446,7 @@ foreach ($parsedRoutes as $key => $value) {
 		$isDeprecated = Helpers::classMethodHasAnnotationOrAttribute($methodFunction, "deprecated");
 		$isIgnored = Helpers::classMethodHasAnnotationOrAttribute($methodFunction, "IgnoreOpenAPI");
 		$isPasswordConfirmation = Helpers::classMethodHasAnnotationOrAttribute($methodFunction, "PasswordConfirmationRequired");
+		$isExApp = Helpers::classMethodHasAnnotationOrAttribute($methodFunction, "ExAppRequired");
 		$scopes = Helpers::getOpenAPIAttributeScopes($classMethod, $routeName);
 
 		if ($isIgnored) {
@@ -469,6 +470,8 @@ foreach ($parsedRoutes as $key => $value) {
 		if (empty($scopes)) {
 			if (!empty($controllerScopes)) {
 				$scopes = $controllerScopes;
+			} elseif ($isExApp) {
+				$scopes = ['ex_app'];
 			} elseif ($isAdmin) {
 				$scopes = ['administration'];
 			} else {
