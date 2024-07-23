@@ -11,7 +11,7 @@ class ControllerMethodParameter {
 		if ($docType != null) {
 			$this->type = $this->docType;
 		} else {
-			$this->type = OpenApiType::resolve($context, $definitions, $methodParameter->type);
+			$this->type = OpenApiType::resolve($context . ': @param: ' . $name, $definitions, $methodParameter->type);
 		}
 		if ($methodParameter->default != null) {
 			try {

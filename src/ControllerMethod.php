@@ -70,12 +70,12 @@ class ControllerMethod {
 					if ($docNode->value instanceof ReturnTagValueNode) {
 						$type = $docNode->value->type;
 
-						$responses = array_merge($responses, ResponseType::resolve($context, $type));
+						$responses = array_merge($responses, ResponseType::resolve($context . ': @return', $type));
 					}
 
 					if ($docNode->value instanceof ThrowsTagValueNode) {
 						$type = $docNode->value->type;
-						$statusCode = StatusCodes::resolveException($context, $type);
+						$statusCode = StatusCodes::resolveException($context . ': @throws', $type);
 						if ($statusCode != null) {
 							if (!$allowMissingDocs && $docNode->value->description == "" && $statusCode < 500) {
 								Logger::error($context, "Missing description for exception '" . $type . "'");
@@ -117,7 +117,7 @@ class ControllerMethod {
 						} elseif ($docParameterType == "@psalm-param") {
 							$psalmParamTag = $docParameter;
 						} else {
-							Logger::panic($context, "Unknown param type " . $docParameterType);
+							Logger::panic($context . ': @param', "Unknown param type " . $docParameterType);
 						}
 					}
 				}
@@ -136,7 +136,7 @@ class ControllerMethod {
 
 				try {
 					$type = OpenApiType::resolve(
-						$context,
+						$context . ': @param: ' . $psalmParamTag->parameterName,
 						$definitions,
 						new ParamTagValueNode(
 							$psalmParamTag->type,
@@ -150,7 +150,7 @@ class ControllerMethod {
 					Logger::debug($context, "Unable to parse parameter " . $methodParameterName . ": " . $e->message . "\n" . $e->getTraceAsString());
 					// Fallback to the @param annotation
 					$type = OpenApiType::resolve(
-						$context,
+						$context . ': @param: ' . $psalmParamTag->parameterName,
 						$definitions,
 						new ParamTagValueNode(
 							$paramTag->type,
@@ -164,10 +164,10 @@ class ControllerMethod {
 
 				$param = new ControllerMethodParameter($context, $definitions, $methodParameterName, $methodParameter, $type);
 			} elseif ($psalmParamTag !== null) {
-				$type = OpenApiType::resolve($context, $definitions, $psalmParamTag);
+				$type = OpenApiType::resolve($context . ': @param: ' . $methodParameterName, $definitions, $psalmParamTag);
 				$param = new ControllerMethodParameter($context, $definitions, $methodParameterName, $methodParameter, $type);
 			} elseif ($paramTag !== null) {
-				$type = OpenApiType::resolve($context, $definitions, $paramTag);
+				$type = OpenApiType::resolve($context . ': @param: ' . $methodParameterName, $definitions, $paramTag);
 				$param = new ControllerMethodParameter($context, $definitions, $methodParameterName, $methodParameter, $type);
 			} elseif ($allowMissingDocs) {
 				$param = new ControllerMethodParameter($context, $definitions, $methodParameterName, $methodParameter, null);
@@ -177,7 +177,7 @@ class ControllerMethod {
 			}
 
 			if (!$allowMissingDocs && $param->type->description == "") {
-				Logger::error($context, "Missing description for parameter '" . $methodParameterName . "'");
+				Logger::error($context . ': @param: ' . $methodParameterName, "Missing description");
 				continue;
 			}
 
