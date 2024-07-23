@@ -165,13 +165,12 @@ class OpenApiType {
 			return new OpenApiType(type: "object", properties: $properties, required: count($required) > 0 ? $required : null);
 		}
 
-		if ($node instanceof GenericTypeNode && $node->type->name == "array" && count($node->genericTypes) == 2 && $node->genericTypes[0] instanceof IdentifierTypeNode) {
-			if ($node->genericTypes[0]->name == "array-key") {
-				Logger::error($context, "Instead of 'array-key' use 'string' or 'int'");
-			}
-			if ($node->genericTypes[0]->name == "string" || $node->genericTypes[0]->name == "array-key") {
+		if ($node instanceof GenericTypeNode && $node->type->name === "array" && count($node->genericTypes) === 2 && $node->genericTypes[0] instanceof IdentifierTypeNode) {
+			if ($node->genericTypes[0]->name === "string") {
 				return new OpenApiType(type: "object", additionalProperties: self::resolve($context, $definitions, $node->genericTypes[1]));
 			}
+
+			Logger::panic($context, "JSON objects can only be indexed by 'string' but got '" . $node->genericTypes[0]->name . "'");
 		}
 
 		if ($node instanceof GenericTypeNode && $node->type->name == "int" && count($node->genericTypes) == 2) {
