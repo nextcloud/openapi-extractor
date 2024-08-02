@@ -76,5 +76,11 @@ return [
 		['name' => 'Settings#anyOf', 'url' => '/api/{apiVersion}/anyOf', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
 		['name' => 'Settings#floatDouble', 'url' => '/api/{apiVersion}/floatDouble', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
 		['name' => 'Settings#emptyArray', 'url' => '/api/{apiVersion}/emptyArray', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
+		['name' => 'Settings#parameterRequestBody', 'url' => '/api/{apiVersion}/parameterGET', 'verb' => 'GET', 'postfix' => 'GET', 'requirements' => ['apiVersion' => '(v2)']],
+		['name' => 'Settings#parameterRequestBody', 'url' => '/api/{apiVersion}/parameterHEAD', 'verb' => 'HEAD', 'postfix' => 'HEAD', 'requirements' => ['apiVersion' => '(v2)']],
+		['name' => 'Settings#parameterRequestBody', 'url' => '/api/{apiVersion}/parameterPOST', 'verb' => 'POST', 'postfix' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
+		['name' => 'Settings#parameterRequestBody', 'url' => '/api/{apiVersion}/parameterPUT', 'verb' => 'PUT', 'postfix' => 'PUT', 'requirements' => ['apiVersion' => '(v2)']],
+		['name' => 'Settings#parameterRequestBody', 'url' => '/api/{apiVersion}/parameterDELETE', 'verb' => 'DELETE', 'postfix' => 'DELETE', 'requirements' => ['apiVersion' => '(v2)']],
+		['name' => 'Settings#parameterRequestBody', 'url' => '/api/{apiVersion}/parameterPATCH', 'verb' => 'PATCH', 'postfix' => 'PATCH', 'requirements' => ['apiVersion' => '(v2)']],
 	],
 ];

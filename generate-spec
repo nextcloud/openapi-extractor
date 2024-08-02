@@ -654,6 +654,7 @@ foreach ($routes as $scope => $scopeRoutes) {
 			$pathParameters[] = $parameter;
 		}
 
+		$queryParameters = [];
 		$bodyParameters = [];
 		foreach ($route->controllerMethod->parameters as $parameter) {
 			$alreadyInPath = false;
@@ -664,7 +665,11 @@ foreach ($routes as $scope => $scopeRoutes) {
 				}
 			}
 			if (!$alreadyInPath) {
-				$bodyParameters[] = $parameter;
+				if (in_array(strtolower($route->verb), ['put', 'post', 'patch'])) {
+					$bodyParameters[] = $parameter;
+				} else {
+					$queryParameters[] = $parameter;
+				}
 			}
 		}
 
@@ -799,6 +804,21 @@ foreach ($routes as $scope => $scopeRoutes) {
 		}
 
 		$parameters = $pathParameters;
+		foreach ($queryParameters as $queryParameter) {
+			$parameter = [
+				"name" => $queryParameter->name . ($queryParameter->type->type === "array" ? "[]" : ""),
+				"in" => "query",
+			];
+			if ($queryParameter->docType !== null && $queryParameter->docType->description !== "") {
+				$parameter["description"] = Helpers::cleanDocComment($queryParameter->docType->description);
+			}
+			if (!$queryParameter->type->nullable && !$queryParameter->type->hasDefaultValue) {
+				$parameter["required"] = true;
+			}
+			$parameter["schema"] = $queryParameter->type->toArray(true);
+
+			$parameters[] = $parameter;
+		}
 		if ($route->isOCS) {
 			$parameters[] = [
 				"name" => "OCS-APIRequest",

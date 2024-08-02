@@ -54,6 +54,27 @@ class OpenApiType {
 	}
 
 	public function toArray(bool $isParameter = false): array|stdClass {
+		if ($isParameter) {
+			if ($this->type === 'boolean') {
+				return (new OpenApiType(
+					type: 'integer',
+					nullable: $this->nullable,
+					hasDefaultValue: $this->hasDefaultValue,
+					defaultValue: !$this->hasDefaultValue ? null : ($this->defaultValue === true ? 1 : 0),
+					description: $this->description,
+					enum: [0, 1],
+				))->toArray($isParameter);
+			}
+
+			if ($this->type === 'object' || $this->ref !== null || $this->anyOf !== null || $this->allOf !== null) {
+				return (new OpenApiType(
+					type: 'string',
+					nullable: $this->nullable,
+					description: $this->description,
+				))->toArray($isParameter);
+			}
+		}
+
 		$values = [];
 		if ($this->ref !== null) {
 			$values["\$ref"] = $this->ref;
