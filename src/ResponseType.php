@@ -22,8 +22,9 @@ class ResponseType {
 
 	/** @return ResponseType[] */
 	public static function getAll(): array {
-		$stringType = new OpenApiType(type: "string");
-		$binaryType = new OpenApiType(type: "string", format: "binary");
+		$context = 'Response Types';
+		$stringType = new OpenApiType(context: $context, type: "string");
+		$binaryType = new OpenApiType(context: $context, type: "string", format: "binary");
 		return [
 			new ResponseType(
 				"DataDisplayResponse",

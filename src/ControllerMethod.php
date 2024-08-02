@@ -84,9 +84,9 @@ class ControllerMethod {
 							}
 
 							if (str_starts_with($type->name, 'OCS') && str_ends_with($type->name, 'Exception')) {
-								$responses[] = new ControllerMethodResponse($docNode->value->type, $statusCode, "application/json", new OpenApiType(type: "array", maxItems: 0), null);
+								$responses[] = new ControllerMethodResponse($docNode->value->type, $statusCode, "application/json", new OpenApiType(context: $context, type: "array", maxItems: 0), null);
 							} else {
-								$responses[] = new ControllerMethodResponse($docNode->value->type, $statusCode, "text/plain", new OpenApiType(type: "string"), null);
+								$responses[] = new ControllerMethodResponse($docNode->value->type, $statusCode, "text/plain", new OpenApiType(context: $context, type: "string"), null);
 							}
 						}
 					}

@@ -29,6 +29,7 @@ class OpenApiType {
 	 * @param OpenApiType[]|null $allOf
 	 */
 	public function __construct(
+		public string $context,
 		public ?string $ref = null,
 		public ?string $type = null,
 		public ?string $format = null,
@@ -57,6 +58,7 @@ class OpenApiType {
 		if ($isParameter) {
 			if ($this->type === 'boolean') {
 				return (new OpenApiType(
+					context: $this->context,
 					type: 'integer',
 					nullable: $this->nullable,
 					hasDefaultValue: $this->hasDefaultValue,
@@ -67,7 +69,10 @@ class OpenApiType {
 			}
 
 			if ($this->type === 'object' || $this->ref !== null || $this->anyOf !== null || $this->allOf !== null) {
+				Logger::warning($this->context, 'Complex types can not be part of query or URL parameters. Falling back to string due to undefined serialization!');
+
 				return (new OpenApiType(
+					context: $this->context,
 					type: 'string',
 					nullable: $this->nullable,
 					description: $this->description,
@@ -160,13 +165,25 @@ class OpenApiType {
 		}
 
 		if ($node instanceof ArrayTypeNode) {
-			return new OpenApiType(type: "array", items: self::resolve($context, $definitions, $node->type));
+			return new OpenApiType(
+				context: $context,
+				type: 'array',
+				items: self::resolve($context . ': items', $definitions, $node->type),
+			);
 		}
 		if ($node instanceof GenericTypeNode && ($node->type->name == "array" || $node->type->name == "list") && count($node->genericTypes) == 1) {
 			if ($node->genericTypes[0] instanceof IdentifierTypeNode && $node->genericTypes[0]->name == "empty") {
-				return new OpenApiType(type: "array", maxItems: 0);
+				return new OpenApiType(
+					context: $context,
+					type: 'array',
+					maxItems: 0,
+				);
 			}
-			return new OpenApiType(type: "array", items: self::resolve($context, $definitions, $node->genericTypes[0]));
+			return new OpenApiType(
+				context: $context,
+				type: 'array',
+				items: self::resolve($context, $definitions, $node->genericTypes[0]),
+			);
 		}
 		if ($node instanceof GenericTypeNode && $node->type->name === 'value-of') {
 			Logger::panic($context, "'value-of' is not supported");
@@ -183,12 +200,21 @@ class OpenApiType {
 					$required[] = $name;
 				}
 			}
-			return new OpenApiType(type: "object", properties: $properties, required: count($required) > 0 ? $required : null);
+			return new OpenApiType(
+				context: $context,
+				type: 'object',
+				properties: $properties,
+				required: count($required) > 0 ? $required : null,
+			);
 		}
 
 		if ($node instanceof GenericTypeNode && $node->type->name === "array" && count($node->genericTypes) === 2 && $node->genericTypes[0] instanceof IdentifierTypeNode) {
 			if ($node->genericTypes[0]->name === "string") {
-				return new OpenApiType(type: "object", additionalProperties: self::resolve($context, $definitions, $node->genericTypes[1]));
+				return new OpenApiType(
+					context: $context,
+					type: 'object',
+					additionalProperties: self::resolve($context . ': additionalProperties', $definitions, $node->genericTypes[1]),
+				);
 			}
 
 			Logger::panic($context, "JSON objects can only be indexed by 'string' but got '" . $node->genericTypes[0]->name . "'");
@@ -204,6 +230,7 @@ class OpenApiType {
 				$max = $node->genericTypes[1]->constExpr->value;
 			}
 			return new OpenApiType(
+				context: $context,
 				type: "integer",
 				format: "int64",
 				minimum: $min,
@@ -228,10 +255,17 @@ class OpenApiType {
 
 			if (count(array_filter($values, fn (string $value) => $value == '')) > 0) {
 				// Not a valid enum
-				return new OpenApiType(type: "string");
+				return new OpenApiType(
+					context: $context,
+					type: 'string',
+				);
 			}
 
-			return new OpenApiType(type: "string", enum: $values);
+			return new OpenApiType(
+				context: $context,
+				type: 'string',
+				enum: $values,
+			);
 		}
 		if ($isUnion && count($node->types) == count(array_filter($node->types, fn ($type) => $type instanceof ConstTypeNode && $type->constExpr instanceof ConstExprIntegerNode))) {
 			$values = [];
@@ -243,12 +277,14 @@ class OpenApiType {
 			if (count(array_filter($values, fn (string $value) => $value == '')) > 0) {
 				// Not a valid enum
 				return new OpenApiType(
+					context: $context,
 					type: "integer",
 					format: "int64",
 				);
 			}
 
 			return new OpenApiType(
+				context: $context,
 				type: "integer",
 				format: "int64",
 				enum: $values,
@@ -271,7 +307,7 @@ class OpenApiType {
 			}
 
 			$items = array_unique($items, SORT_REGULAR);
-			$items = self::mergeEnums($items);
+			$items = self::mergeEnums($context, $items);
 
 			if (count($items) == 1) {
 				$type = $items[0];
@@ -281,6 +317,7 @@ class OpenApiType {
 
 			if ($isIntersection) {
 				return new OpenApiType(
+					context: $context,
 					nullable: $nullable,
 					allOf: $items,
 				);
@@ -295,12 +332,14 @@ class OpenApiType {
 
 			if (!empty(array_filter($itemTypes, static fn (?string $type) => $type === null)) || count($itemTypes) !== count(array_unique($itemTypes))) {
 				return new OpenApiType(
+					context: $context,
 					nullable: $nullable,
 					anyOf: $items,
 				);
 			}
 
 			return new OpenApiType(
+				context: $context,
 				nullable: $nullable,
 				oneOf: $items,
 			);
@@ -310,18 +349,23 @@ class OpenApiType {
 			$value = $node->constExpr->value;
 			if ($value == '') {
 				// Not a valid enum
-				return new OpenApiType(type: "string");
+				return new OpenApiType(
+					context: $context,
+					type: 'string'
+				);
 			}
 			return new OpenApiType(
-				type: "string",
+				context: $context,
+				type: 'string',
 				enum: [$node->constExpr->value],
 			);
 		}
 
 		if ($node instanceof ConstTypeNode && $node->constExpr instanceof ConstExprIntegerNode) {
 			return new OpenApiType(
-				type: "integer",
-				format: "int64",
+				context: $context,
+				type: 'integer',
+				format: 'int64',
 				enum: [(int)$node->constExpr->value],
 			);
 		}
@@ -337,7 +381,7 @@ class OpenApiType {
 	 * @param OpenApiType[] $types
 	 * @return OpenApiType[]
 	 */
-	private static function mergeEnums(array $types): array {
+	private static function mergeEnums(string $context, array $types): array {
 		$enums = [];
 		$nonEnums = [];
 
@@ -359,7 +403,10 @@ class OpenApiType {
 			}
 		}
 
-		return array_merge($nonEnums, array_map(fn (string $type) => new OpenApiType(type: $type, enum: $enums[$type]), array_keys($enums)));
+		return array_merge($nonEnums, array_map(static fn (string $type) => new OpenApiType(
+			context: $context,
+			type: $type, enum: $enums[$type],
+		), array_keys($enums)));
 	}
 
 	private static function resolveIdentifier(string $context, array $definitions, string $name): OpenApiType {
@@ -370,25 +417,26 @@ class OpenApiType {
 			$name = substr($name, 1);
 		}
 		return match ($name) {
-			"string", "non-falsy-string", "numeric-string" => new OpenApiType(type: "string"),
-			"non-empty-string" => new OpenApiType(type: "string", minLength: 1),
-			"int", "integer" => new OpenApiType(type: "integer", format: "int64"),
-			"non-negative-int" => new OpenApiType(type: "integer", format: "int64", minimum: 0),
-			"positive-int" => new OpenApiType(type: "integer", format: "int64", minimum: 1),
-			"negative-int" => new OpenApiType(type: "integer", format: "int64", maximum: -1),
-			"non-positive-int" => new OpenApiType(type: "integer", format: "int64", maximum: 0),
-			"bool", "boolean" => new OpenApiType(type: "boolean"),
-			"true" => new OpenApiType(type: "boolean", enum: [true]),
-			"false" => new OpenApiType(type: "boolean", enum: [false]),
-			"numeric" => new OpenApiType(type: "number"),
+			"string", "non-falsy-string", "numeric-string" => new OpenApiType(context: $context, type: "string"),
+			"non-empty-string" => new OpenApiType(context: $context, type: "string", minLength: 1),
+			"int", "integer" => new OpenApiType(context: $context, type: "integer", format: "int64"),
+			"non-negative-int" => new OpenApiType(context: $context, type: "integer", format: "int64", minimum: 0),
+			"positive-int" => new OpenApiType(context: $context, type: "integer", format: "int64", minimum: 1),
+			"negative-int" => new OpenApiType(context: $context, type: "integer", format: "int64", maximum: -1),
+			"non-positive-int" => new OpenApiType(context: $context, type: "integer", format: "int64", maximum: 0),
+			"bool", "boolean" => new OpenApiType(context: $context, type: "boolean"),
+			"true" => new OpenApiType(context: $context, type: "boolean", enum: [true]),
+			"false" => new OpenApiType(context: $context, type: "boolean", enum: [false]),
+			"numeric" => new OpenApiType(context: $context, type: "number"),
 			// https://www.php.net/manual/en/language.types.float.php: Both float and double are always stored with double precision
-			"float", "double" => new OpenApiType(type: "number", format: "double"),
-			"mixed", "empty", "array" => new OpenApiType(type: "object"),
-			"object", "stdClass" => new OpenApiType(type: "object", additionalProperties: true),
-			"null" => new OpenApiType(nullable: true),
+			"float", "double" => new OpenApiType(context: $context, type: "number", format: "double"),
+			"mixed", "empty", "array" => new OpenApiType(context: $context, type: "object"),
+			"object", "stdClass" => new OpenApiType(context: $context, type: "object", additionalProperties: true),
+			"null" => new OpenApiType(context: $context, nullable: true),
 			default => (function () use ($context, $definitions, $name) {
 				if (array_key_exists($name, $definitions)) {
 					return new OpenApiType(
+						context: $context,
 						ref: "#/components/schemas/" . Helpers::cleanSchemaName($name),
 					);
 				}
