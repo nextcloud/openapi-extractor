@@ -203,6 +203,21 @@
                         "type": "string"
                     }
                 }
+            },
+            "RequestProperty": {
+                "type": "object",
+                "required": [
+                    "publicKey",
+                    "signature"
+                ],
+                "properties": {
+                    "publicKey": {
+                        "type": "string"
+                    },
+                    "signature": {
+                        "type": "string"
+                    }
+                }
             }
         }
     },
@@ -4367,6 +4382,25 @@
                         "basic_auth": []
                     }
                 ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "property"
+                                ],
+                                "properties": {
+                                    "property": {
+                                        "$ref": "#/components/schemas/RequestProperty",
+                                        "description": "Property"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
                 "parameters": [
                     {
                         "name": "apiVersion",

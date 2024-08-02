@@ -70,6 +70,11 @@ namespace OCA\Notifications;
  *     publicKey: string,
  *     signature: string,
  * }
+ *
+ * @psalm-type NotificationsRequestProperty = array{
+ *     publicKey: string,
+ *     signature: string,
+ * }
  */
 class ResponseDefinitions {
 }

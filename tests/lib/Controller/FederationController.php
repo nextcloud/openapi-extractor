@@ -36,6 +36,7 @@ use OCP\AppFramework\OCSController;
  * @psalm-import-type NotificationsPushDevice from ResponseDefinitions
  * @psalm-import-type NotificationsNotification from ResponseDefinitions
  * @psalm-import-type NotificationsCollection from ResponseDefinitions
+ * @psalm-import-type NotificationsRequestProperty from ResponseDefinitions
  */
 #[OpenAPI(scope: OpenAPI::SCOPE_FEDERATION)]
 class FederationController extends OCSController {
@@ -58,12 +59,13 @@ class FederationController extends OCSController {
 	 *
 	 * Route is only in the default scope (moved from federation)
 	 *
+	 * @param NotificationsRequestProperty $property Property
 	 * @return DataResponse<Http::STATUS_OK, array<empty>, array{}>
 	 *
 	 * 200: Personal settings updated
 	 */
 	#[OpenAPI]
-	public function movedToDefaultScope(): DataResponse {
+	public function movedToDefaultScope(array $property): DataResponse {
 		return new DataResponse();
 	}
 }
