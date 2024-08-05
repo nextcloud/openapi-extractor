@@ -94,7 +94,11 @@ class OpenApiType {
 			$values["nullable"] = true;
 		}
 		if ($this->hasDefaultValue && $this->defaultValue !== null) {
-			$values["default"] = $this->defaultValue;
+			if ($this->type === 'object' && empty($this->defaultValue)) {
+				$values["default"] = new stdClass();
+			} else {
+				$values["default"] = $this->defaultValue;
+			}
 		}
 		if ($this->enum !== null) {
 			$values["enum"] = $this->enum;
