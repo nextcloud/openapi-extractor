@@ -552,4 +552,19 @@ class SettingsController extends OCSController {
 	public function parameterRequestBody(int $simple, array $complex): DataResponse {
 		return new DataResponse();
 	}
+
+
+	/**
+	 * Route with object defaults
+	 *
+	 * @param array<string, string> $empty Empty
+	 * @param array<string, string> $values Values
+	 * @return DataResponse<Http::STATUS_OK, array{test: array<empty>}, array{}>
+	 *
+	 * 200: OK
+	 */
+	#[PasswordConfirmationRequired]
+	public function objectDefaults(array $empty = [], array $values = ['key' => 'value']): DataResponse {
+		return new DataResponse();
+	}
 }

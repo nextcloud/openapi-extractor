@@ -82,5 +82,6 @@ return [
 		['name' => 'Settings#parameterRequestBody', 'url' => '/api/{apiVersion}/parameterPUT', 'verb' => 'PUT', 'postfix' => 'PUT', 'requirements' => ['apiVersion' => '(v2)']],
 		['name' => 'Settings#parameterRequestBody', 'url' => '/api/{apiVersion}/parameterDELETE', 'verb' => 'DELETE', 'postfix' => 'DELETE', 'requirements' => ['apiVersion' => '(v2)']],
 		['name' => 'Settings#parameterRequestBody', 'url' => '/api/{apiVersion}/parameterPATCH', 'verb' => 'PATCH', 'postfix' => 'PATCH', 'requirements' => ['apiVersion' => '(v2)']],
+		['name' => 'Settings#objectDefaults', 'url' => '/api/{apiVersion}/objectDefaults', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
 	],
 ];
