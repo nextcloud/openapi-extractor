@@ -654,6 +654,7 @@ foreach ($routes as $scope => $scopeRoutes) {
 			$pathParameters[] = $parameter;
 		}
 
+		$queryParameters = [];
 		$bodyParameters = [];
 		foreach ($route->controllerMethod->parameters as $parameter) {
 			$alreadyInPath = false;
@@ -664,7 +665,11 @@ foreach ($routes as $scope => $scopeRoutes) {
 				}
 			}
 			if (!$alreadyInPath) {
-				$bodyParameters[] = $parameter;
+				if (in_array(strtolower($route->verb), ['put', 'post', 'patch'])) {
+					$bodyParameters[] = $parameter;
+				} else {
+					$queryParameters[] = $parameter;
+				}
 			}
 		}
 
@@ -764,9 +769,9 @@ foreach ($routes as $scope => $scopeRoutes) {
 		if (count($security) > 0) {
 			$operation["security"] = $security;
 		}
-		if (count($bodyParameters) > 0 || count($pathParameters) > 0 || $route->isOCS) {
+
+		if (count($bodyParameters) > 0) {
 			$requiredBodyParameters = [];
-			$parameters = [];
 
 			foreach ($bodyParameters as $bodyParameter) {
 				$required = !$bodyParameter->type->nullable && !$bodyParameter->type->hasDefaultValue;
@@ -775,48 +780,61 @@ foreach ($routes as $scope => $scopeRoutes) {
 				}
 			}
 
-			if (count($bodyParameters) > 0) {
-				$required = count($requiredBodyParameters) > 0;
+			$required = count($requiredBodyParameters) > 0;
 
-				$schema = [
-					"type" => "object",
-				];
-				if ($required) {
-					$schema["required"] = $requiredBodyParameters;
-				}
-				$schema["properties"] = [];
-				foreach ($bodyParameters as $bodyParameter) {
-					$schema["properties"][$bodyParameter->name] = $bodyParameter->type->toArray();
-				}
+			$schema = [
+				"type" => "object",
+			];
+			if ($required) {
+				$schema["required"] = $requiredBodyParameters;
+			}
+			$schema["properties"] = [];
+			foreach ($bodyParameters as $bodyParameter) {
+				$schema["properties"][$bodyParameter->name] = $bodyParameter->type->toArray();
+			}
 
-				$operation["requestBody"] = [
-					"required" => $required,
-					"content" => [
-						"application/json" => [
-							"schema" => $schema,
-						],
+			$operation["requestBody"] = [
+				"required" => $required,
+				"content" => [
+					"application/json" => [
+						"schema" => $schema,
 					],
-				];
-			}
-
-			$parameters = array_merge($parameters, $pathParameters);
-			if ($route->isOCS) {
-				$parameters[] = [
-					"name" => "OCS-APIRequest",
-					"in" => "header",
-					"description" => "Required to be true for the API request to pass",
-					"required" => true,
-					"schema" => [
-						"type" => "boolean",
-						"default" => true,
-					],
-				];
-			}
-
-			if (count($parameters) > 0) {
-				$operation["parameters"] = $parameters;
-			}
+				],
+			];
 		}
+
+		$parameters = $pathParameters;
+		foreach ($queryParameters as $queryParameter) {
+			$parameter = [
+				"name" => $queryParameter->name . ($queryParameter->type->type === "array" ? "[]" : ""),
+				"in" => "query",
+			];
+			if ($queryParameter->docType !== null && $queryParameter->docType->description !== "") {
+				$parameter["description"] = Helpers::cleanDocComment($queryParameter->docType->description);
+			}
+			if (!$queryParameter->type->nullable && !$queryParameter->type->hasDefaultValue) {
+				$parameter["required"] = true;
+			}
+			$parameter["schema"] = $queryParameter->type->toArray(true);
+
+			$parameters[] = $parameter;
+		}
+		if ($route->isOCS) {
+			$parameters[] = [
+				"name" => "OCS-APIRequest",
+				"in" => "header",
+				"description" => "Required to be true for the API request to pass",
+				"required" => true,
+				"schema" => [
+					"type" => "boolean",
+					"default" => true,
+				],
+			];
+		}
+		if (count($parameters) > 0) {
+			$operation["parameters"] = $parameters;
+		}
+
 		$operation["responses"] = $mergedResponses;
 
 		$scopePaths[$scope] ??= [];
@@ -981,7 +999,7 @@ foreach ($scopePaths as $scope => $paths) {
 		}
 
 		if (count($scopedSchemas) === 0) {
-			$scopedSchemas = new \stdClass();
+			$scopedSchemas = new stdClass();
 		} else {
 			ksort($scopedSchemas);
 		}
@@ -992,7 +1010,7 @@ foreach ($scopePaths as $scope => $paths) {
 	$pathsCount = count($openapiScope['paths']);
 	if ($pathsCount === 0) {
 		// Make sure the paths array is always a dictionary
-		$openapiScope['paths'] = new \stdClass();
+		$openapiScope['paths'] = new stdClass();
 	}
 
 	$startExtension = strrpos($out, '.');
