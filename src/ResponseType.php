@@ -223,6 +223,9 @@ class ResponseType {
 
 					if ($responseType->hasTypeTemplate) {
 						$type = OpenApiType::resolve($context, $definitions, $args[$i]);
+						if ($type->type === 'array' && $type->maxItems !== 0) {
+							Logger::warning($context, 'Avoid using lists as top-level data structure to allow extending the response in the future');
+						}
 						$i++;
 					} else {
 						$type = $responseType->defaultType;
