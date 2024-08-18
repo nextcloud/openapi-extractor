@@ -171,3 +171,7 @@ function rewriteOperations(array $spec): array {
 }
 
 file_put_contents($mergedSpecPath, json_encode($data, Helpers::jsonFlags()) . "\n");
+
+if (Logger::$errorCount > 0) {
+	Logger::panic('app', 'Encountered ' . Logger::$errorCount . ' errors that need to be fixed!');
+}
