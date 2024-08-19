@@ -382,7 +382,7 @@ foreach ($parsedRoutes as $key => $value) {
 		$controllerScopes = Helpers::getOpenAPIAttributeScopes($controllerClass, $routeName);
 		if (Helpers::classMethodHasAnnotationOrAttribute($controllerClass, "IgnoreOpenAPI")) {
 			if (count($controllerScopes) === 0 || (in_array('ignore', $controllerScopes, true) && count($controllerScopes) === 1)) {
-				Logger::info($routeName, "Controller '" . $controllerName . "' ignored because of IgnoreOpenAPI attribute");
+				Logger::debug($routeName, "Controller '" . $controllerName . "' ignored because of IgnoreOpenAPI attribute");
 				continue;
 			}
 
@@ -391,7 +391,7 @@ foreach ($parsedRoutes as $key => $value) {
 
 		if (in_array('ignore', $controllerScopes, true)) {
 			if (count($controllerScopes) === 1) {
-				Logger::info($routeName, "Controller '" . $controllerName . "' ignored because of OpenAPI attribute");
+				Logger::debug($routeName, "Controller '" . $controllerName . "' ignored because of OpenAPI attribute");
 				continue;
 			}
 
@@ -460,7 +460,7 @@ foreach ($parsedRoutes as $key => $value) {
 
 		if (in_array('ignore', $scopes, true)) {
 			if (count($scopes) === 1) {
-				Logger::info($routeName, "Route ignored because of OpenAPI attribute");
+				Logger::debug($routeName, "Route ignored because of OpenAPI attribute");
 				continue;
 			}
 
@@ -929,7 +929,7 @@ if (!$hasSingleScope) {
 	$scopePaths['full'] = [];
 } elseif (count($scopePaths) === 0) {
 	if (isset($schemas['Capabilities']) || isset($schemas['PublicCapabilities'])) {
-		Logger::info('app', 'Generating default scope without routes to populate capabilities');
+		Logger::debug('app', 'Generating default scope without routes to populate capabilities');
 		$scopePaths['default'] = [];
 	} else {
 		Logger::panic('app', 'No routes or capabilities defined');
