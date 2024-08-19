@@ -3,8 +3,8 @@
 namespace OpenAPIExtractor;
 
 class Logger {
-	public static bool $exitOnError = true;
 	public static bool $verbose = false;
+	public static int $errorCount = 0;
 
 	protected static function log(LoggerLevel $level, string $context, string $text): void {
 		print(self::format($level, $context, $text));
@@ -34,15 +34,9 @@ class Logger {
 		self::log(LoggerLevel::Warning, $context, $text);
 	}
 
-	/**
-	 * @throws LoggerException
-	 */
 	public static function error(string $context, string $text): void {
-		if (self::$exitOnError) {
-			throw new LoggerException(LoggerLevel::Error, $context, $text);
-		} else {
-			self::log(LoggerLevel::Error, $context, $text);
-		}
+		self::$errorCount++;
+		self::log(LoggerLevel::Error, $context, $text);
 	}
 
 	/**

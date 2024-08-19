@@ -41,7 +41,6 @@ $command
 	->option('--first-content-type', 'Only output the first content type')
 	->option('--allow-missing-docs', 'Allow missing documentation fields')
 	->option('--no-tags', 'Use no tags')
-	->option('--continue-on-error', 'Continue on error')
 	->option('--openapi-version', 'OpenAPI version to use', null, '3.0.3')
 	->option('--verbose', 'Verbose logging')
 	->parse($_SERVER["argv"]);
@@ -52,7 +51,6 @@ $firstStatusCode = $command->firstStatusCode ?? false;
 $firstContentType = $command->firstContentType ?? false;
 $allowMissingDocs = $command->allowMissingDocs ?? false;
 $useTags = $command->tags ?? true;
-Logger::$exitOnError = !($command->continueOnError ?? false);
 Logger::$verbose = $command->verbose ?? false;
 $openapiVersion = $command->openapiVersion ?? '3.0.3';
 
@@ -1025,4 +1023,8 @@ foreach ($scopePaths as $scope => $paths) {
 	file_put_contents($scopeOut, json_encode($openapiScope, Helpers::jsonFlags()) . "\n");
 
 	Logger::info('app', 'Generated scope ' . $scope . ' with ' . $pathsCount . ' routes!');
+}
+
+if (Logger::$errorCount > 0) {
+	Logger::panic('app', 'Encountered ' . Logger::$errorCount . ' errors that need to be fixed!');
 }
