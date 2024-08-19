@@ -33,6 +33,7 @@ jobs:
           - "nextcloud/server"
           - "nextcloud/spreed"
           - "nextcloud/tables"
+          - "nextcloud/mail"
 
     name: openapi-repositories
 
