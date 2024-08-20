@@ -1,5 +1,7 @@
 {
 	"name": "nextcloud/openapi-extractor",
+	"description": "A tool for extracting OpenAPI specifications from Nextcloud source code",
+	"license": "AGPL-3.0-or-later",
 	"bin": [
 		"generate-spec",
 		"merge-specs"
