@@ -2,21 +2,11 @@
 
 ## Installation
 
-This tool should be added as a dev dependency to the `composer.json` of your app (or in your `vendor-bin`) like this:
-
-```json
-{
-    "repositories": [
-        {
-            "type": "vcs",
-            "url": "https://github.com/nextcloud/openapi-extractor"
-        }
-    ],
-    "require-dev": {
-        "nextcloud/openapi-extractor": "dev-main"
-    }
-}
+```sh
+composer require --dev nextcloud/openapi-extractor
 ```
+
+To avoid dependency and PHP version conflicts it is best to install the package to vendor-bin using https://github.com/bamarni/composer-bin-plugin instead.
 
 ## Create a CI workflow to check the specifications are up-to-date
 
