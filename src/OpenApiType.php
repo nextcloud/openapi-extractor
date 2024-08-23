@@ -104,7 +104,7 @@ class OpenApiType {
 			$values["enum"] = $this->enum;
 		}
 		if ($this->description !== null && $this->description !== "" && !$isParameter) {
-			$values["description"] = $this->description;
+			$values["description"] = Helpers::cleanDocComment($this->description);
 		}
 		if ($this->items !== null) {
 			$values["items"] = $this->items->toArray();

@@ -567,4 +567,25 @@ class SettingsController extends OCSController {
 	public function objectDefaults(array $empty = [], array $values = ['key' => 'value']): DataResponse {
 		return new DataResponse();
 	}
+
+	/**
+	 *      some
+	 *   whitespace
+	 *
+	 *        even
+	 * more
+	 *    whitespace
+	 *
+	 * @param int $value and this one
+	 *      has
+	 *         even
+	 *   more whitespace
+	 * @return DataResponse<Http::STATUS_OK, array{test: array<empty>}, array{}>
+	 *
+	 * 200: OK
+	 */
+	#[PasswordConfirmationRequired]
+	public function whitespace(int $value): DataResponse {
+		return new DataResponse();
+	}
 }
