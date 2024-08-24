@@ -82,74 +82,74 @@ class OpenApiType {
 
 		$values = [];
 		if ($this->ref !== null) {
-			$values["\$ref"] = $this->ref;
+			$values['$ref'] = $this->ref;
 		}
 		if ($this->type !== null) {
-			$values["type"] = $this->type;
+			$values['type'] = $this->type;
 		}
 		if ($this->format !== null) {
-			$values["format"] = $this->format;
+			$values['format'] = $this->format;
 		}
 		if ($this->nullable) {
-			$values["nullable"] = true;
+			$values['nullable'] = true;
 		}
 		if ($this->hasDefaultValue && $this->defaultValue !== null) {
 			if ($this->type === 'object' && empty($this->defaultValue)) {
-				$values["default"] = new stdClass();
+				$values['default'] = new stdClass();
 			} else {
-				$values["default"] = $this->defaultValue;
+				$values['default'] = $this->defaultValue;
 			}
 		}
 		if ($this->enum !== null) {
-			$values["enum"] = $this->enum;
+			$values['enum'] = $this->enum;
 		}
-		if ($this->description !== null && $this->description !== "" && !$isParameter) {
-			$values["description"] = Helpers::cleanDocComment($this->description);
+		if ($this->description !== null && $this->description !== '' && !$isParameter) {
+			$values['description'] = Helpers::cleanDocComment($this->description);
 		}
 		if ($this->items !== null) {
-			$values["items"] = $this->items->toArray();
+			$values['items'] = $this->items->toArray();
 		}
 		if ($this->minLength !== null) {
-			$values["minLength"] = $this->minLength;
+			$values['minLength'] = $this->minLength;
 		}
 		if ($this->maxLength !== null) {
-			$values["maxLength"] = $this->maxLength;
+			$values['maxLength'] = $this->maxLength;
 		}
 		if ($this->minimum !== null) {
-			$values["minimum"] = $this->minimum;
+			$values['minimum'] = $this->minimum;
 		}
 		if ($this->maximum !== null) {
-			$values["maximum"] = $this->maximum;
+			$values['maximum'] = $this->maximum;
 		}
 		if ($this->minItems !== null) {
-			$values["minItems"] = $this->minItems;
+			$values['minItems'] = $this->minItems;
 		}
 		if ($this->maxItems !== null) {
-			$values["maxItems"] = $this->maxItems;
+			$values['maxItems'] = $this->maxItems;
 		}
 		if ($this->required !== null) {
-			$values["required"] = $this->required;
+			$values['required'] = $this->required;
 		}
 		if ($this->properties !== null && count($this->properties) > 0) {
-			$values["properties"] = array_combine(array_keys($this->properties),
+			$values['properties'] = array_combine(array_keys($this->properties),
 				array_map(static fn (OpenApiType $property) => $property->toArray(), array_values($this->properties)),
 			);
 		}
 		if ($this->additionalProperties !== null) {
 			if ($this->additionalProperties instanceof OpenApiType) {
-				$values["additionalProperties"] = $this->additionalProperties->toArray();
+				$values['additionalProperties'] = $this->additionalProperties->toArray();
 			} else {
-				$values["additionalProperties"] = $this->additionalProperties;
+				$values['additionalProperties'] = $this->additionalProperties;
 			}
 		}
 		if ($this->oneOf !== null) {
-			$values["oneOf"] = array_map(fn (OpenApiType $type) => $type->toArray(), $this->oneOf);
+			$values['oneOf'] = array_map(fn (OpenApiType $type) => $type->toArray(), $this->oneOf);
 		}
 		if ($this->anyOf !== null) {
-			$values["anyOf"] = array_map(fn (OpenApiType $type) => $type->toArray(), $this->anyOf);
+			$values['anyOf'] = array_map(fn (OpenApiType $type) => $type->toArray(), $this->anyOf);
 		}
 		if ($this->allOf !== null) {
-			$values["allOf"] = array_map(fn (OpenApiType $type) => $type->toArray(), $this->allOf);
+			$values['allOf'] = array_map(fn (OpenApiType $type) => $type->toArray(), $this->allOf);
 		}
 
 		return count($values) > 0 ? $values : new stdClass();
@@ -175,8 +175,8 @@ class OpenApiType {
 				items: self::resolve($context . ': items', $definitions, $node->type),
 			);
 		}
-		if ($node instanceof GenericTypeNode && ($node->type->name == "array" || $node->type->name == "list") && count($node->genericTypes) == 1) {
-			if ($node->genericTypes[0] instanceof IdentifierTypeNode && $node->genericTypes[0]->name == "empty") {
+		if ($node instanceof GenericTypeNode && ($node->type->name == 'array' || $node->type->name == 'list') && count($node->genericTypes) == 1) {
+			if ($node->genericTypes[0] instanceof IdentifierTypeNode && $node->genericTypes[0]->name == 'empty') {
 				return new OpenApiType(
 					context: $context,
 					type: 'array',
@@ -212,8 +212,8 @@ class OpenApiType {
 			);
 		}
 
-		if ($node instanceof GenericTypeNode && $node->type->name === "array" && count($node->genericTypes) === 2 && $node->genericTypes[0] instanceof IdentifierTypeNode) {
-			if ($node->genericTypes[0]->name === "string") {
+		if ($node instanceof GenericTypeNode && $node->type->name === 'array' && count($node->genericTypes) === 2 && $node->genericTypes[0] instanceof IdentifierTypeNode) {
+			if ($node->genericTypes[0]->name === 'string') {
 				return new OpenApiType(
 					context: $context,
 					type: 'object',
@@ -224,7 +224,7 @@ class OpenApiType {
 			Logger::panic($context, "JSON objects can only be indexed by 'string' but got '" . $node->genericTypes[0]->name . "'");
 		}
 
-		if ($node instanceof GenericTypeNode && $node->type->name == "int" && count($node->genericTypes) == 2) {
+		if ($node instanceof GenericTypeNode && $node->type->name == 'int' && count($node->genericTypes) == 2) {
 			$min = null;
 			$max = null;
 			if ($node->genericTypes[0] instanceof ConstTypeNode) {
@@ -235,8 +235,8 @@ class OpenApiType {
 			}
 			return new OpenApiType(
 				context: $context,
-				type: "integer",
-				format: "int64",
+				type: 'integer',
+				format: 'int64',
 				minimum: $min,
 				maximum: $max,
 			);
@@ -282,15 +282,15 @@ class OpenApiType {
 				// Not a valid enum
 				return new OpenApiType(
 					context: $context,
-					type: "integer",
-					format: "int64",
+					type: 'integer',
+					format: 'int64',
 				);
 			}
 
 			return new OpenApiType(
 				context: $context,
-				type: "integer",
-				format: "int64",
+				type: 'integer',
+				format: 'int64',
 				enum: $values,
 			);
 		}
@@ -300,11 +300,11 @@ class OpenApiType {
 			$items = [];
 
 			foreach ($node->types as $type) {
-				if (($type instanceof IdentifierTypeNode || $type instanceof Identifier) && $type->name == "null") {
+				if (($type instanceof IdentifierTypeNode || $type instanceof Identifier) && $type->name == 'null') {
 					$nullable = true;
 					continue;
 				}
-				if (($type instanceof IdentifierTypeNode || $type instanceof Identifier) && $type->name == "mixed") {
+				if (($type instanceof IdentifierTypeNode || $type instanceof Identifier) && $type->name == 'mixed') {
 					Logger::error($context, "Unions and intersections should not contain 'mixed'");
 				}
 				$items[] = self::resolve($context, $definitions, $type);
@@ -414,34 +414,34 @@ class OpenApiType {
 	}
 
 	private static function resolveIdentifier(string $context, array $definitions, string $name): OpenApiType {
-		if ($name == "array") {
+		if ($name == 'array') {
 			Logger::error($context, "Instead of 'array' use:\n'new stdClass()' for empty objects\n'array<string, mixed>' for non-empty objects\n'array<emtpy>' for empty lists\n'array<YourTypeHere>' for lists");
 		}
-		if (str_starts_with($name, "\\")) {
+		if (str_starts_with($name, '\\')) {
 			$name = substr($name, 1);
 		}
 		return match ($name) {
-			"string", "non-falsy-string", "numeric-string" => new OpenApiType(context: $context, type: "string"),
-			"non-empty-string" => new OpenApiType(context: $context, type: "string", minLength: 1),
-			"int", "integer" => new OpenApiType(context: $context, type: "integer", format: "int64"),
-			"non-negative-int" => new OpenApiType(context: $context, type: "integer", format: "int64", minimum: 0),
-			"positive-int" => new OpenApiType(context: $context, type: "integer", format: "int64", minimum: 1),
-			"negative-int" => new OpenApiType(context: $context, type: "integer", format: "int64", maximum: -1),
-			"non-positive-int" => new OpenApiType(context: $context, type: "integer", format: "int64", maximum: 0),
-			"bool", "boolean" => new OpenApiType(context: $context, type: "boolean"),
-			"true" => new OpenApiType(context: $context, type: "boolean", enum: [true]),
-			"false" => new OpenApiType(context: $context, type: "boolean", enum: [false]),
-			"numeric" => new OpenApiType(context: $context, type: "number"),
+			'string', 'non-falsy-string', 'numeric-string' => new OpenApiType(context: $context, type: 'string'),
+			'non-empty-string' => new OpenApiType(context: $context, type: 'string', minLength: 1),
+			'int', 'integer' => new OpenApiType(context: $context, type: 'integer', format: 'int64'),
+			'non-negative-int' => new OpenApiType(context: $context, type: 'integer', format: 'int64', minimum: 0),
+			'positive-int' => new OpenApiType(context: $context, type: 'integer', format: 'int64', minimum: 1),
+			'negative-int' => new OpenApiType(context: $context, type: 'integer', format: 'int64', maximum: -1),
+			'non-positive-int' => new OpenApiType(context: $context, type: 'integer', format: 'int64', maximum: 0),
+			'bool', 'boolean' => new OpenApiType(context: $context, type: 'boolean'),
+			'true' => new OpenApiType(context: $context, type: 'boolean', enum: [true]),
+			'false' => new OpenApiType(context: $context, type: 'boolean', enum: [false]),
+			'numeric' => new OpenApiType(context: $context, type: 'number'),
 			// https://www.php.net/manual/en/language.types.float.php: Both float and double are always stored with double precision
-			"float", "double" => new OpenApiType(context: $context, type: "number", format: "double"),
-			"mixed", "empty", "array" => new OpenApiType(context: $context, type: "object"),
-			"object", "stdClass" => new OpenApiType(context: $context, type: "object", additionalProperties: true),
-			"null" => new OpenApiType(context: $context, nullable: true),
+			'float', 'double' => new OpenApiType(context: $context, type: 'number', format: 'double'),
+			'mixed', 'empty', 'array' => new OpenApiType(context: $context, type: 'object'),
+			'object', 'stdClass' => new OpenApiType(context: $context, type: 'object', additionalProperties: true),
+			'null' => new OpenApiType(context: $context, nullable: true),
 			default => (function () use ($context, $definitions, $name) {
 				if (array_key_exists($name, $definitions)) {
 					return new OpenApiType(
 						context: $context,
-						ref: "#/components/schemas/" . Helpers::cleanSchemaName($name),
+						ref: '#/components/schemas/' . Helpers::cleanSchemaName($name),
 					);
 				}
 				Logger::panic($context, "Unable to resolve OpenAPI type for identifier '" . $name . "'");

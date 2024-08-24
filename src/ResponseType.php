@@ -23,11 +23,11 @@ class ResponseType {
 	/** @return ResponseType[] */
 	public static function getAll(): array {
 		$context = 'Response Types';
-		$stringType = new OpenApiType(context: $context, type: "string");
-		$binaryType = new OpenApiType(context: $context, type: "string", format: "binary");
+		$stringType = new OpenApiType(context: $context, type: 'string');
+		$binaryType = new OpenApiType(context: $context, type: 'string', format: 'binary');
 		return [
 			new ResponseType(
-				"DataDisplayResponse",
+				'DataDisplayResponse',
 				false,
 				false,
 				null,
@@ -35,7 +35,7 @@ class ResponseType {
 				null,
 			),
 			new ResponseType(
-				"DataDownloadResponse",
+				'DataDownloadResponse',
 				true,
 				false,
 				null,
@@ -43,15 +43,15 @@ class ResponseType {
 				null,
 			),
 			new ResponseType(
-				"DataResponse",
+				'DataResponse',
 				false,
 				true,
-				"application/json",
+				'application/json',
 				$stringType,
 				null,
 			),
 			new ResponseType(
-				"DownloadResponse",
+				'DownloadResponse',
 				true,
 				false,
 				null,
@@ -59,7 +59,7 @@ class ResponseType {
 				null,
 			),
 			new ResponseType(
-				"FileDisplayResponse",
+				'FileDisplayResponse',
 				false,
 				false,
 				null,
@@ -67,39 +67,39 @@ class ResponseType {
 				null,
 			),
 			new ResponseType(
-				"JSONResponse",
+				'JSONResponse',
 				false,
 				true,
-				"application/json",
+				'application/json',
 				$stringType,
 				null,
 			),
 			new ResponseType(
-				"NotFoundResponse",
+				'NotFoundResponse',
 				false,
 				false,
-				"text/html",
+				'text/html',
 				$stringType,
 				null,
 			),
 			new ResponseType(
-				"RedirectResponse",
+				'RedirectResponse',
 				false,
 				false,
 				null,
 				null,
-				["Location" => $stringType],
+				['Location' => $stringType],
 			),
 			new ResponseType(
-				"RedirectToDefaultAppResponse",
+				'RedirectToDefaultAppResponse',
 				false,
 				false,
 				null,
 				null,
-				["Location" => $stringType],
+				['Location' => $stringType],
 			),
 			new ResponseType(
-				"Response",
+				'Response',
 				false,
 				false,
 				null,
@@ -107,15 +107,15 @@ class ResponseType {
 				null,
 			),
 			new ResponseType(
-				"StandaloneTemplateResponse",
+				'StandaloneTemplateResponse',
 				false,
 				false,
-				"text/html",
+				'text/html',
 				$stringType,
 				null,
 			),
 			new ResponseType(
-				"StreamResponse",
+				'StreamResponse',
 				false,
 				false,
 				null,
@@ -123,31 +123,31 @@ class ResponseType {
 				null,
 			),
 			new ResponseType(
-				"TemplateResponse",
+				'TemplateResponse',
 				false,
 				false,
-				"text/html",
+				'text/html',
 				$stringType,
 				null,
 			),
 			new ResponseType(
-				"TextPlainResponse",
+				'TextPlainResponse',
 				false,
 				false,
-				"text/plain",
+				'text/plain',
 				$stringType,
 				null,
 			),
 			new ResponseType(
-				"TooManyRequestsResponse",
+				'TooManyRequestsResponse',
 				false,
 				false,
-				"text/html",
+				'text/html',
 				$stringType,
 				null,
 			),
 			new ResponseType(
-				"ZipResponse",
+				'ZipResponse',
 				false,
 				false,
 				null,
@@ -182,12 +182,12 @@ class ResponseType {
 			$className = $obj->type->name;
 			$args = $obj->genericTypes;
 		} else {
-			Logger::panic($context, "Failed to get class name for " . $obj);
+			Logger::panic($context, 'Failed to get class name for ' . $obj);
 		}
-		$classNameParts = explode("\\", $className);
+		$classNameParts = explode('\\', $className);
 		$className = end($classNameParts);
 
-		if ($className == "void") {
+		if ($className == 'void') {
 			$responses[] = null;
 		} else {
 			if (count(array_filter($responseTypes, fn ($responseType) => $responseType->className == $className)) == 0) {
@@ -199,7 +199,7 @@ class ResponseType {
 					// +2 for status code and headers which are always present
 					$expectedArgs = count(array_filter([$responseType->hasContentTypeTemplate, $responseType->hasTypeTemplate], fn ($value) => $value)) + 2;
 					if (count($args) != $expectedArgs) {
-						Logger::error($context, "'" . $className . "' needs " . $expectedArgs . " parameters");
+						Logger::error($context, "'" . $className . "' needs " . $expectedArgs . ' parameters');
 						continue;
 					}
 
@@ -209,12 +209,12 @@ class ResponseType {
 					if ($responseType->hasContentTypeTemplate) {
 						if ($args[$i] instanceof ConstTypeNode) {
 							$contentTypes = [$args[$i]->constExpr->value];
-						} elseif ($args[$i] instanceof IdentifierTypeNode && $args[$i]->name == "string") {
-							$contentTypes = ["*/*"];
+						} elseif ($args[$i] instanceof IdentifierTypeNode && $args[$i]->name == 'string') {
+							$contentTypes = ['*/*'];
 						} elseif ($args[$i] instanceof UnionTypeNode) {
 							$contentTypes = array_map(fn ($arg) => $arg->constExpr->value, $args[$i]->types);
 						} else {
-							Logger::panic($context, "Unable to parse content type from " . get_class($args[$i]));
+							Logger::panic($context, 'Unable to parse content type from ' . get_class($args[$i]));
 						}
 						$i++;
 					} else {
@@ -230,16 +230,16 @@ class ResponseType {
 
 					$headersType = OpenApiType::resolve($context, $definitions, $args[$i]);
 					if ($headersType->additionalProperties !== null) {
-						Logger::error($context, "Use array{} instead of array<string, mixed> for empty headers");
+						Logger::error($context, 'Use array{} instead of array<string, mixed> for empty headers');
 					}
 					$headers = $headersType->properties ?? [];
 					if ($responseType->defaultHeaders != null) {
 						$headers = array_merge($responseType->defaultHeaders, $headers);
 					}
 
-					if (array_key_exists("Content-Type", $headers)) {
+					if (array_key_exists('Content-Type', $headers)) {
 						/** @var OpenApiType $value */
-						$values = $headers["Content-Type"];
+						$values = $headers['Content-Type'];
 						if ($values->oneOf != null) {
 							$values = $values->oneOf;
 						} else {
@@ -247,16 +247,16 @@ class ResponseType {
 						}
 
 						foreach ($values as $value) {
-							if ($value->type == "string" && $value->enum != null) {
+							if ($value->type == 'string' && $value->enum != null) {
 								$contentTypes = array_merge($contentTypes, $value->enum);
 							}
 						}
 
 						// Content-Type is an illegal response header
-						unset($headers["Content-Type"]);
+						unset($headers['Content-Type']);
 					}
 
-					$contentTypes = $contentTypes !== [] ? $contentTypes : [$type != null ? "*/*" : null];
+					$contentTypes = $contentTypes !== [] ? $contentTypes : [$type != null ? '*/*' : null];
 
 					foreach ($statusCodes as $statusCode) {
 						if ($statusCode === 204 || $statusCode === 304) {

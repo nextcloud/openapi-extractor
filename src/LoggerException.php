@@ -15,6 +15,6 @@ class LoggerException extends Exception {
 	}
 
 	public function __toString(): string {
-		return $this->level->value . ": " . $this->context . ": " . $this->message;
+		return $this->level->value . ': ' . $this->context . ': ' . $this->message;
 	}
 }

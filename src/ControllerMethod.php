@@ -41,10 +41,10 @@ class ControllerMethod {
 			foreach ($docNodes as $docNode) {
 				if ($docNode instanceof PhpDocTextNode) {
 					$block = Helpers::cleanDocComment($docNode->text);
-					if ($block == "") {
+					if ($block == '') {
 						continue;
 					}
-					$pattern = "/([0-9]{3}): /";
+					$pattern = '/([0-9]{3}): /';
 					if (preg_match($pattern, $block)) {
 						$parts = preg_split($pattern, $block, -1, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY);
 						for ($i = 0; $i < count($parts); $i += 2) {
@@ -77,16 +77,16 @@ class ControllerMethod {
 						$type = $docNode->value->type;
 						$statusCode = StatusCodes::resolveException($context . ': @throws', $type);
 						if ($statusCode != null) {
-							if (!$allowMissingDocs && $docNode->value->description == "" && $statusCode < 500) {
+							if (!$allowMissingDocs && $docNode->value->description == '' && $statusCode < 500) {
 								Logger::error($context, "Missing description for exception '" . $type . "'");
 							} else {
 								$responseDescriptions[$statusCode] = $docNode->value->description;
 							}
 
 							if (str_starts_with($type->name, 'OCS') && str_ends_with($type->name, 'Exception')) {
-								$responses[] = new ControllerMethodResponse($docNode->value->type, $statusCode, "application/json", new OpenApiType(context: $context, type: "array", maxItems: 0), null);
+								$responses[] = new ControllerMethodResponse($docNode->value->type, $statusCode, 'application/json', new OpenApiType(context: $context, type: 'array', maxItems: 0), null);
 							} else {
-								$responses[] = new ControllerMethodResponse($docNode->value->type, $statusCode, "text/plain", new OpenApiType(context: $context, type: "string"), null);
+								$responses[] = new ControllerMethodResponse($docNode->value->type, $statusCode, 'text/plain', new OpenApiType(context: $context, type: 'string'), null);
 							}
 						}
 					}
@@ -96,8 +96,8 @@ class ControllerMethod {
 
 		if (!$allowMissingDocs) {
 			foreach (array_unique(array_map(fn (ControllerMethodResponse $response) => $response->statusCode, array_filter($responses, fn (?ControllerMethodResponse $response) => $response != null))) as $statusCode) {
-				if ($statusCode < 500 && (!array_key_exists($statusCode, $responseDescriptions) || $responseDescriptions[$statusCode] == "")) {
-					Logger::error($context, "Missing description for status code " . $statusCode);
+				if ($statusCode < 500 && (!array_key_exists($statusCode, $responseDescriptions) || $responseDescriptions[$statusCode] == '')) {
+					Logger::error($context, 'Missing description for status code ' . $statusCode);
 				}
 			}
 		}
@@ -112,12 +112,12 @@ class ControllerMethod {
 					$docParameterName = substr($docParameter->parameterName, 1);
 
 					if ($docParameterName == $methodParameterName) {
-						if ($docParameterType == "@param") {
+						if ($docParameterType == '@param') {
 							$paramTag = $docParameter;
-						} elseif ($docParameterType == "@psalm-param") {
+						} elseif ($docParameterType == '@psalm-param') {
 							$psalmParamTag = $docParameter;
 						} else {
-							Logger::panic($context . ': @param', "Unknown param type " . $docParameterType);
+							Logger::panic($context . ': @param', 'Unknown param type ' . $docParameterType);
 						}
 					}
 				}
@@ -126,12 +126,12 @@ class ControllerMethod {
 			if ($paramTag !== null && $psalmParamTag !== null) {
 				// Use all the type information from @psalm-param because it is more specific,
 				// but pull the description from @param and @psalm-param because usually only one of them has it.
-				if ($psalmParamTag->description !== "") {
+				if ($psalmParamTag->description !== '') {
 					$description = $psalmParamTag->description;
-				} elseif ($paramTag->description !== "") {
+				} elseif ($paramTag->description !== '') {
 					$description = $paramTag->description;
 				} else {
-					$description = "";
+					$description = '';
 				}
 
 				try {
@@ -147,7 +147,7 @@ class ControllerMethod {
 						),
 					);
 				} catch (LoggerException $e) {
-					Logger::debug($context, "Unable to parse parameter " . $methodParameterName . ": " . $e->message . "\n" . $e->getTraceAsString());
+					Logger::debug($context, 'Unable to parse parameter ' . $methodParameterName . ': ' . $e->message . "\n" . $e->getTraceAsString());
 					// Fallback to the @param annotation
 					$type = OpenApiType::resolve(
 						$context . ': @param: ' . $psalmParamTag->parameterName,
@@ -176,8 +176,8 @@ class ControllerMethod {
 				continue;
 			}
 
-			if (!$allowMissingDocs && $param->type->description == "") {
-				Logger::error($context . ': @param: ' . $methodParameterName, "Missing description");
+			if (!$allowMissingDocs && $param->type->description == '') {
+				Logger::error($context . ': @param: ' . $methodParameterName, 'Missing description');
 				continue;
 			}
 
@@ -185,15 +185,15 @@ class ControllerMethod {
 		}
 
 		if (!$allowMissingDocs && count($methodDescription) == 0) {
-			Logger::error($context, "Missing method description");
+			Logger::error($context, 'Missing method description');
 		}
 
 		if ($isAdmin) {
-			$methodDescription[] = "This endpoint requires admin access";
+			$methodDescription[] = 'This endpoint requires admin access';
 		}
 
 		if ($isPasswordConfirmation) {
-			$methodDescription[] = "This endpoint requires password confirmation";
+			$methodDescription[] = 'This endpoint requires password confirmation';
 		}
 
 		if (count($methodDescription) == 1) {
@@ -204,8 +204,8 @@ class ControllerMethod {
 			$methodDescription = array_slice($methodDescription, 1);
 		}
 
-		if ($methodSummary != null && preg_match("/[.,!?:-]$/", $methodSummary)) {
-			Logger::warning($context, "Summary ends with a punctuation mark");
+		if ($methodSummary != null && preg_match('/[.,!?:-]$/', $methodSummary)) {
+			Logger::warning($context, 'Summary ends with a punctuation mark');
 		}
 
 		return new ControllerMethod($parameters, $responses, $returns, $responseDescriptions, $methodDescription, $methodSummary, $isDeprecated);
