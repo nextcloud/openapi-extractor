@@ -577,9 +577,9 @@ class SettingsController extends OCSController {
 	 *    whitespace
 	 *
 	 * @param int $value and this one
-	 *      has
-	 *         even
-	 *   more whitespace
+	 *                   has
+	 *                   even
+	 *                   more whitespace
 	 * @return DataResponse<Http::STATUS_OK, array{test: array<empty>}, array{}>
 	 *
 	 * 200: OK

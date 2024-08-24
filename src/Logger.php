@@ -12,12 +12,12 @@ class Logger {
 
 	protected static function format(LoggerLevel $level, string $context, string $text): string {
 		$colorCode = match ($level) {
-			LoggerLevel::Debug => "",
+			LoggerLevel::Debug => '',
 			LoggerLevel::Info => "\e[32m",
 			LoggerLevel::Warning => "\e[33m",
 			LoggerLevel::Error => "\e[91m",
 		};
-		return $colorCode . $level->value . ": " . $context . ": " . $text . "\n\e[0m";
+		return $colorCode . $level->value . ': ' . $context . ': ' . $text . "\n\e[0m";
 	}
 
 	public static function debug(string $context, string $text): void {

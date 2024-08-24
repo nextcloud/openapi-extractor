@@ -21,33 +21,33 @@ class Helpers {
 	public const OPENAPI_ATTRIBUTE_CLASSNAME = 'OpenAPI';
 
 	public static function generateReadableAppID(string $appID): string {
-		return implode("", array_map(fn (string $s) => ucfirst($s), explode("_", $appID)));
+		return implode('', array_map(fn (string $s) => ucfirst($s), explode('_', $appID)));
 	}
 
 	public static function securitySchemes(): array {
 		return [
-			"basic_auth" => [
-				"type" => "http",
-				"scheme" => "basic",
+			'basic_auth' => [
+				'type' => 'http',
+				'scheme' => 'basic',
 			],
-			"bearer_auth" => [
-				"type" => "http",
-				"scheme" => "bearer",
+			'bearer_auth' => [
+				'type' => 'http',
+				'scheme' => 'bearer',
 			],
 		];
 	}
 
 	public static function license(string $openapiVersion, string $license): array {
 		$identifier = match ($license) {
-			"agpl" => "AGPL-3.0-only",
-			default => Logger::panic("license", "Unable to convert " . $license . " to SPDX identifier"),
+			'agpl' => 'AGPL-3.0-only',
+			default => Logger::panic('license', 'Unable to convert ' . $license . ' to SPDX identifier'),
 		};
 
 		$out = [
-			"name" => "agpl",
+			'name' => 'agpl',
 		];
-		if (version_compare($openapiVersion, "3.1.0", ">=")) {
-			$out["identifier"] = $identifier;
+		if (version_compare($openapiVersion, '3.1.0', '>=')) {
+			$out['identifier'] = $identifier;
 		}
 		return $out;
 	}
@@ -57,7 +57,7 @@ class Helpers {
 	}
 
 	public static function cleanDocComment(string $comment): string {
-		return trim(preg_replace("/\s+/", " ", $comment));
+		return trim(preg_replace("/\s+/", ' ', $comment));
 	}
 
 	public static function splitOnUppercaseFollowedByNonUppercase(string $str): array {
@@ -68,7 +68,7 @@ class Helpers {
 		if (!in_array(true, array_map(fn ($schema) => is_array($schema), $schemas))) {
 			$results = array_values(array_unique($schemas));
 			if (count($results) > 1) {
-				throw new Exception("Incompatibles types: " . join(", ", $results));
+				throw new Exception('Incompatibles types: ' . join(', ', $results));
 			}
 			return $results[0];
 		}
@@ -82,14 +82,14 @@ class Helpers {
 		$result = [];
 		/** @var string $key */
 		foreach ($keys as $key) {
-			if ($key == "required") {
+			if ($key == 'required') {
 				$required = [];
 				foreach ($schemas as $schema) {
-					if (array_key_exists("required", $schema)) {
-						$required = array_merge($required, $schema["required"]);
+					if (array_key_exists('required', $schema)) {
+						$required = array_merge($required, $schema['required']);
 					}
 				}
-				$result["required"] = array_unique($required);
+				$result['required'] = array_unique($required);
 				continue;
 			}
 
@@ -110,22 +110,22 @@ class Helpers {
 			&& ($response->className === 'DataResponse'
 				|| (str_starts_with($response->className, 'OCS') && str_ends_with($response->className, 'Exception')))) {
 			return [
-				"type" => "object",
-				"required" => [
-					"ocs",
+				'type' => 'object',
+				'required' => [
+					'ocs',
 				],
-				"properties" => [
-					"ocs" => [
-						"type" => "object",
-						"required" => [
-							"meta",
-							"data",
+				'properties' => [
+					'ocs' => [
+						'type' => 'object',
+						'required' => [
+							'meta',
+							'data',
 						],
-						"properties" => [
-							"meta" => [
-								"\$ref" => "#/components/schemas/OCSMeta",
+						'properties' => [
+							'meta' => [
+								'$ref' => '#/components/schemas/OCSMeta',
 							],
-							"data" => $schema,
+							'data' => $schema,
 						],
 					],
 				],
@@ -145,7 +145,7 @@ class Helpers {
 
 	public static function classMethodHasAnnotationOrAttribute(ClassMethod|Class_|Node $node, string $annotation): bool {
 		$doc = $node->getDocComment()?->getText();
-		if ($doc !== null && str_contains($doc, "@" . $annotation)) {
+		if ($doc !== null && str_contains($doc, '@' . $annotation)) {
 			return true;
 		}
 
@@ -206,7 +206,7 @@ class Helpers {
 					}
 
 					foreach ($attr->args as $key => $arg) {
-						$scope = self::getScopeNameFromAttributeArgument($arg, (int) $key, $routeName);
+						$scope = self::getScopeNameFromAttributeArgument($arg, (int)$key, $routeName);
 						if ($scope !== null) {
 							$scopes[] = $scope;
 						}
@@ -233,7 +233,7 @@ class Helpers {
 					$foundTags = [];
 					$foundScopeName = null;
 					foreach ($attr->args as $key => $arg) {
-						$foundScopeName = self::getScopeNameFromAttributeArgument($arg, (int) $key, $routeName);
+						$foundScopeName = self::getScopeNameFromAttributeArgument($arg, (int)$key, $routeName);
 
 						if ($arg->name?->name !== 'tags' && ($arg->name !== null || $key !== 1)) {
 							continue;
@@ -246,7 +246,7 @@ class Helpers {
 						foreach ($arg->value->items as $item) {
 							if ($item?->value instanceof String_) {
 								$tag = $item->value->value;
-								$pattern = "/^[0-9a-zA-Z_-]+$/";
+								$pattern = '/^[0-9a-zA-Z_-]+$/';
 								if (!preg_match($pattern, $tag)) {
 									Logger::error($routeName, 'Tag "' . $tag . '" has to match pattern "' . $pattern . '"');
 								}
