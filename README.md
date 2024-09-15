@@ -1,4 +1,10 @@
+<!--
+  - SPDX-FileCopyrightText: 2022 Nextcloud GmbH and Nextcloud contributors
+  - SPDX-License-Identifier: AGPL-3.0-or-later
+-->
 # openapi-extractor
+
+[![REUSE status](https://api.reuse.software/badge/github.com/nextcloud/openapi-extractor)](https://api.reuse.software/info/github.com/nextcloud/openapi-extractor)
 
 ## Installation
 
