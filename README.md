@@ -4,6 +4,8 @@
 -->
 # openapi-extractor
 
+[![REUSE status](https://api.reuse.software/badge/github.com/nextcloud/openapi-extractor)](https://api.reuse.software/info/github.com/nextcloud/openapi-extractor)
+
 ## Installation
 
 ```sh
