@@ -12,7 +12,13 @@ use PhpParser\Node\Param;
 class ControllerMethodParameter {
 	public OpenApiType $type;
 
-	public function __construct(string $context, array $definitions, public string $name, public Param $methodParameter, public ?OpenApiType $docType) {
+	public function __construct(
+		string $context,
+		array $definitions,
+		public string $name,
+		public Param $methodParameter,
+		public ?OpenApiType $docType,
+	) {
 		if ($docType != null) {
 			$this->type = $this->docType;
 		} else {
