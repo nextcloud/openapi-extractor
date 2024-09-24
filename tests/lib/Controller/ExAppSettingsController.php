@@ -20,7 +20,7 @@ class ExAppSettingsController extends OCSController {
 	/**
 	 * Route is in ex_app scope because of the attribute
 	 *
-	 * @return DataResponse<Http::STATUS_OK, array<empty>, array{}>
+	 * @return DataResponse<Http::STATUS_OK, list<empty>, array{}>
 	 *
 	 * 200: Personal settings updated
 	 */
@@ -32,7 +32,7 @@ class ExAppSettingsController extends OCSController {
 	/**
 	 * Route is in ex_app scope because of the override
 	 *
-	 * @return DataResponse<Http::STATUS_OK, array<empty>, array{}>
+	 * @return DataResponse<Http::STATUS_OK, list<empty>, array{}>
 	 *
 	 * 200: Personal settings updated
 	 */
