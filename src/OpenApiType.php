@@ -203,8 +203,8 @@ class OpenApiType {
 			$properties = [];
 			$required = [];
 			foreach ($node->items as $item) {
-				$type = self::resolve($context, $definitions, $item->valueType);
 				$name = $item->keyName instanceof ConstExprStringNode ? $item->keyName->value : $item->keyName->name;
+				$type = self::resolve($context . ': ' . $name, $definitions, $item->valueType);
 				$properties[$name] = $type;
 				if (!$item->optional) {
 					$required[] = $name;
