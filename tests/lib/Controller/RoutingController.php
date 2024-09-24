@@ -16,7 +16,7 @@ use OCP\AppFramework\OCSController;
 class RoutingController extends OCSController {
 	/**
 	 * OCS Route with attribute
-	 * @return DataResponse<Http::STATUS_OK, array<empty>, array{}>
+	 * @return DataResponse<Http::STATUS_OK, list<empty>, array{}>
 	 *
 	 * 200: Success
 	 */
@@ -30,7 +30,7 @@ class RoutingController extends OCSController {
 	 * @NoCSRFRequired
 	 *
 	 * Index Route with attribute
-	 * @return DataResponse<Http::STATUS_OK, array<empty>, array{}>
+	 * @return DataResponse<Http::STATUS_OK, list<empty>, array{}>
 	 *
 	 * 200: Success
 	 */

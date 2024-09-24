@@ -29,7 +29,7 @@ class SettingsController extends OCSController {
 	 *
 	 * Route is ignored because of IgnoreOpenAPI attribute on the method
 	 *
-	 * @return DataResponse<Http::STATUS_OK, array<empty>, array{}>
+	 * @return DataResponse<Http::STATUS_OK, list<empty>, array{}>
 	 *
 	 * 200: OK
 	 */
@@ -43,7 +43,7 @@ class SettingsController extends OCSController {
 	 *
 	 * Route is ignored because of scope on the method
 	 *
-	 * @return DataResponse<Http::STATUS_OK, array<empty>, array{}>
+	 * @return DataResponse<Http::STATUS_OK, list<empty>, array{}>
 	 *
 	 * 200: OK
 	 */
@@ -57,7 +57,7 @@ class SettingsController extends OCSController {
 	 *
 	 * Route is ignored because of scope on the method but without `scope: ` name
 	 *
-	 * @return DataResponse<Http::STATUS_OK, array<empty>, array{}>
+	 * @return DataResponse<Http::STATUS_OK, list<empty>, array{}>
 	 *
 	 * 200: OK
 	 */
@@ -96,7 +96,7 @@ class SettingsController extends OCSController {
 	 *
 	 * Route is in admin and default scope
 	 *
-	 * @return DataResponse<Http::STATUS_OK, array<empty>, array{}>
+	 * @return DataResponse<Http::STATUS_OK, list<empty>, array{}>
 	 *
 	 * 200: Admin settings updated
 	 */
@@ -136,7 +136,7 @@ class SettingsController extends OCSController {
 	 * A route with a limited set of possible integers
 	 *
 	 * @param 1|2|3|4|5|6|7|8|9|10 $limit Maximum number of objects
-	 * @return DataResponse<Http::STATUS_OK, array<empty>, array{}>
+	 * @return DataResponse<Http::STATUS_OK, list<empty>, array{}>
 	 *
 	 * 200: Admin settings updated
 	 */
@@ -148,7 +148,7 @@ class SettingsController extends OCSController {
 	 * A route with a min and max integers
 	 *
 	 * @param int<5, 10> $limit Between 5 and 10
-	 * @return DataResponse<Http::STATUS_OK, array<empty>, array{}>
+	 * @return DataResponse<Http::STATUS_OK, list<empty>, array{}>
 	 *
 	 * 200: Admin settings updated
 	 */
@@ -160,7 +160,7 @@ class SettingsController extends OCSController {
 	 * A route with a min integers
 	 *
 	 * @param int<5, max> $limit At least 5
-	 * @return DataResponse<Http::STATUS_OK, array<empty>, array{}>
+	 * @return DataResponse<Http::STATUS_OK, list<empty>, array{}>
 	 *
 	 * 200: Admin settings updated
 	 */
@@ -172,7 +172,7 @@ class SettingsController extends OCSController {
 	 * A route with a max integers
 	 *
 	 * @param int<min, 10> $limit At most 10
-	 * @return DataResponse<Http::STATUS_OK, array<empty>, array{}>
+	 * @return DataResponse<Http::STATUS_OK, list<empty>, array{}>
 	 *
 	 * 200: Admin settings updated
 	 */
@@ -184,7 +184,7 @@ class SettingsController extends OCSController {
 	 * A route with a non negative integer
 	 *
 	 * @param non-negative-int $limit not negative
-	 * @return DataResponse<Http::STATUS_OK, array<empty>, array{}>
+	 * @return DataResponse<Http::STATUS_OK, list<empty>, array{}>
 	 *
 	 * 200: Admin settings updated
 	 */
@@ -196,7 +196,7 @@ class SettingsController extends OCSController {
 	 * A route with a positive integer
 	 *
 	 * @param positive-int $limit positive
-	 * @return DataResponse<Http::STATUS_OK, array<empty>, array{}>
+	 * @return DataResponse<Http::STATUS_OK, list<empty>, array{}>
 	 *
 	 * 200: Admin settings updated
 	 */
@@ -208,7 +208,7 @@ class SettingsController extends OCSController {
 	 * A route with a negative integer
 	 *
 	 * @param negative-int $limit negative
-	 * @return DataResponse<Http::STATUS_OK, array<empty>, array{}>
+	 * @return DataResponse<Http::STATUS_OK, list<empty>, array{}>
 	 *
 	 * 200: Admin settings updated
 	 */
@@ -220,7 +220,7 @@ class SettingsController extends OCSController {
 	 * A route with a non positive integer
 	 *
 	 * @param non-positive-int $limit non positive
-	 * @return DataResponse<Http::STATUS_OK, array<empty>, array{}>
+	 * @return DataResponse<Http::STATUS_OK, list<empty>, array{}>
 	 *
 	 * 200: Admin settings updated
 	 */
@@ -232,7 +232,7 @@ class SettingsController extends OCSController {
 	 * A route with a list of 2 integers, 2 strings and 1 boolean
 	 *
 	 * @param 0|1|'yes'|'no'|true $weird Weird list
-	 * @return DataResponse<Http::STATUS_OK, array<empty>, array{}>
+	 * @return DataResponse<Http::STATUS_OK, list<empty>, array{}>
 	 *
 	 * 200: Admin settings updated
 	 */
@@ -244,7 +244,7 @@ class SettingsController extends OCSController {
 	 * A route with a list of 2 integers, 2 strings and 1 boolean
 	 *
 	 * @param 0|1|'yes'|'no'|true|false $weird Weird list
-	 * @return DataResponse<Http::STATUS_OK, array<empty>, array{}>
+	 * @return DataResponse<Http::STATUS_OK, list<empty>, array{}>
 	 *
 	 * 200: Admin settings updated
 	 */
@@ -256,7 +256,7 @@ class SettingsController extends OCSController {
 	 * A route with required boolean
 	 *
 	 * @param bool $yesOrNo Boolean required
-	 * @return DataResponse<Http::STATUS_OK, array<empty>, array{}>
+	 * @return DataResponse<Http::STATUS_OK, list<empty>, array{}>
 	 *
 	 * 200: Admin settings updated
 	 */
@@ -268,7 +268,7 @@ class SettingsController extends OCSController {
 	 * A route with boolean defaulting to false
 	 *
 	 * @param bool $yesOrNo Boolean defaulting to false
-	 * @return DataResponse<Http::STATUS_OK, array<empty>, array{}>
+	 * @return DataResponse<Http::STATUS_OK, list<empty>, array{}>
 	 *
 	 * 200: Admin settings updated
 	 */
@@ -280,7 +280,7 @@ class SettingsController extends OCSController {
 	 * A route with boolean defaulting to true
 	 *
 	 * @param bool $yesOrNo Boolean defaulting to true
-	 * @return DataResponse<Http::STATUS_OK, array<empty>, array{}>
+	 * @return DataResponse<Http::STATUS_OK, list<empty>, array{}>
 	 *
 	 * 200: Admin settings updated
 	 */
@@ -292,7 +292,7 @@ class SettingsController extends OCSController {
 	 * A route with boolean or true
 	 *
 	 * @param bool|true $yesOrNo boolean or true
-	 * @return DataResponse<Http::STATUS_OK, array<empty>, array{}>
+	 * @return DataResponse<Http::STATUS_OK, list<empty>, array{}>
 	 *
 	 * 200: Admin settings updated
 	 */
@@ -304,7 +304,7 @@ class SettingsController extends OCSController {
 	 * A route with boolean or false
 	 *
 	 * @param bool|false $yesOrNo boolean or false
-	 * @return DataResponse<Http::STATUS_OK, array<empty>, array{}>
+	 * @return DataResponse<Http::STATUS_OK, list<empty>, array{}>
 	 *
 	 * 200: Admin settings updated
 	 */
@@ -316,7 +316,7 @@ class SettingsController extends OCSController {
 	 * A route with boolean or true or false
 	 *
 	 * @param bool|true|false $yesOrNo boolean or true or false
-	 * @return DataResponse<Http::STATUS_OK, array<empty>, array{}>
+	 * @return DataResponse<Http::STATUS_OK, list<empty>, array{}>
 	 *
 	 * 200: Admin settings updated
 	 */
@@ -328,7 +328,7 @@ class SettingsController extends OCSController {
 	 * A route with true or false
 	 *
 	 * @param true|false $yesOrNo true or false
-	 * @return DataResponse<Http::STATUS_OK, array<empty>, array{}>
+	 * @return DataResponse<Http::STATUS_OK, list<empty>, array{}>
 	 *
 	 * 200: Admin settings updated
 	 */
@@ -340,7 +340,7 @@ class SettingsController extends OCSController {
 	 * A route with string or 'test'
 	 *
 	 * @param string|'test' $value string or 'test'
-	 * @return DataResponse<Http::STATUS_OK, array<empty>, array{}>
+	 * @return DataResponse<Http::STATUS_OK, list<empty>, array{}>
 	 *
 	 * 200: Admin settings updated
 	 */
@@ -352,7 +352,7 @@ class SettingsController extends OCSController {
 	 * A route with int or 0
 	 *
 	 * @param int|0 $value int or 0
-	 * @return DataResponse<Http::STATUS_OK, array<empty>, array{}>
+	 * @return DataResponse<Http::STATUS_OK, list<empty>, array{}>
 	 *
 	 * 200: Admin settings updated
 	 */
@@ -364,7 +364,7 @@ class SettingsController extends OCSController {
 	 * A route with numeric
 	 *
 	 * @param numeric $value Some numeric value
-	 * @return DataResponse<Http::STATUS_OK, array<empty>, array{}>
+	 * @return DataResponse<Http::STATUS_OK, list<empty>, array{}>
 	 *
 	 * 200: Admin settings updated
 	 */
@@ -376,7 +376,7 @@ class SettingsController extends OCSController {
 	 * A route with list
 	 *
 	 * @param list<string> $value Some array value
-	 * @return DataResponse<Http::STATUS_OK, array<empty>, array{}>
+	 * @return DataResponse<Http::STATUS_OK, list<empty>, array{}>
 	 *
 	 * 200: Admin settings updated
 	 */
@@ -388,7 +388,7 @@ class SettingsController extends OCSController {
 	 * A route with keyed array
 	 *
 	 * @param array<string, string> $value Some array value
-	 * @return DataResponse<Http::STATUS_OK, array<empty>, array{}>
+	 * @return DataResponse<Http::STATUS_OK, list<empty>, array{}>
 	 *
 	 * 200: Admin settings updated
 	 */
@@ -401,7 +401,7 @@ class SettingsController extends OCSController {
 	 *
 	 * Route throws an OCS exception
 	 *
-	 * @return DataResponse<Http::STATUS_OK, array<empty>, array{}>
+	 * @return DataResponse<Http::STATUS_OK, list<empty>, array{}>
 	 * @throws OCSNotFoundException Description of 404 because we throw all the time
 	 *
 	 * 200: Admin settings updated
@@ -415,7 +415,7 @@ class SettingsController extends OCSController {
 	 *
 	 * Route throws an OCS exception
 	 *
-	 * @return DataResponse<Http::STATUS_OK, array<empty>, array{}>
+	 * @return DataResponse<Http::STATUS_OK, list<empty>, array{}>
 	 * @throws NotFoundException Description of 404 because we throw all the time
 	 *
 	 * 200: Admin settings updated
@@ -427,7 +427,7 @@ class SettingsController extends OCSController {
 	/**
 	 * A route 204 response
 	 *
-	 * @return DataResponse<Http::STATUS_NO_CONTENT, array<empty>, array{X-Custom: string}>
+	 * @return DataResponse<Http::STATUS_NO_CONTENT, list<empty>, array{X-Custom: string}>
 	 *
 	 * 204: No settings
 	 */
@@ -438,7 +438,7 @@ class SettingsController extends OCSController {
 	/**
 	 * A route 304 response
 	 *
-	 * @return DataResponse<Http::STATUS_NOT_MODIFIED, array<empty>, array{}>
+	 * @return DataResponse<Http::STATUS_NOT_MODIFIED, list<empty>, array{}>
 	 *
 	 * 304: No settings
 	 */
@@ -449,7 +449,7 @@ class SettingsController extends OCSController {
 	/**
 	 * Route with password confirmation annotation
 	 *
-	 * @return DataResponse<Http::STATUS_OK, array<empty>, array{}>
+	 * @return DataResponse<Http::STATUS_OK, list<empty>, array{}>
 	 * @PasswordConfirmationRequired
 	 *
 	 * 200: OK
@@ -461,7 +461,7 @@ class SettingsController extends OCSController {
 	/**
 	 * Route with password confirmation attribute
 	 *
-	 * @return DataResponse<Http::STATUS_OK, array<empty>, array{}>
+	 * @return DataResponse<Http::STATUS_OK, list<empty>, array{}>
 	 *
 	 * 200: OK
 	 */
@@ -513,7 +513,7 @@ class SettingsController extends OCSController {
 	/**
 	 * Route with empty array
 	 *
-	 * @return DataResponse<Http::STATUS_OK, array{test: array<empty>}, array{}>
+	 * @return DataResponse<Http::STATUS_OK, array{test: list<empty>}, array{}>
 	 *
 	 * 200: OK
 	 */
@@ -527,7 +527,7 @@ class SettingsController extends OCSController {
 	 *
 	 * @param int $simple Value
 	 * @param array<string, string> $complex Values
-	 * @return DataResponse<Http::STATUS_OK, array{test: array<empty>}, array{}>
+	 * @return DataResponse<Http::STATUS_OK, array{test: list<empty>}, array{}>
 	 *
 	 * 200: OK
 	 */
@@ -542,7 +542,7 @@ class SettingsController extends OCSController {
 	 *
 	 * @param array<string, string> $empty Empty
 	 * @param array<string, string> $values Values
-	 * @return DataResponse<Http::STATUS_OK, array{test: array<empty>}, array{}>
+	 * @return DataResponse<Http::STATUS_OK, array{test: list<empty>}, array{}>
 	 *
 	 * 200: OK
 	 */
@@ -563,7 +563,7 @@ class SettingsController extends OCSController {
 	 *                   has
 	 *                   even
 	 *                   more whitespace
-	 * @return DataResponse<Http::STATUS_OK, array{test: array<empty>}, array{}>
+	 * @return DataResponse<Http::STATUS_OK, array{test: list<empty>}, array{}>
 	 *
 	 * 200: OK
 	 */

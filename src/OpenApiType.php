@@ -174,6 +174,8 @@ class OpenApiType {
 		}
 
 		if ($node instanceof ArrayTypeNode) {
+			Logger::error($context, "The 'TYPE[]' syntax for arrays is forbidden due to ambiguities. Use 'list<TYPE>' for JSON arrays or 'array<string, TYPE>' for JSON objects instead.");
+
 			return new OpenApiType(
 				context: $context,
 				type: 'array',
@@ -181,6 +183,10 @@ class OpenApiType {
 			);
 		}
 		if ($node instanceof GenericTypeNode && ($node->type->name === 'array' || $node->type->name === 'list' || $node->type->name === 'non-empty-list') && count($node->genericTypes) === 1) {
+			if ($node->type->name === 'array') {
+				Logger::error($context, "The 'array<TYPE>' syntax for arrays is forbidden due to ambiguities. Use 'list<TYPE>' for JSON arrays or 'array<string, TYPE>' for JSON objects instead.");
+			}
+
 			if ($node->genericTypes[0] instanceof IdentifierTypeNode && $node->genericTypes[0]->name === 'empty') {
 				return new OpenApiType(
 					context: $context,
