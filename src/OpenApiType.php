@@ -180,8 +180,8 @@ class OpenApiType {
 				items: self::resolve($context . ': items', $definitions, $node->type),
 			);
 		}
-		if ($node instanceof GenericTypeNode && ($node->type->name == 'array' || $node->type->name == 'list') && count($node->genericTypes) == 1) {
-			if ($node->genericTypes[0] instanceof IdentifierTypeNode && $node->genericTypes[0]->name == 'empty') {
+		if ($node instanceof GenericTypeNode && ($node->type->name === 'array' || $node->type->name === 'list' || $node->type->name === 'non-empty-list') && count($node->genericTypes) === 1) {
+			if ($node->genericTypes[0] instanceof IdentifierTypeNode && $node->genericTypes[0]->name === 'empty') {
 				return new OpenApiType(
 					context: $context,
 					type: 'array',
@@ -192,6 +192,7 @@ class OpenApiType {
 				context: $context,
 				type: 'array',
 				items: self::resolve($context, $definitions, $node->genericTypes[0]),
+				minItems: $node->type->name === 'non-empty-list' ? 1 : null,
 			);
 		}
 		if ($node instanceof GenericTypeNode && $node->type->name === 'value-of') {
