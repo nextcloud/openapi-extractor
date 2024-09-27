@@ -61,7 +61,8 @@
                     "subject",
                     "message",
                     "link",
-                    "actions"
+                    "actions",
+                    "nonEmptyList"
                 ],
                 "properties": {
                     "notification_id": {
@@ -121,6 +122,13 @@
                     },
                     "shouldNotify": {
                         "type": "boolean"
+                    },
+                    "nonEmptyList": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "minItems": 1
                     }
                 }
             },

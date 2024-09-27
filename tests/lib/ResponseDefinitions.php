@@ -43,6 +43,7 @@ namespace OCA\Notifications;
  *     messageRichParameters?: array<string, mixed>,
  *     icon?: string,
  *     shouldNotify?: bool,
+ *     nonEmptyList: non-empty-list<string>,
  * }
  *
  * @psalm-type NotificationsPushDeviceBase = array{
