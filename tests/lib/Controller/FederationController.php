@@ -29,7 +29,7 @@ class FederationController extends OCSController {
 	 *
 	 * Route is in federation scope as per controller scope
 	 *
-	 * @return DataResponse<Http::STATUS_OK, array<empty>, array{}>
+	 * @return DataResponse<Http::STATUS_OK, list<empty>, array{}>
 	 *
 	 * 200: OK
 	 */
@@ -43,7 +43,7 @@ class FederationController extends OCSController {
 	 * Route is only in the default scope (moved from federation)
 	 *
 	 * @param NotificationsRequestProperty $property Property
-	 * @return DataResponse<Http::STATUS_OK, array<empty>, array{}>
+	 * @return DataResponse<Http::STATUS_OK, list<empty>, array{}>
 	 *
 	 * 200: Personal settings updated
 	 */

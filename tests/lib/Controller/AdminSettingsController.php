@@ -18,7 +18,7 @@ class AdminSettingsController extends OCSController {
 	/**
 	 * Route is only in the admin scope because there is no "NoAdminRequired" annotation or attribute
 	 *
-	 * @return DataResponse<Http::STATUS_OK, array<empty>, array{}>
+	 * @return DataResponse<Http::STATUS_OK, list<empty>, array{}>
 	 *
 	 * 200: Personal settings updated
 	 */
@@ -29,7 +29,7 @@ class AdminSettingsController extends OCSController {
 	/**
 	 * Route is in the default scope because the method overwrites with the Attribute
 	 *
-	 * @return DataResponse<Http::STATUS_OK, array<empty>, array{}>
+	 * @return DataResponse<Http::STATUS_OK, list<empty>, array{}>
 	 *
 	 * 200: Personal settings updated
 	 */
@@ -41,7 +41,7 @@ class AdminSettingsController extends OCSController {
 	/**
 	 * Route in default scope with tags
 	 *
-	 * @return DataResponse<Http::STATUS_OK, array<empty>, array{}>
+	 * @return DataResponse<Http::STATUS_OK, list<empty>, array{}>
 	 *
 	 * 200: Personal settings updated
 	 */
@@ -53,7 +53,7 @@ class AdminSettingsController extends OCSController {
 	/**
 	 * Route in default scope with tags but without named parameters on the attribute
 	 *
-	 * @return DataResponse<Http::STATUS_OK, array<empty>, array{}>
+	 * @return DataResponse<Http::STATUS_OK, list<empty>, array{}>
 	 *
 	 * 200: Personal settings updated
 	 */

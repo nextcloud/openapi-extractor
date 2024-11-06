@@ -36,7 +36,7 @@ namespace OCA\Notifications;
  *     subject: string,
  *     message: string,
  *     link: string,
- *     actions: NotificationsNotificationAction[],
+ *     actions: list<NotificationsNotificationAction>,
  *     subjectRich?: string,
  *     subjectRichParameters?: array<string, mixed>,
  *     messageRich?: string,
