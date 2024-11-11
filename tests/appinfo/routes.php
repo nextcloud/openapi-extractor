@@ -21,6 +21,11 @@ return [
 		['name' => 'Federation#federationByController', 'url' => '/api/{apiVersion}/controller-scope', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
 		['name' => 'Federation#movedToDefaultScope', 'url' => '/api/{apiVersion}/default-scope', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
 
+		['name' => 'ReturnArrays#stringArray', 'url' => '/api/{apiVersion}/return-arrays/string', 'verb' => 'GET', 'requirements' => ['apiVersion' => '(v2)']],
+		['name' => 'ReturnArrays#nonEmptyStringArray', 'url' => '/api/{apiVersion}/return-arrays/non-empty-string', 'verb' => 'GET', 'requirements' => ['apiVersion' => '(v2)']],
+		['name' => 'ReturnArrays#lowercaseStringArray', 'url' => '/api/{apiVersion}/return-arrays/lowercase-string', 'verb' => 'GET', 'requirements' => ['apiVersion' => '(v2)']],
+		['name' => 'ReturnArrays#nonEmptyLowercaseStringArray', 'url' => '/api/{apiVersion}/return-arrays/non-empty-lowercase-string', 'verb' => 'GET', 'requirements' => ['apiVersion' => '(v2)']],
+
 		['name' => 'Settings#ignoreByDeprecatedAttributeOnMethod', 'url' => '/api/{apiVersion}/ignore-openapi-attribute', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
 		['name' => 'Settings#ignoreByScopeOnMethod', 'url' => '/api/{apiVersion}/ignore-method-scope', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
 		['name' => 'Settings#ignoreByUnnamedScopeOnMethod', 'url' => '/api/{apiVersion}/ignore-method-scope-unnamed', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
