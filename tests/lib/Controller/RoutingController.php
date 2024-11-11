@@ -39,4 +39,15 @@ class RoutingController extends OCSController {
 	public function attributeIndex() {
 		return DataResponse();
 	}
+
+	/**
+	 * Index Route with CSRF required
+	 * @return DataResponse<Http::STATUS_OK, list<empty>, array{}>
+	 *
+	 * 200: Success
+	 */
+	#[FrontpageRoute(verb: 'PUT', url: '/attribute-index/{param}', requirements: ['param' => '[a-z]+'], defaults: ['param' => 'abc'], root: '/tests')]
+	public function csrfIndex() {
+		return DataResponse();
+	}
 }
