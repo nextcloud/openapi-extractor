@@ -437,12 +437,7 @@ foreach ($parsedRoutes as $key => $value) {
 			Logger::panic($routeName, 'Missing controller method');
 		}
 
-		$isCSRFRequired = !Helpers::classMethodHasAnnotationOrAttribute($methodFunction, 'NoCSRFRequired');
-		if ($isCSRFRequired && !$isOCS) {
-			Logger::debug($routeName, 'Route ignored because of required CSRF in a non-OCS controller');
-			continue;
-		}
-
+		$isNoCSRFRequired = Helpers::classMethodHasAnnotationOrAttribute($methodFunction, 'NoCSRFRequired');
 		$isCORS = Helpers::classMethodHasAnnotationOrAttribute($methodFunction, 'CORS');
 		$isPublic = Helpers::classMethodHasAnnotationOrAttribute($methodFunction, 'PublicPage');
 		$isAdmin = !Helpers::classMethodHasAnnotationOrAttribute($methodFunction, 'NoAdminRequired') && !$isPublic;
@@ -558,7 +553,7 @@ foreach ($parsedRoutes as $key => $value) {
 				$classMethodInfo,
 				$isOCS,
 				$isCORS,
-				$isCSRFRequired,
+				$isNoCSRFRequired,
 				$isPublic,
 			);
 		}
@@ -749,10 +744,8 @@ foreach ($routes as $scope => $scopeRoutes) {
 			// Bearer auth is not allowed on CORS routes
 			$security[] = ['bearer_auth' => []];
 		}
-		if (!$route->isCSRFRequired || $route->isOCS) {
-			// Add basic auth last, so it's only fallback if bearer is available
-			$security[] = ['basic_auth' => []];
-		}
+		// Add basic auth last, so it's only fallback if bearer is available
+		$security[] = ['basic_auth' => []];
 
 		$operation = [
 			'operationId' => $route->operationId,
@@ -822,7 +815,7 @@ foreach ($routes as $scope => $scopeRoutes) {
 
 			$parameters[] = $parameter;
 		}
-		if ($route->isOCS) {
+		if ($route->isOCS || !$route->isNoCSRFRequired) {
 			$parameters[] = [
 				'name' => 'OCS-APIRequest',
 				'in' => 'header',

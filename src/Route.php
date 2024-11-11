@@ -19,7 +19,7 @@ class Route {
 		public ControllerMethod $controllerMethod,
 		public bool $isOCS,
 		public bool $isCORS,
-		public bool $isCSRFRequired,
+		public bool $isNoCSRFRequired,
 		public bool $isPublic,
 	) {
 	}

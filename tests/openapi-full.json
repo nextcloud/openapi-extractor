@@ -4517,6 +4517,54 @@
                         }
                     }
                 }
+            },
+            "put": {
+                "operationId": "routing-csrf-index",
+                "summary": "Index Route with CSRF required",
+                "description": "This endpoint requires admin access",
+                "tags": [
+                    "routing"
+                ],
+                "security": [
+                    {
+                        "bearer_auth": []
+                    },
+                    {
+                        "basic_auth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "param",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "pattern": "^[a-z]+$",
+                            "default": "abc"
+                        }
+                    },
+                    {
+                        "name": "OCS-APIRequest",
+                        "in": "header",
+                        "description": "Required to be true for the API request to pass",
+                        "required": true,
+                        "schema": {
+                            "type": "boolean",
+                            "default": true
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                }
             }
         },
         "/ocs/v2.php/apps/notifications/api/{apiVersion}/default-admin-overwritten": {
