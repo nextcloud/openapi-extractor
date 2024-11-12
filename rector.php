@@ -11,4 +11,5 @@ use Rector\Config\RectorConfig;
 
 return RectorConfig::configure()
 	->withPaths([__DIR__])
-	->withSkipPath(__DIR__ . '/vendor');
+	->withSkipPath(__DIR__ . '/vendor')
+	->withPhpSets();

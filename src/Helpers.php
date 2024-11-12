@@ -62,7 +62,7 @@ class Helpers {
 	}
 
 	public static function cleanDocComment(string $comment): string {
-		return trim(preg_replace("/\s+/", ' ', $comment));
+		return trim((string)preg_replace("/\s+/", ' ', $comment));
 	}
 
 	public static function splitOnUppercaseFollowedByNonUppercase(string $str): array {
@@ -168,7 +168,7 @@ class Helpers {
 
 	public static function cleanSchemaName(string $name): string {
 		global $readableAppID;
-		return substr($name, strlen($readableAppID));
+		return substr($name, strlen((string)$readableAppID));
 	}
 
 	protected static function getScopeNameFromAttributeArgument(Arg $arg, int $key, string $routeName): ?string {

@@ -171,7 +171,7 @@ foreach ($capabilitiesDirs as $dir) {
 	$iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir));
 	foreach ($iterator as $file) {
 		$path = $file->getPathname();
-		if (str_ends_with($path, 'Capabilities.php')) {
+		if (str_ends_with((string)$path, 'Capabilities.php')) {
 			$capabilitiesFiles[] = $path;
 		}
 	}
@@ -349,20 +349,20 @@ foreach ($parsedRoutes as $key => $value) {
 		$defaults = array_key_exists('defaults', $route) ? $route['defaults'] : [];
 		$root = array_key_exists('root', $route) ? $route['root'] : ($appIsCore ? '' : '/apps/' . $appID);
 		$url = $route['url'];
-		if (!str_starts_with($url, '/')) {
+		if (!str_starts_with((string)$url, '/')) {
 			$url = '/' . $url;
 		}
-		if (str_ends_with($url, '/')) {
-			$url = substr($url, 0, -1);
+		if (str_ends_with((string)$url, '/')) {
+			$url = substr((string)$url, 0, -1);
 		}
 		$url = $pathPrefix . $root . $url;
 
-		$methodName = lcfirst(str_replace('_', '', ucwords(explode('#', $routeName)[1], '_')));
+		$methodName = lcfirst(str_replace('_', '', ucwords(explode('#', (string)$routeName)[1], '_')));
 		if ($methodName == 'preflightedCors') {
 			continue;
 		}
 
-		$controllerName = ucfirst(str_replace('_', '', ucwords(explode('#', $routeName)[0], '_')));
+		$controllerName = ucfirst(str_replace('_', '', ucwords(explode('#', (string)$routeName)[0], '_')));
 		$controllerClass = null;
 		/** @var Class_ $class */
 		foreach ($nodeFinder->findInstanceOf($controllers[$controllerName] ?? [], Class_::class) as $class) {
@@ -592,9 +592,7 @@ foreach ($routes as $scope => $scopeRoutes) {
 		$urlParameters = array_map(fn (string $name) => substr($name, 1, -1), $urlParameters[0]);
 
 		foreach ($urlParameters as $urlParameter) {
-			$matchingParameters = array_filter($route->controllerMethod->parameters, function (ControllerMethodParameter $param) use ($urlParameter) {
-				return $param->name == $urlParameter;
-			});
+			$matchingParameters = array_filter($route->controllerMethod->parameters, fn (ControllerMethodParameter $param) => $param->name == $urlParameter);
 			$requirement = array_key_exists($urlParameter, $route->requirements) ? $route->requirements[$urlParameter] : null;
 			if (count($matchingParameters) == 1) {
 				$parameter = $matchingParameters[array_keys($matchingParameters)[0]];
@@ -613,10 +611,10 @@ foreach ($routes as $scope => $scopeRoutes) {
 			}
 
 			if ($requirement != null) {
-				if (!str_starts_with($requirement, '^')) {
+				if (!str_starts_with((string)$requirement, '^')) {
 					$requirement = '^' . $requirement;
 				}
-				if (!str_ends_with($requirement, '$')) {
+				if (!str_ends_with((string)$requirement, '$')) {
 					$requirement = $requirement . '$';
 				}
 			}
@@ -627,7 +625,7 @@ foreach ($routes as $scope => $scopeRoutes) {
 						Logger::error($route->name, 'Missing requirement for apiVersion');
 						continue;
 					}
-					preg_match("/^\^\(([v0-9-.|]*)\)\\$$/m", $requirement, $matches);
+					preg_match("/^\^\(([v0-9-.|]*)\)\\$$/m", (string)$requirement, $matches);
 					if (count($matches) == 2) {
 						$enum = explode('|', $matches[1]);
 					} else {
@@ -971,11 +969,11 @@ foreach ($scopePaths as $scope => $paths) {
 
 		$scopedSchemas = [];
 		while ($usedSchema = array_shift($usedSchemas)) {
-			if (!str_starts_with($usedSchema, '#/components/schemas/')) {
+			if (!str_starts_with((string)$usedSchema, '#/components/schemas/')) {
 				continue;
 			}
 
-			$schemaName = substr($usedSchema, strlen('#/components/schemas/'));
+			$schemaName = substr((string)$usedSchema, strlen('#/components/schemas/'));
 
 			if (!isset($schemas[$schemaName])) {
 				Logger::error('app', "Schema $schemaName used by scope $scope is not defined");
@@ -983,7 +981,7 @@ foreach ($scopePaths as $scope => $paths) {
 
 			$newRefs = Helpers::collectUsedRefs($schemas[$schemaName]);
 			foreach ($newRefs as $newRef) {
-				if (!isset($scopedSchemas[substr($newRef, strlen('#/components/schemas/'))])) {
+				if (!isset($scopedSchemas[substr((string)$newRef, strlen('#/components/schemas/'))])) {
 					$usedSchemas[] = $newRef;
 				}
 			}

@@ -219,7 +219,7 @@ class ResponseType {
 						} elseif ($args[$i] instanceof UnionTypeNode) {
 							$contentTypes = array_map(fn ($arg) => $arg->constExpr->value, $args[$i]->types);
 						} else {
-							Logger::panic($context, 'Unable to parse content type from ' . get_class($args[$i]));
+							Logger::panic($context, 'Unable to parse content type from ' . $args[$i]::class);
 						}
 						$i++;
 					} else {

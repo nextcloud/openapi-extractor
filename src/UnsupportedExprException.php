@@ -15,6 +15,6 @@ class UnsupportedExprException extends Exception {
 		public Expr $expr,
 		public string $context,
 	) {
-		parent::__construct($this->context . ': Unable to parse Expr: ' . get_class($this->expr));
+		parent::__construct($this->context . ': Unable to parse Expr: ' . $this->expr::class);
 	}
 }
