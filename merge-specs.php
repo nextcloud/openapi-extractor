@@ -18,7 +18,7 @@ foreach ([__DIR__ . '/../../autoload.php', __DIR__ . '/vendor/autoload.php'] as 
 use Ahc\Cli\Input\Command;
 use stdClass;
 
-$command = new Command('merge-specs', 'Merge multiple Nextcloud OpenAPI specs into one');
+$command = new Command('merge-specs.php', 'Merge multiple Nextcloud OpenAPI specs into one');
 $command
 	->option('--merged <merged>')
 	->option('--core <core>')

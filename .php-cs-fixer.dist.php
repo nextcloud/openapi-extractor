@@ -15,5 +15,5 @@ $config
 	->ignoreVCSIgnored(true)
 	->notPath('vendor')
 	->in(__DIR__)
-	->append(['generate-spec', 'merge-specs']);
+	->append(['generate-spec.php', 'merge-specs.php']);
 return $config;

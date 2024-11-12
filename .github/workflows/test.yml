@@ -50,7 +50,7 @@ jobs:
 
       - name: Generate OpenAPI
         working-directory: tests/
-        run: ../generate-spec
+        run: ../bin/generate-spec
 
       - name: Check openapi changes
         run: |

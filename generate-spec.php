@@ -39,7 +39,7 @@ use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use stdClass;
 
-$command = new Command('generate-spec', 'Extract OpenAPI specs from the Nextcloud source code');
+$command = new Command('generate-spec.php', 'Extract OpenAPI specs from the Nextcloud source code');
 $command
 	->arguments('dir out')
 	->option('--first-status-code', 'Only output the first status code')
