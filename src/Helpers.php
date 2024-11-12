@@ -73,7 +73,7 @@ class Helpers {
 		if (!in_array(true, array_map(fn ($schema): bool => is_array($schema), $schemas))) {
 			$results = array_values(array_unique($schemas));
 			if (count($results) > 1) {
-				throw new Exception('Incompatibles types: ' . join(', ', $results));
+				throw new Exception('Incompatibles types: ' . implode(', ', $results));
 			}
 			return $results[0];
 		}
@@ -205,7 +205,7 @@ class Helpers {
 		foreach ($node->attrGroups as $attrGroup) {
 			foreach ($attrGroup->attrs as $attr) {
 				if ($attr->name->getLast() === self::OPENAPI_ATTRIBUTE_CLASSNAME) {
-					if (empty($attr->args)) {
+					if ($attr->args === []) {
 						$scopes[] = 'default';
 						continue;
 					}
@@ -230,7 +230,7 @@ class Helpers {
 		foreach ($node->attrGroups as $attrGroup) {
 			foreach ($attrGroup->attrs as $attr) {
 				if ($attr->name->getLast() === self::OPENAPI_ATTRIBUTE_CLASSNAME) {
-					if (empty($attr->args)) {
+					if ($attr->args === []) {
 						$tags[$defaultScope] = [$defaultTag];
 						continue;
 					}

@@ -243,11 +243,7 @@ class ResponseType {
 					if (array_key_exists('Content-Type', $headers)) {
 						/** @var OpenApiType $value */
 						$values = $headers['Content-Type'];
-						if ($values->oneOf != null) {
-							$values = $values->oneOf;
-						} else {
-							$values = [$values];
-						}
+						$values = $values->oneOf != null ? $values->oneOf : [$values];
 
 						foreach ($values as $value) {
 							if ($value->type == 'string' && $value->enum != null) {

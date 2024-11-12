@@ -54,13 +54,14 @@ class ControllerMethod {
 			foreach ($docNodes as $docNode) {
 				if ($docNode instanceof PhpDocTextNode) {
 					$block = Helpers::cleanDocComment($docNode->text);
-					if ($block == '') {
+					if ($block === '') {
 						continue;
 					}
-					$pattern = '/([0-9]{3}): /';
+					$pattern = '/(\d{3}): /';
 					if (preg_match($pattern, $block)) {
 						$parts = preg_split($pattern, $block, -1, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY);
-						for ($i = 0; $i < count($parts); $i += 2) {
+						$counter = count($parts);
+						for ($i = 0; $i < $counter; $i += 2) {
 							$statusCode = intval($parts[$i]);
 							$responseDescriptions[$statusCode] = trim($parts[$i + 1]);
 						}
@@ -109,7 +110,7 @@ class ControllerMethod {
 
 		if (!$allowMissingDocs) {
 			foreach (array_unique(array_map(fn (ControllerMethodResponse $response): int => $response->statusCode, array_filter($responses, fn (?ControllerMethodResponse $response): bool => $response != null))) as $statusCode) {
-				if ($statusCode < 500 && (!array_key_exists($statusCode, $responseDescriptions) || $responseDescriptions[$statusCode] == '')) {
+				if ($statusCode < 500 && (!array_key_exists($statusCode, $responseDescriptions) || $responseDescriptions[$statusCode] === '')) {
 					Logger::error($context, 'Missing description for status code ' . $statusCode);
 				}
 			}
@@ -136,7 +137,7 @@ class ControllerMethod {
 				}
 			}
 
-			if ($paramTag !== null && $psalmParamTag !== null) {
+			if ($paramTag instanceof \PHPStan\PhpDocParser\Ast\PhpDoc\ParamTagValueNode && $psalmParamTag instanceof \PHPStan\PhpDocParser\Ast\PhpDoc\ParamTagValueNode) {
 				// Use all the type information from @psalm-param because it is more specific,
 				// but pull the description from @param and @psalm-param because usually only one of them has it.
 				if ($psalmParamTag->description !== '') {
@@ -176,10 +177,10 @@ class ControllerMethod {
 				}
 
 				$param = new ControllerMethodParameter($context, $definitions, $methodParameterName, $methodParameter, $type);
-			} elseif ($psalmParamTag !== null) {
+			} elseif ($psalmParamTag instanceof \PHPStan\PhpDocParser\Ast\PhpDoc\ParamTagValueNode) {
 				$type = OpenApiType::resolve($context . ': @param: ' . $methodParameterName, $definitions, $psalmParamTag);
 				$param = new ControllerMethodParameter($context, $definitions, $methodParameterName, $methodParameter, $type);
-			} elseif ($paramTag !== null) {
+			} elseif ($paramTag instanceof \PHPStan\PhpDocParser\Ast\PhpDoc\ParamTagValueNode) {
 				$type = OpenApiType::resolve($context . ': @param: ' . $methodParameterName, $definitions, $paramTag);
 				$param = new ControllerMethodParameter($context, $definitions, $methodParameterName, $methodParameter, $type);
 			} elseif ($allowMissingDocs) {

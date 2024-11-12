@@ -67,7 +67,7 @@ class OpenApiType {
 					type: 'integer',
 					nullable: $this->nullable,
 					hasDefaultValue: $this->hasDefaultValue,
-					defaultValue: !$this->hasDefaultValue ? null : ($this->defaultValue === true ? 1 : 0),
+					defaultValue: $this->hasDefaultValue ? ($this->defaultValue === true ? 1 : 0) : (null),
 					description: $this->description,
 					enum: [0, 1],
 				))->toArray($isParameter);
@@ -99,11 +99,7 @@ class OpenApiType {
 			$values['nullable'] = true;
 		}
 		if ($this->hasDefaultValue && $this->defaultValue !== null) {
-			if ($this->type === 'object' && empty($this->defaultValue)) {
-				$values['default'] = new stdClass();
-			} else {
-				$values['default'] = $this->defaultValue;
-			}
+			$values['default'] = $this->type === 'object' && empty($this->defaultValue) ? new stdClass() : $this->defaultValue;
 		}
 		if ($this->enum !== null) {
 			$values['enum'] = $this->enum;
@@ -111,7 +107,7 @@ class OpenApiType {
 		if ($this->description !== null && $this->description !== '' && !$isParameter) {
 			$values['description'] = Helpers::cleanDocComment($this->description);
 		}
-		if ($this->items !== null) {
+		if ($this->items instanceof \OpenAPIExtractor\OpenApiType) {
 			$values['items'] = $this->items->toArray();
 		}
 		if ($this->minLength !== null) {
@@ -135,7 +131,7 @@ class OpenApiType {
 		if ($this->required !== null) {
 			$values['required'] = $this->required;
 		}
-		if ($this->properties !== null && count($this->properties) > 0) {
+		if ($this->properties !== null && $this->properties !== []) {
 			$values['properties'] = array_combine(array_keys($this->properties),
 				array_map(static fn (OpenApiType $property): array|\stdClass => $property->toArray(), array_values($this->properties)),
 			);
@@ -157,7 +153,7 @@ class OpenApiType {
 			$values['allOf'] = array_map(fn (OpenApiType $type): array|\stdClass => $type->toArray(), $this->allOf);
 		}
 
-		return count($values) > 0 ? $values : new stdClass();
+		return $values !== [] ? $values : new stdClass();
 	}
 
 	public static function resolve(string $context, array $definitions, ParamTagValueNode|NodeAbstract|TypeNode $node): OpenApiType {
@@ -220,7 +216,7 @@ class OpenApiType {
 				context: $context,
 				type: 'object',
 				properties: $properties,
-				required: count($required) > 0 ? $required : null,
+				required: $required !== [] ? $required : null,
 			);
 		}
 
@@ -263,14 +259,14 @@ class OpenApiType {
 
 		$isUnion = $node instanceof UnionTypeNode || $node instanceof UnionType;
 		$isIntersection = $node instanceof IntersectionTypeNode || $node instanceof IntersectionType;
-		if ($isUnion && count($node->types) == count(array_filter($node->types, fn ($type): bool => $type instanceof ConstTypeNode && $type->constExpr instanceof ConstExprStringNode))) {
+		if ($isUnion && count($node->types) === count(array_filter($node->types, fn ($type): bool => $type instanceof ConstTypeNode && $type->constExpr instanceof ConstExprStringNode))) {
 			$values = [];
 			/** @var ConstTypeNode $type */
 			foreach ($node->types as $type) {
 				$values[] = $type->constExpr->value;
 			}
 
-			if (count(array_filter($values, fn (string $value): bool => $value == '')) > 0) {
+			if (array_filter($values, fn (string $value): bool => $value === '') !== []) {
 				// Not a valid enum
 				return new OpenApiType(
 					context: $context,
@@ -284,14 +280,14 @@ class OpenApiType {
 				enum: $values,
 			);
 		}
-		if ($isUnion && count($node->types) == count(array_filter($node->types, fn ($type): bool => $type instanceof ConstTypeNode && $type->constExpr instanceof ConstExprIntegerNode))) {
+		if ($isUnion && count($node->types) === count(array_filter($node->types, fn ($type): bool => $type instanceof ConstTypeNode && $type->constExpr instanceof ConstExprIntegerNode))) {
 			$values = [];
 			/** @var ConstTypeNode $type */
 			foreach ($node->types as $type) {
 				$values[] = (int)$type->constExpr->value;
 			}
 
-			if (count(array_filter($values, fn (string $value): bool => $value == '')) > 0) {
+			if (array_filter($values, fn (string $value): bool => $value === '') !== []) {
 				// Not a valid enum
 				return new OpenApiType(
 					context: $context,
@@ -427,7 +423,7 @@ class OpenApiType {
 	}
 
 	private static function resolveIdentifier(string $context, array $definitions, string $name): OpenApiType {
-		if ($name == 'array') {
+		if ($name === 'array') {
 			Logger::error($context, "Instead of 'array' use:\n'new stdClass()' for empty objects\n'array<string, mixed>' for non-empty objects\n'array<emtpy>' for empty lists\n'array<YourTypeHere>' for lists");
 		}
 		if (str_starts_with($name, '\\')) {

@@ -129,7 +129,7 @@ function rewriteSchemaNames(array $spec): array {
 	$schemas = $spec['components']['schemas'];
 	$readableAppID = Helpers::generateReadableAppID($spec['info']['title']);
 	return array_combine(
-		array_map(fn (string $key): string => $key == 'OCSMeta' ? $key : $readableAppID . $key, array_keys($schemas)),
+		array_map(fn (string $key): string => $key === 'OCSMeta' ? $key : $readableAppID . $key, array_keys($schemas)),
 		array_values($schemas),
 	);
 }
@@ -164,7 +164,8 @@ function rewriteOperations(array $spec): array {
 				$operation['responses'] = [$value => $operation['responses'][$value]];
 			}
 			if (array_key_exists('security', $operation)) {
-				for ($i = 0; $i < count($operation['security']); $i++) {
+				$counter = count($operation['security']);
+				for ($i = 0; $i < $counter; $i++) {
 					if (count($operation['security'][$i]) == 0) {
 						$operation['security'][$i] = new stdClass(); // When reading {} will be converted to [], so we have to fix it
 					}
