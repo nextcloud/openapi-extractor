@@ -347,7 +347,7 @@ class OpenApiType {
 				return $item->type;
 			}, $items);
 
-			if (!empty(array_filter($itemTypes, static fn (?string $type): bool => $type === null)) || count($itemTypes) !== count(array_unique($itemTypes))) {
+			if (array_filter($itemTypes, static fn (?string $type): bool => $type === null) !== [] || count($itemTypes) !== count(array_unique($itemTypes))) {
 				return new OpenApiType(
 					context: $context,
 					nullable: $nullable,

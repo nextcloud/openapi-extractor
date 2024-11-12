@@ -471,8 +471,8 @@ foreach ($parsedRoutes as $key => $value) {
 			Logger::panic($routeName, 'Route is marked as ignore but also has other scopes');
 		}
 
-		if (empty($scopes)) {
-			if (!empty($controllerScopes)) {
+		if ($scopes === []) {
+			if ($controllerScopes !== []) {
 				$scopes = $controllerScopes;
 			} elseif ($isExApp) {
 				$scopes = ['ex_app'];
@@ -955,11 +955,11 @@ foreach ($scopePaths as $scope => $paths) {
 		foreach ($paths as $url => $urlRoutes) {
 			foreach ($urlRoutes as $httpMethod => $routeData) {
 				foreach ($routeData['responses'] as $statusCode => $responseData) {
-					if (!empty($responseData['content'])) {
+					if (isset($responseData['content']) && $responseData['content'] !== []) {
 						$usedSchemas[] = Helpers::collectUsedRefs($responseData['content']);
 					}
 				}
-				if (!empty($routeData['requestBody']['content'])) {
+				if (isset($routeData['requestBody']['content']) && $routeData['requestBody']['content'] !== []) {
 					$usedSchemas[] = Helpers::collectUsedRefs($routeData['requestBody']['content']);
 				}
 			}

@@ -252,7 +252,7 @@ class Helpers {
 							if ($item?->value instanceof String_) {
 								$tag = $item->value->value;
 								$pattern = '/^[0-9a-zA-Z_-]+$/';
-								if (!preg_match($pattern, $tag)) {
+								if (in_array(preg_match($pattern, $tag), [0, false], true)) {
 									Logger::error($routeName, 'Tag "' . $tag . '" has to match pattern "' . $pattern . '"');
 								}
 								$foundTags[] = $tag;
@@ -260,8 +260,8 @@ class Helpers {
 						}
 					}
 
-					if (!empty($foundTags)) {
-						$tags[$foundScopeName ?: $defaultScope] = $foundTags;
+					if ($foundTags !== []) {
+						$tags[$foundScopeName !== null && $foundScopeName !== '' && $foundScopeName !== '0' ? $foundScopeName : $defaultScope] = $foundTags;
 					}
 				}
 			}

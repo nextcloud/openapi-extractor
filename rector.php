@@ -15,4 +15,5 @@ return RectorConfig::configure()
 	->withPhpSets()
 	->withPreparedSets(
 		typeDeclarations: true,
+		strictBooleans: true,
 	);
