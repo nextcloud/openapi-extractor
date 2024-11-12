@@ -225,7 +225,8 @@ class OpenApiType {
 		}
 
 		if ($node instanceof GenericTypeNode && $node->type->name === 'array' && count($node->genericTypes) === 2 && $node->genericTypes[0] instanceof IdentifierTypeNode) {
-			if ($node->genericTypes[0]->name === 'string') {
+			$allowedTypes = ['string', 'lowercase-string', 'non-empty-string', 'non-empty-lowercase-string'];
+			if (in_array($node->genericTypes[0]->name, $allowedTypes, true)) {
 				return new OpenApiType(
 					context: $context,
 					type: 'object',
@@ -233,7 +234,7 @@ class OpenApiType {
 				);
 			}
 
-			Logger::panic($context, "JSON objects can only be indexed by 'string' but got '" . $node->genericTypes[0]->name . "'");
+			Logger::panic($context, "JSON objects can only be indexed by '" . implode("', '", $allowedTypes) . "' but got '" . $node->genericTypes[0]->name . "'");
 		}
 
 		if ($node instanceof GenericTypeNode && $node->type->name == 'int' && count($node->genericTypes) == 2) {
