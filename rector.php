@@ -14,6 +14,7 @@ return RectorConfig::configure()
 	->withSkipPath(__DIR__ . '/vendor')
 	->withPhpSets()
 	->withPreparedSets(
+		deadCode: true,
 		typeDeclarations: true,
 		strictBooleans: true,
 	);

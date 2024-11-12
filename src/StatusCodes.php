@@ -15,8 +15,6 @@ use PHPStan\PhpDocParser\Ast\Type\UnionTypeNode;
 
 class StatusCodes {
 	/**
-	 * @param string $context
-	 * @param ConstTypeNode|UnionTypeNode|Arg $type
 	 * @return int[]
 	 * @throws Exception
 	 */

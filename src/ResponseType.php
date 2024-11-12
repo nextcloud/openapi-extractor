@@ -163,8 +163,6 @@ class ResponseType {
 	}
 
 	/**
-	 * @param string $context
-	 * @param TypeNode $obj
 	 * @return list<ControllerMethodResponse|null>
 	 * @throws Exception
 	 */

@@ -570,7 +570,7 @@ foreach ($parsedRoutes as $key => $value) {
 
 $tagNames = [];
 if ($useTags) {
-	foreach ($routes as $scope => $scopeRoutes) {
+	foreach ($routes as $scopeRoutes) {
 		foreach ($scopeRoutes as $route) {
 			foreach ($route->tags as $tag) {
 				if (!in_array($tag, $tagNames)) {
@@ -766,9 +766,7 @@ foreach ($routes as $scope => $scopeRoutes) {
 		if ($useTags) {
 			$operation['tags'] = $route->tags;
 		}
-		if (count($security) > 0) {
-			$operation['security'] = $security;
-		}
+		$operation['security'] = $security;
 
 		if (count($bodyParameters) > 0) {
 			$requiredBodyParameters = [];
@@ -952,9 +950,9 @@ foreach ($scopePaths as $scope => $paths) {
 		$openapiScope['components']['schemas'] = $schemas;
 	} else {
 		$usedSchemas = [];
-		foreach ($paths as $url => $urlRoutes) {
-			foreach ($urlRoutes as $httpMethod => $routeData) {
-				foreach ($routeData['responses'] as $statusCode => $responseData) {
+		foreach ($paths as $urlRoutes) {
+			foreach ($urlRoutes as $routeData) {
+				foreach ($routeData['responses'] as $responseData) {
 					if (isset($responseData['content']) && $responseData['content'] !== []) {
 						$usedSchemas[] = Helpers::collectUsedRefs($responseData['content']);
 					}
