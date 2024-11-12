@@ -108,7 +108,7 @@ class ControllerMethod {
 		}
 
 		if (!$allowMissingDocs) {
-			foreach (array_unique(array_map(fn (ControllerMethodResponse $response) => $response->statusCode, array_filter($responses, fn (?ControllerMethodResponse $response) => $response != null))) as $statusCode) {
+			foreach (array_unique(array_map(fn (ControllerMethodResponse $response): int => $response->statusCode, array_filter($responses, fn (?ControllerMethodResponse $response): bool => $response != null))) as $statusCode) {
 				if ($statusCode < 500 && (!array_key_exists($statusCode, $responseDescriptions) || $responseDescriptions[$statusCode] == '')) {
 					Logger::error($context, 'Missing description for status code ' . $statusCode);
 				}

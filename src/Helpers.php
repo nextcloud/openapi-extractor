@@ -26,7 +26,7 @@ class Helpers {
 	public const OPENAPI_ATTRIBUTE_CLASSNAME = 'OpenAPI';
 
 	public static function generateReadableAppID(string $appID): string {
-		return implode('', array_map(fn (string $s) => ucfirst($s), explode('_', $appID)));
+		return implode('', array_map(fn (string $s): string => ucfirst($s), explode('_', $appID)));
 	}
 
 	public static function securitySchemes(): array {
@@ -70,7 +70,7 @@ class Helpers {
 	}
 
 	public static function mergeSchemas(array $schemas): mixed {
-		if (!in_array(true, array_map(fn ($schema) => is_array($schema), $schemas))) {
+		if (!in_array(true, array_map(fn ($schema): bool => is_array($schema), $schemas))) {
 			$results = array_values(array_unique($schemas));
 			if (count($results) > 1) {
 				throw new Exception('Incompatibles types: ' . join(', ', $results));
@@ -272,7 +272,7 @@ class Helpers {
 
 	public static function collectUsedRefs(array $data): array {
 		$refs = [];
-		array_walk_recursive($data, function ($value, $key) use (&$refs) {
+		array_walk_recursive($data, function ($value, $key) use (&$refs): void {
 			if ($key === '$ref') {
 				$refs[] = $value;
 			}

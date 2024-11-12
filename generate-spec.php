@@ -182,8 +182,8 @@ foreach ($capabilitiesFiles as $path) {
 	 * @var Class_ $node
 	 */
 	foreach ($nodeFinder->findInstanceOf($astParser->parse(file_get_contents($path)), Class_::class) as $node) {
-		$implementsCapability = count(array_filter($node->implements, fn (Name $name) => $name->getLast() == 'ICapability')) > 0;
-		$implementsPublicCapability = count(array_filter($node->implements, fn (Name $name) => $name->getLast() == 'IPublicCapability')) > 0;
+		$implementsCapability = count(array_filter($node->implements, fn (Name $name): bool => $name->getLast() == 'ICapability')) > 0;
+		$implementsPublicCapability = count(array_filter($node->implements, fn (Name $name): bool => $name->getLast() == 'IPublicCapability')) > 0;
 		if (!$implementsCapability && !$implementsPublicCapability) {
 			continue;
 		}
@@ -409,7 +409,7 @@ foreach ($parsedRoutes as $key => $value) {
 
 		$tagName = implode('_', array_map(fn (string $s) => strtolower($s), Helpers::splitOnUppercaseFollowedByNonUppercase($controllerName)));
 		$doc = $controllerClass->getDocComment()?->getText();
-		if ($doc != null && count(array_filter($tags, fn (array $tag) => $tag['name'] == $tagName)) == 0) {
+		if ($doc != null && count(array_filter($tags, fn (array $tag): bool => $tag['name'] == $tagName)) == 0) {
 			$classDescription = [];
 
 			$docNodes = $phpDocParser->parse(new TokenIterator($lexer->tokenize($doc)))->children;
@@ -524,8 +524,8 @@ foreach ($parsedRoutes as $key => $value) {
 			}
 		}
 
-		$docStatusCodes = array_map(fn (ControllerMethodResponse $response) => $response->statusCode, array_filter($classMethodInfo->responses, fn (?ControllerMethodResponse $response) => $response != null));
-		$missingDocStatusCodes = array_unique(array_filter(array_diff($codeStatusCodes, $docStatusCodes), fn (int $code) => $code < 500));
+		$docStatusCodes = array_map(fn (ControllerMethodResponse $response): int => $response->statusCode, array_filter($classMethodInfo->responses, fn (?ControllerMethodResponse $response): bool => $response != null));
+		$missingDocStatusCodes = array_unique(array_filter(array_diff($codeStatusCodes, $docStatusCodes), fn (int $code): bool => $code < 500));
 
 		if (count($missingDocStatusCodes) > 0) {
 			Logger::error($routeName, 'Returns undocumented status codes: ' . implode(', ', $missingDocStatusCodes));
@@ -589,10 +589,10 @@ foreach ($routes as $scope => $scopeRoutes) {
 		$urlParameters = [];
 
 		preg_match_all('/{[^}]*}/', $route->url, $urlParameters);
-		$urlParameters = array_map(fn (string $name) => substr($name, 1, -1), $urlParameters[0]);
+		$urlParameters = array_map(fn (string $name): string => substr($name, 1, -1), $urlParameters[0]);
 
 		foreach ($urlParameters as $urlParameter) {
-			$matchingParameters = array_filter($route->controllerMethod->parameters, fn (ControllerMethodParameter $param) => $param->name == $urlParameter);
+			$matchingParameters = array_filter($route->controllerMethod->parameters, fn (ControllerMethodParameter $param): bool => $param->name == $urlParameter);
 			$requirement = array_key_exists($urlParameter, $route->requirements) ? $route->requirements[$urlParameter] : null;
 			if (count($matchingParameters) == 1) {
 				$parameter = $matchingParameters[array_keys($matchingParameters)[0]];
@@ -676,12 +676,12 @@ foreach ($routes as $scope => $scopeRoutes) {
 		}
 
 		$mergedResponses = [];
-		foreach (array_unique(array_map(fn (ControllerMethodResponse $response) => $response->statusCode, array_filter($route->controllerMethod->responses, fn (?ControllerMethodResponse $response) => $response != null))) as $statusCode) {
+		foreach (array_unique(array_map(fn (ControllerMethodResponse $response): int => $response->statusCode, array_filter($route->controllerMethod->responses, fn (?ControllerMethodResponse $response): bool => $response != null))) as $statusCode) {
 			if ($firstStatusCode && count($mergedResponses) > 0) {
 				break;
 			}
 
-			$statusCodeResponses = array_filter($route->controllerMethod->responses, fn (?ControllerMethodResponse $response) => $response != null && $response->statusCode == $statusCode);
+			$statusCodeResponses = array_filter($route->controllerMethod->responses, fn (?ControllerMethodResponse $response): bool => $response != null && $response->statusCode == $statusCode);
 			$headers = [];
 			foreach ($statusCodeResponses as $response) {
 				if ($response->headers !== null) {
@@ -690,16 +690,16 @@ foreach ($routes as $scope => $scopeRoutes) {
 			}
 
 			$mergedContentTypeResponses = [];
-			foreach (array_unique(array_map(fn (ControllerMethodResponse $response) => $response->contentType, array_filter($statusCodeResponses, fn (ControllerMethodResponse $response) => $response->contentType != null))) as $contentType) {
+			foreach (array_unique(array_map(fn (ControllerMethodResponse $response): ?string => $response->contentType, array_filter($statusCodeResponses, fn (ControllerMethodResponse $response): bool => $response->contentType != null))) as $contentType) {
 				if ($firstContentType && count($mergedContentTypeResponses) > 0) {
 					break;
 				}
 
 				/** @var ControllerMethodResponse[] $contentTypeResponses */
-				$contentTypeResponses = array_values(array_filter($statusCodeResponses, fn (ControllerMethodResponse $response) => $response->contentType == $contentType));
+				$contentTypeResponses = array_values(array_filter($statusCodeResponses, fn (ControllerMethodResponse $response): bool => $response->contentType == $contentType));
 
-				$hasEmpty = count(array_filter($contentTypeResponses, fn (ControllerMethodResponse $response) => $response->type == null)) > 0;
-				$uniqueResponses = array_values(array_intersect_key($contentTypeResponses, array_unique(array_map(fn (ControllerMethodResponse $response) => $response->type->toArray(), array_filter($contentTypeResponses, fn (ControllerMethodResponse $response) => $response->type != null)), SORT_REGULAR)));
+				$hasEmpty = count(array_filter($contentTypeResponses, fn (ControllerMethodResponse $response): bool => $response->type == null)) > 0;
+				$uniqueResponses = array_values(array_intersect_key($contentTypeResponses, array_unique(array_map(fn (ControllerMethodResponse $response): array|\stdClass => $response->type->toArray(), array_filter($contentTypeResponses, fn (ControllerMethodResponse $response): bool => $response->type != null)), SORT_REGULAR)));
 				if (count($uniqueResponses) == 1) {
 					if ($hasEmpty) {
 						$mergedContentTypeResponses[$contentType] = [];
@@ -710,7 +710,7 @@ foreach ($routes as $scope => $scopeRoutes) {
 				} else {
 					$mergedContentTypeResponses[$contentType] = [
 						'schema' => [
-							[$hasEmpty ? 'anyOf' : 'oneOf' => array_map(function (ControllerMethodResponse $response) use ($route) {
+							[$hasEmpty ? 'anyOf' : 'oneOf' => array_map(function (ControllerMethodResponse $response) use ($route): \stdClass|array {
 								$schema = Helpers::cleanEmptyResponseArray($response->type->toArray());
 								return Helpers::wrapOCSResponse($route, $response, $schema);
 							}, $uniqueResponses)],
@@ -726,7 +726,7 @@ foreach ($routes as $scope => $scopeRoutes) {
 				$response['headers'] = array_combine(
 					array_keys($headers),
 					array_map(
-						fn (OpenApiType $type) => [
+						fn (OpenApiType $type): array => [
 							'schema' => $type->toArray(),
 						],
 						array_values($headers),
