@@ -39,7 +39,7 @@ use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use stdClass;
 
-$command = new Command('generate-spec', 'Extract OpenAPI specs from the Nextcloud source code');
+$command = new Command('generate-spec.php', 'Extract OpenAPI specs from the Nextcloud source code');
 $command
 	->arguments('dir out')
 	->option('--first-status-code', 'Only output the first status code')
@@ -84,11 +84,7 @@ if (file_exists($infoXMLPath)) {
 
 	$appIsCore = false;
 	$appID = (string)$xml->id;
-	if ($xml->namespace) {
-		$readableAppID = (string)$xml->namespace;
-	} else {
-		$readableAppID = Helpers::generateReadableAppID($appID);
-	}
+	$readableAppID = $xml->namespace ? (string)$xml->namespace : Helpers::generateReadableAppID($appID);
 	$appSummary = (string)$xml->summary;
 	$appVersion = (string)$xml->version;
 	$appLicence = (string)$xml->licence;
@@ -171,7 +167,7 @@ foreach ($capabilitiesDirs as $dir) {
 	$iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir));
 	foreach ($iterator as $file) {
 		$path = $file->getPathname();
-		if (str_ends_with($path, 'Capabilities.php')) {
+		if (str_ends_with((string)$path, 'Capabilities.php')) {
 			$capabilitiesFiles[] = $path;
 		}
 	}
@@ -182,8 +178,8 @@ foreach ($capabilitiesFiles as $path) {
 	 * @var Class_ $node
 	 */
 	foreach ($nodeFinder->findInstanceOf($astParser->parse(file_get_contents($path)), Class_::class) as $node) {
-		$implementsCapability = count(array_filter($node->implements, fn (Name $name) => $name->getLast() == 'ICapability')) > 0;
-		$implementsPublicCapability = count(array_filter($node->implements, fn (Name $name) => $name->getLast() == 'IPublicCapability')) > 0;
+		$implementsCapability = array_filter($node->implements, fn (Name $name): bool => $name->getLast() === 'ICapability') !== [];
+		$implementsPublicCapability = array_filter($node->implements, fn (Name $name): bool => $name->getLast() === 'IPublicCapability') !== [];
 		if (!$implementsCapability && !$implementsPublicCapability) {
 			continue;
 		}
@@ -327,7 +323,7 @@ foreach ($controllers as $controllerName => $stmts) {
 	}
 }
 
-if (count($parsedRoutes) === 0) {
+if ($parsedRoutes === []) {
 	Logger::warning('Routes', 'No routes were loaded');
 }
 
@@ -343,26 +339,26 @@ foreach ($parsedRoutes as $key => $value) {
 	foreach ($value as $route) {
 		$routeName = $route['name'];
 
-		$postfix = array_key_exists('postfix', $route) ? $route['postfix'] : null;
+		$postfix = $route['postfix'] ?? null;
 		$verb = array_key_exists('verb', $route) ? $route['verb'] : 'GET';
 		$requirements = array_key_exists('requirements', $route) ? $route['requirements'] : [];
 		$defaults = array_key_exists('defaults', $route) ? $route['defaults'] : [];
 		$root = array_key_exists('root', $route) ? $route['root'] : ($appIsCore ? '' : '/apps/' . $appID);
 		$url = $route['url'];
-		if (!str_starts_with($url, '/')) {
+		if (!str_starts_with((string)$url, '/')) {
 			$url = '/' . $url;
 		}
-		if (str_ends_with($url, '/')) {
-			$url = substr($url, 0, -1);
+		if (str_ends_with((string)$url, '/')) {
+			$url = substr((string)$url, 0, -1);
 		}
 		$url = $pathPrefix . $root . $url;
 
-		$methodName = lcfirst(str_replace('_', '', ucwords(explode('#', $routeName)[1], '_')));
-		if ($methodName == 'preflightedCors') {
+		$methodName = lcfirst(str_replace('_', '', ucwords(explode('#', (string)$routeName)[1], '_')));
+		if ($methodName === 'preflightedCors') {
 			continue;
 		}
 
-		$controllerName = ucfirst(str_replace('_', '', ucwords(explode('#', $routeName)[0], '_')));
+		$controllerName = ucfirst(str_replace('_', '', ucwords(explode('#', (string)$routeName)[0], '_')));
 		$controllerClass = null;
 		/** @var Class_ $class */
 		foreach ($nodeFinder->findInstanceOf($controllers[$controllerName] ?? [], Class_::class) as $class) {
@@ -390,7 +386,7 @@ foreach ($parsedRoutes as $key => $value) {
 
 		$controllerScopes = Helpers::getOpenAPIAttributeScopes($controllerClass, $routeName);
 		if (Helpers::classMethodHasAnnotationOrAttribute($controllerClass, 'IgnoreOpenAPI')) {
-			if (count($controllerScopes) === 0 || (in_array('ignore', $controllerScopes, true) && count($controllerScopes) === 1)) {
+			if ($controllerScopes === [] || (in_array('ignore', $controllerScopes, true) && count($controllerScopes) === 1)) {
 				Logger::debug($routeName, "Controller '" . $controllerName . "' ignored because of IgnoreOpenAPI attribute");
 				continue;
 			}
@@ -409,24 +405,24 @@ foreach ($parsedRoutes as $key => $value) {
 
 		$tagName = implode('_', array_map(fn (string $s) => strtolower($s), Helpers::splitOnUppercaseFollowedByNonUppercase($controllerName)));
 		$doc = $controllerClass->getDocComment()?->getText();
-		if ($doc != null && count(array_filter($tags, fn (array $tag) => $tag['name'] == $tagName)) == 0) {
+		if ($doc != null && count(array_filter($tags, fn (array $tag): bool => $tag['name'] === $tagName)) == 0) {
 			$classDescription = [];
 
 			$docNodes = $phpDocParser->parse(new TokenIterator($lexer->tokenize($doc)))->children;
 			foreach ($docNodes as $docNode) {
 				if ($docNode instanceof PhpDocTextNode) {
 					$block = Helpers::cleanDocComment($docNode->text);
-					if ($block == '') {
+					if ($block === '') {
 						continue;
 					}
 					$classDescription[] = $block;
 				}
 			}
 
-			if (count($classDescription) > 0) {
+			if ($classDescription !== []) {
 				$tags[] = [
 					'name' => $tagName,
-					'description' => join("\n", $classDescription),
+					'description' => implode("\n", $classDescription),
 				];
 			}
 		}
@@ -454,7 +450,7 @@ foreach ($parsedRoutes as $key => $value) {
 		$scopes = Helpers::getOpenAPIAttributeScopes($classMethod, $routeName);
 
 		if ($isIgnored) {
-			if (count($scopes) === 0 || (in_array('ignore', $scopes, true) && count($scopes) === 1)) {
+			if ($scopes === [] || (in_array('ignore', $scopes, true) && count($scopes) === 1)) {
 				Logger::debug($routeName, 'Route ignored because of IgnoreOpenAPI attribute');
 				continue;
 			}
@@ -471,8 +467,8 @@ foreach ($parsedRoutes as $key => $value) {
 			Logger::panic($routeName, 'Route is marked as ignore but also has other scopes');
 		}
 
-		if (empty($scopes)) {
-			if (!empty($controllerScopes)) {
+		if ($scopes === []) {
+			if ($controllerScopes !== []) {
 				$scopes = $controllerScopes;
 			} elseif ($isExApp) {
 				$scopes = ['ex_app'];
@@ -503,7 +499,7 @@ foreach ($parsedRoutes as $key => $value) {
 		}
 
 		$classMethodInfo = ControllerMethod::parse($routeName, $definitions, $methodFunction, $isAdmin, $isDeprecated, $isPasswordConfirmation);
-		if (count($classMethodInfo->returns) > 0) {
+		if ($classMethodInfo->returns !== []) {
 			Logger::error($routeName, 'Returns an invalid response');
 			continue;
 		}
@@ -524,10 +520,10 @@ foreach ($parsedRoutes as $key => $value) {
 			}
 		}
 
-		$docStatusCodes = array_map(fn (ControllerMethodResponse $response) => $response->statusCode, array_filter($classMethodInfo->responses, fn (?ControllerMethodResponse $response) => $response != null));
-		$missingDocStatusCodes = array_unique(array_filter(array_diff($codeStatusCodes, $docStatusCodes), fn (int $code) => $code < 500));
+		$docStatusCodes = array_map(fn (ControllerMethodResponse $response): int => $response->statusCode, array_filter($classMethodInfo->responses, fn (?ControllerMethodResponse $response): bool => $response != null));
+		$missingDocStatusCodes = array_unique(array_filter(array_diff($codeStatusCodes, $docStatusCodes), fn (int $code): bool => $code < 500));
 
-		if (count($missingDocStatusCodes) > 0) {
+		if ($missingDocStatusCodes !== []) {
 			Logger::error($routeName, 'Returns undocumented status codes: ' . implode(', ', $missingDocStatusCodes));
 			continue;
 		}
@@ -570,7 +566,7 @@ foreach ($parsedRoutes as $key => $value) {
 
 $tagNames = [];
 if ($useTags) {
-	foreach ($routes as $scope => $scopeRoutes) {
+	foreach ($routes as $scopeRoutes) {
 		foreach ($scopeRoutes as $route) {
 			foreach ($route->tags as $tag) {
 				if (!in_array($tag, $tagNames)) {
@@ -589,13 +585,11 @@ foreach ($routes as $scope => $scopeRoutes) {
 		$urlParameters = [];
 
 		preg_match_all('/{[^}]*}/', $route->url, $urlParameters);
-		$urlParameters = array_map(fn (string $name) => substr($name, 1, -1), $urlParameters[0]);
+		$urlParameters = array_map(fn (string $name): string => substr($name, 1, -1), $urlParameters[0]);
 
 		foreach ($urlParameters as $urlParameter) {
-			$matchingParameters = array_filter($route->controllerMethod->parameters, function (ControllerMethodParameter $param) use ($urlParameter) {
-				return $param->name == $urlParameter;
-			});
-			$requirement = array_key_exists($urlParameter, $route->requirements) ? $route->requirements[$urlParameter] : null;
+			$matchingParameters = array_filter($route->controllerMethod->parameters, fn (ControllerMethodParameter $param): bool => $param->name == $urlParameter);
+			$requirement = $route->requirements[$urlParameter] ?? null;
 			if (count($matchingParameters) == 1) {
 				$parameter = $matchingParameters[array_keys($matchingParameters)[0]];
 				if ($parameter?->methodParameter == null && ($route->requirements == null || !array_key_exists($urlParameter, $route->requirements))) {
@@ -613,11 +607,11 @@ foreach ($routes as $scope => $scopeRoutes) {
 			}
 
 			if ($requirement != null) {
-				if (!str_starts_with($requirement, '^')) {
+				if (!str_starts_with((string)$requirement, '^')) {
 					$requirement = '^' . $requirement;
 				}
-				if (!str_ends_with($requirement, '$')) {
-					$requirement = $requirement . '$';
+				if (!str_ends_with((string)$requirement, '$')) {
+					$requirement .= '$';
 				}
 			}
 
@@ -627,7 +621,7 @@ foreach ($routes as $scope => $scopeRoutes) {
 						Logger::error($route->name, 'Missing requirement for apiVersion');
 						continue;
 					}
-					preg_match("/^\^\(([v0-9-.|]*)\)\\$$/m", $requirement, $matches);
+					preg_match("/^\^\(([v0-9-.|]*)\)\\$$/m", (string)$requirement, $matches);
 					if (count($matches) == 2) {
 						$enum = explode('|', $matches[1]);
 					} else {
@@ -678,12 +672,12 @@ foreach ($routes as $scope => $scopeRoutes) {
 		}
 
 		$mergedResponses = [];
-		foreach (array_unique(array_map(fn (ControllerMethodResponse $response) => $response->statusCode, array_filter($route->controllerMethod->responses, fn (?ControllerMethodResponse $response) => $response != null))) as $statusCode) {
-			if ($firstStatusCode && count($mergedResponses) > 0) {
+		foreach (array_unique(array_map(fn (ControllerMethodResponse $response): int => $response->statusCode, array_filter($route->controllerMethod->responses, fn (?ControllerMethodResponse $response): bool => $response != null))) as $statusCode) {
+			if ($firstStatusCode && $mergedResponses !== []) {
 				break;
 			}
 
-			$statusCodeResponses = array_filter($route->controllerMethod->responses, fn (?ControllerMethodResponse $response) => $response != null && $response->statusCode == $statusCode);
+			$statusCodeResponses = array_filter($route->controllerMethod->responses, fn (?ControllerMethodResponse $response): bool => $response != null && $response->statusCode == $statusCode);
 			$headers = [];
 			foreach ($statusCodeResponses as $response) {
 				if ($response->headers !== null) {
@@ -692,16 +686,16 @@ foreach ($routes as $scope => $scopeRoutes) {
 			}
 
 			$mergedContentTypeResponses = [];
-			foreach (array_unique(array_map(fn (ControllerMethodResponse $response) => $response->contentType, array_filter($statusCodeResponses, fn (ControllerMethodResponse $response) => $response->contentType != null))) as $contentType) {
-				if ($firstContentType && count($mergedContentTypeResponses) > 0) {
+			foreach (array_unique(array_map(fn (ControllerMethodResponse $response): ?string => $response->contentType, array_filter($statusCodeResponses, fn (ControllerMethodResponse $response): bool => $response->contentType != null))) as $contentType) {
+				if ($firstContentType && $mergedContentTypeResponses !== []) {
 					break;
 				}
 
 				/** @var ControllerMethodResponse[] $contentTypeResponses */
-				$contentTypeResponses = array_values(array_filter($statusCodeResponses, fn (ControllerMethodResponse $response) => $response->contentType == $contentType));
+				$contentTypeResponses = array_values(array_filter($statusCodeResponses, fn (ControllerMethodResponse $response): bool => $response->contentType == $contentType));
 
-				$hasEmpty = count(array_filter($contentTypeResponses, fn (ControllerMethodResponse $response) => $response->type == null)) > 0;
-				$uniqueResponses = array_values(array_intersect_key($contentTypeResponses, array_unique(array_map(fn (ControllerMethodResponse $response) => $response->type->toArray(), array_filter($contentTypeResponses, fn (ControllerMethodResponse $response) => $response->type != null)), SORT_REGULAR)));
+				$hasEmpty = array_filter($contentTypeResponses, fn (ControllerMethodResponse $response): bool => $response->type == null) !== [];
+				$uniqueResponses = array_values(array_intersect_key($contentTypeResponses, array_unique(array_map(fn (ControllerMethodResponse $response): array|\stdClass => $response->type->toArray(), array_filter($contentTypeResponses, fn (ControllerMethodResponse $response): bool => $response->type != null)), SORT_REGULAR)));
 				if (count($uniqueResponses) == 1) {
 					if ($hasEmpty) {
 						$mergedContentTypeResponses[$contentType] = [];
@@ -712,7 +706,7 @@ foreach ($routes as $scope => $scopeRoutes) {
 				} else {
 					$mergedContentTypeResponses[$contentType] = [
 						'schema' => [
-							[$hasEmpty ? 'anyOf' : 'oneOf' => array_map(function (ControllerMethodResponse $response) use ($route) {
+							[$hasEmpty ? 'anyOf' : 'oneOf' => array_map(function (ControllerMethodResponse $response) use ($route): \stdClass|array {
 								$schema = Helpers::cleanEmptyResponseArray($response->type->toArray());
 								return Helpers::wrapOCSResponse($route, $response, $schema);
 							}, $uniqueResponses)],
@@ -724,18 +718,18 @@ foreach ($routes as $scope => $scopeRoutes) {
 			$response = [
 				'description' => array_key_exists($statusCode, $route->controllerMethod->responseDescription) ? $route->controllerMethod->responseDescription[$statusCode] : '',
 			];
-			if (count($headers) > 0) {
+			if ($headers !== []) {
 				$response['headers'] = array_combine(
 					array_keys($headers),
 					array_map(
-						fn (OpenApiType $type) => [
+						fn (OpenApiType $type): array => [
 							'schema' => $type->toArray(),
 						],
 						array_values($headers),
 					),
 				);
 			}
-			if (count($mergedContentTypeResponses) > 0) {
+			if ($mergedContentTypeResponses !== []) {
 				$response['content'] = $mergedContentTypeResponses;
 			}
 			$mergedResponses[$statusCode] = $response;
@@ -759,7 +753,7 @@ foreach ($routes as $scope => $scopeRoutes) {
 		if ($route->controllerMethod->summary !== null) {
 			$operation['summary'] = $route->controllerMethod->summary;
 		}
-		if (count($route->controllerMethod->description) > 0) {
+		if ($route->controllerMethod->description !== []) {
 			$operation['description'] = implode("\n", $route->controllerMethod->description);
 		}
 		if ($route->controllerMethod->isDeprecated) {
@@ -768,11 +762,9 @@ foreach ($routes as $scope => $scopeRoutes) {
 		if ($useTags) {
 			$operation['tags'] = $route->tags;
 		}
-		if (count($security) > 0) {
-			$operation['security'] = $security;
-		}
+		$operation['security'] = $security;
 
-		if (count($bodyParameters) > 0) {
+		if ($bodyParameters !== []) {
 			$requiredBodyParameters = [];
 
 			foreach ($bodyParameters as $bodyParameter) {
@@ -782,7 +774,7 @@ foreach ($routes as $scope => $scopeRoutes) {
 				}
 			}
 
-			$required = count($requiredBodyParameters) > 0;
+			$required = $requiredBodyParameters !== [];
 
 			$schema = [
 				'type' => 'object',
@@ -833,7 +825,7 @@ foreach ($routes as $scope => $scopeRoutes) {
 				],
 			];
 		}
-		if (count($parameters) > 0) {
+		if ($parameters !== []) {
 			$operation['parameters'] = $parameters;
 		}
 
@@ -929,7 +921,7 @@ $fullScopePathArrays = [];
 
 if (!$hasSingleScope) {
 	$scopePaths['full'] = [];
-} elseif (count($scopePaths) === 0) {
+} elseif ($scopePaths === []) {
 	if (isset($schemas['Capabilities']) || isset($schemas['PublicCapabilities'])) {
 		Logger::debug('app', 'Generating default scope without routes to populate capabilities');
 		$scopePaths['default'] = [];
@@ -954,14 +946,14 @@ foreach ($scopePaths as $scope => $paths) {
 		$openapiScope['components']['schemas'] = $schemas;
 	} else {
 		$usedSchemas = [];
-		foreach ($paths as $url => $urlRoutes) {
-			foreach ($urlRoutes as $httpMethod => $routeData) {
-				foreach ($routeData['responses'] as $statusCode => $responseData) {
-					if (!empty($responseData['content'])) {
+		foreach ($paths as $urlRoutes) {
+			foreach ($urlRoutes as $routeData) {
+				foreach ($routeData['responses'] as $responseData) {
+					if (isset($responseData['content']) && $responseData['content'] !== []) {
 						$usedSchemas[] = Helpers::collectUsedRefs($responseData['content']);
 					}
 				}
-				if (!empty($routeData['requestBody']['content'])) {
+				if (isset($routeData['requestBody']['content']) && $routeData['requestBody']['content'] !== []) {
 					$usedSchemas[] = Helpers::collectUsedRefs($routeData['requestBody']['content']);
 				}
 			}
@@ -971,11 +963,11 @@ foreach ($scopePaths as $scope => $paths) {
 
 		$scopedSchemas = [];
 		while ($usedSchema = array_shift($usedSchemas)) {
-			if (!str_starts_with($usedSchema, '#/components/schemas/')) {
+			if (!str_starts_with((string)$usedSchema, '#/components/schemas/')) {
 				continue;
 			}
 
-			$schemaName = substr($usedSchema, strlen('#/components/schemas/'));
+			$schemaName = substr((string)$usedSchema, strlen('#/components/schemas/'));
 
 			if (!isset($schemas[$schemaName])) {
 				Logger::error('app', "Schema $schemaName used by scope $scope is not defined");
@@ -983,7 +975,7 @@ foreach ($scopePaths as $scope => $paths) {
 
 			$newRefs = Helpers::collectUsedRefs($schemas[$schemaName]);
 			foreach ($newRefs as $newRef) {
-				if (!isset($scopedSchemas[substr($newRef, strlen('#/components/schemas/'))])) {
+				if (!isset($scopedSchemas[substr((string)$newRef, strlen('#/components/schemas/'))])) {
 					$usedSchemas[] = $newRef;
 				}
 			}
@@ -998,7 +990,7 @@ foreach ($scopePaths as $scope => $paths) {
 			$scopedSchemas['PublicCapabilities'] = $schemas['PublicCapabilities'];
 		}
 
-		if (count($scopedSchemas) === 0) {
+		if ($scopedSchemas === []) {
 			$scopedSchemas = new stdClass();
 		} else {
 			ksort($scopedSchemas);

@@ -163,8 +163,6 @@ class ResponseType {
 	}
 
 	/**
-	 * @param string $context
-	 * @param TypeNode $obj
 	 * @return list<ControllerMethodResponse|null>
 	 * @throws Exception
 	 */
@@ -195,14 +193,14 @@ class ResponseType {
 		if ($className == 'void') {
 			$responses[] = null;
 		} else {
-			if (count(array_filter($responseTypes, fn ($responseType) => $responseType->className == $className)) == 0) {
+			if (count(array_filter($responseTypes, fn ($responseType): bool => $responseType->className == $className)) == 0) {
 				Logger::error($context, "Invalid return type '" . $obj . "'");
 				return [];
 			}
 			foreach ($responseTypes as $responseType) {
 				if ($responseType->className == $className) {
 					// +2 for status code and headers which are always present
-					$expectedArgs = count(array_filter([$responseType->hasContentTypeTemplate, $responseType->hasTypeTemplate], fn ($value) => $value)) + 2;
+					$expectedArgs = count(array_filter([$responseType->hasContentTypeTemplate, $responseType->hasTypeTemplate], fn ($value): bool => $value)) + 2;
 					if (count($args) != $expectedArgs) {
 						Logger::error($context, "'" . $className . "' needs " . $expectedArgs . ' parameters');
 						continue;
@@ -219,7 +217,7 @@ class ResponseType {
 						} elseif ($args[$i] instanceof UnionTypeNode) {
 							$contentTypes = array_map(fn ($arg) => $arg->constExpr->value, $args[$i]->types);
 						} else {
-							Logger::panic($context, 'Unable to parse content type from ' . get_class($args[$i]));
+							Logger::panic($context, 'Unable to parse content type from ' . $args[$i]::class);
 						}
 						$i++;
 					} else {
@@ -245,11 +243,7 @@ class ResponseType {
 					if (array_key_exists('Content-Type', $headers)) {
 						/** @var OpenApiType $value */
 						$values = $headers['Content-Type'];
-						if ($values->oneOf != null) {
-							$values = $values->oneOf;
-						} else {
-							$values = [$values];
-						}
+						$values = $values->oneOf != null ? $values->oneOf : [$values];
 
 						foreach ($values as $value) {
 							if ($value->type == 'string' && $value->enum != null) {
@@ -266,8 +260,8 @@ class ResponseType {
 					foreach ($statusCodes as $statusCode) {
 						if ($statusCode === 204 || $statusCode === 304) {
 							if ($statusCode === 304) {
-								$customHeaders = array_filter(array_keys($headers), static fn (string $header) => str_starts_with(strtolower($header), 'x-'));
-								if (!empty($customHeaders)) {
+								$customHeaders = array_filter(array_keys($headers), static fn (string $header): bool => str_starts_with(strtolower($header), 'x-'));
+								if ($customHeaders !== []) {
 									Logger::error($context, 'Custom headers are not allowed for responses with status code 304. Found: ' . implode(', ', $customHeaders));
 								}
 							}

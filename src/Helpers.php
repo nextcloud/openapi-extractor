@@ -26,7 +26,7 @@ class Helpers {
 	public const OPENAPI_ATTRIBUTE_CLASSNAME = 'OpenAPI';
 
 	public static function generateReadableAppID(string $appID): string {
-		return implode('', array_map(fn (string $s) => ucfirst($s), explode('_', $appID)));
+		return implode('', array_map(fn (string $s): string => ucfirst($s), explode('_', $appID)));
 	}
 
 	public static function securitySchemes(): array {
@@ -62,7 +62,7 @@ class Helpers {
 	}
 
 	public static function cleanDocComment(string $comment): string {
-		return trim(preg_replace("/\s+/", ' ', $comment));
+		return trim((string)preg_replace("/\s+/", ' ', $comment));
 	}
 
 	public static function splitOnUppercaseFollowedByNonUppercase(string $str): array {
@@ -70,10 +70,10 @@ class Helpers {
 	}
 
 	public static function mergeSchemas(array $schemas): mixed {
-		if (!in_array(true, array_map(fn ($schema) => is_array($schema), $schemas))) {
+		if (!in_array(true, array_map(fn ($schema): bool => is_array($schema), $schemas))) {
 			$results = array_values(array_unique($schemas));
 			if (count($results) > 1) {
-				throw new Exception('Incompatibles types: ' . join(', ', $results));
+				throw new Exception('Incompatibles types: ' . implode(', ', $results));
 			}
 			return $results[0];
 		}
@@ -168,7 +168,7 @@ class Helpers {
 
 	public static function cleanSchemaName(string $name): string {
 		global $readableAppID;
-		return substr($name, strlen($readableAppID));
+		return substr($name, strlen((string)$readableAppID));
 	}
 
 	protected static function getScopeNameFromAttributeArgument(Arg $arg, int $key, string $routeName): ?string {
@@ -205,7 +205,7 @@ class Helpers {
 		foreach ($node->attrGroups as $attrGroup) {
 			foreach ($attrGroup->attrs as $attr) {
 				if ($attr->name->getLast() === self::OPENAPI_ATTRIBUTE_CLASSNAME) {
-					if (empty($attr->args)) {
+					if ($attr->args === []) {
 						$scopes[] = 'default';
 						continue;
 					}
@@ -230,7 +230,7 @@ class Helpers {
 		foreach ($node->attrGroups as $attrGroup) {
 			foreach ($attrGroup->attrs as $attr) {
 				if ($attr->name->getLast() === self::OPENAPI_ATTRIBUTE_CLASSNAME) {
-					if (empty($attr->args)) {
+					if ($attr->args === []) {
 						$tags[$defaultScope] = [$defaultTag];
 						continue;
 					}
@@ -252,7 +252,7 @@ class Helpers {
 							if ($item?->value instanceof String_) {
 								$tag = $item->value->value;
 								$pattern = '/^[0-9a-zA-Z_-]+$/';
-								if (!preg_match($pattern, $tag)) {
+								if (in_array(preg_match($pattern, $tag), [0, false], true)) {
 									Logger::error($routeName, 'Tag "' . $tag . '" has to match pattern "' . $pattern . '"');
 								}
 								$foundTags[] = $tag;
@@ -260,8 +260,8 @@ class Helpers {
 						}
 					}
 
-					if (!empty($foundTags)) {
-						$tags[$foundScopeName ?: $defaultScope] = $foundTags;
+					if ($foundTags !== []) {
+						$tags[$foundScopeName !== null && $foundScopeName !== '' && $foundScopeName !== '0' ? $foundScopeName : $defaultScope] = $foundTags;
 					}
 				}
 			}
@@ -272,7 +272,7 @@ class Helpers {
 
 	public static function collectUsedRefs(array $data): array {
 		$refs = [];
-		array_walk_recursive($data, function ($value, $key) use (&$refs) {
+		array_walk_recursive($data, function ($value, $key) use (&$refs): void {
 			if ($key === '$ref') {
 				$refs[] = $value;
 			}
