@@ -32,11 +32,12 @@ jobs:
         php-versions: [ "8.1" ]
         repositories:
           - "nextcloud/assistant"
+          - "nextcloud/groupfolders"
+          - "nextcloud/mail"
           - "nextcloud/notifications"
           - "nextcloud/server"
           - "nextcloud/spreed"
           - "nextcloud/tables"
-          - "nextcloud/mail"
 
     name: openapi-repositories
 
