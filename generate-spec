@@ -334,12 +334,11 @@ if (count($parsedRoutes) === 0) {
 $operationIds = [];
 
 foreach ($parsedRoutes as $key => $value) {
-	$isOCS = $key === 'ocs';
-	$isIndex = $key === 'routes';
-
-	if (!$isOCS && !$isIndex) {
-		continue;
-	}
+	$pathPrefix = match ($key) {
+		'ocs' => '/ocs/v2.php',
+		'routes' => '/index.php',
+		default => throw new \InvalidArgumentException('Unknown routes key "' . $key . '"'),
+	};
 
 	foreach ($value as $route) {
 		$routeName = $route['name'];
@@ -356,12 +355,7 @@ foreach ($parsedRoutes as $key => $value) {
 		if (str_ends_with($url, '/')) {
 			$url = substr($url, 0, -1);
 		}
-		if ($isIndex) {
-			$url = '/index.php' . $root . $url;
-		}
-		if ($isOCS) {
-			$url = '/ocs/v2.php' . $root . $url;
-		}
+		$url = $pathPrefix . $root . $url;
 
 		$methodName = lcfirst(str_replace('_', '', ucwords(explode('#', $routeName)[1], '_')));
 		if ($methodName == 'preflightedCors') {
@@ -380,6 +374,18 @@ foreach ($parsedRoutes as $key => $value) {
 		if ($controllerClass == null) {
 			Logger::error($routeName, "Controller '" . $controllerName . "' not found");
 			continue;
+		}
+
+		$parentControllerClass = $controllerClass->extends?->name ?? '';
+		$parentControllerClass = explode('\\', $parentControllerClass);
+		$parentControllerClass = end($parentControllerClass);
+		// This is very ugly, but since we do not parse the entire source code we can not say with certainty which controller type is used.
+		// To still allow apps to use custom controllers that extend OCSController, we only check the suffix and have the warning if the controller type can not be detected.
+		$isOCS = str_ends_with($parentControllerClass, 'OCSController');
+		if ($parentControllerClass !== 'Controller' && $parentControllerClass !== 'ApiController' && $parentControllerClass !== 'OCSController' && !$isOCS) {
+			Logger::warning($routeName, 'You are extending a custom controller class. Make sure that it ends with "OCSController" if it extends "OCSController" itself.');
+		} elseif ($isOCS !== ($pathPrefix === '/ocs/v2.php')) {
+			Logger::warning($routeName, 'Do not mix OCS/non-OCS routes and non-OCS/OCS controllers!');
 		}
 
 		$controllerScopes = Helpers::getOpenAPIAttributeScopes($controllerClass, $routeName);
