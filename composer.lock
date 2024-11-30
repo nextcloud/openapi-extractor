@@ -8,16 +8,16 @@
     "packages": [
         {
             "name": "adhocore/cli",
-            "version": "v1.8.1",
+            "version": "v1.9.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/adhocore/php-cli.git",
-                "reference": "0945f82f564fb8296a358bec6f922c2dc473906c"
+                "reference": "bacbbdaf90cd899b086f9ef1b0db4e83572ac4df"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/adhocore/php-cli/zipball/0945f82f564fb8296a358bec6f922c2dc473906c",
-                "reference": "0945f82f564fb8296a358bec6f922c2dc473906c",
+                "url": "https://api.github.com/repos/adhocore/php-cli/zipball/bacbbdaf90cd899b086f9ef1b0db4e83572ac4df",
+                "reference": "bacbbdaf90cd899b086f9ef1b0db4e83572ac4df",
                 "shasum": ""
             },
             "require": {
@@ -62,7 +62,7 @@
             ],
             "support": {
                 "issues": "https://github.com/adhocore/php-cli/issues",
-                "source": "https://github.com/adhocore/php-cli/tree/v1.8.1"
+                "source": "https://github.com/adhocore/php-cli/tree/v1.9.1"
             },
             "funding": [
                 {
@@ -74,7 +74,7 @@
                     "type": "github"
                 }
             ],
-            "time": "2024-11-20T07:38:11+00:00"
+            "time": "2024-11-29T10:22:19+00:00"
         },
         {
             "name": "nikic/php-parser",
