@@ -24,7 +24,7 @@
 	"require-dev": {
 		"nextcloud/coding-standard": "^1.2",
 		"nextcloud/ocp": "dev-master",
-		"rector/rector": "^1.2"
+		"rector/rector": "^2.0"
 	},
 	"scripts": {
 		"lint": "find . -name \\*.php -not -path './tests/*' -not -path './vendor/*' -not -path './build/*' -print0 | xargs -0 -n1 php -l",
