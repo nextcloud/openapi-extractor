@@ -330,6 +330,11 @@ if ($parsedRoutes === []) {
 $operationIds = [];
 
 foreach ($parsedRoutes as $key => $value) {
+	if ($key === 'resources') {
+		Logger::warning('Routes', 'Routes of type "resources" are not currently supported.');
+		continue;
+	}
+
 	$pathPrefix = match ($key) {
 		'ocs' => '/ocs/v2.php',
 		'routes' => '/index.php',
