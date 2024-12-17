@@ -940,6 +940,8 @@ if (!$hasSingleScope) {
 	}
 }
 
+$usedSchemas = ['Capabilities', 'PublicCapabilities'];
+
 foreach ($scopePaths as $scope => $paths) {
 	$openapiScope = $openapi;
 
@@ -991,6 +993,7 @@ foreach ($scopePaths as $scope => $paths) {
 			}
 
 			$scopedSchemas[$schemaName] = $schemas[$schemaName];
+			$usedSchemas[] = $schemaName;
 		}
 
 		if (isset($schemas['Capabilities'])) {
@@ -1029,6 +1032,11 @@ foreach ($scopePaths as $scope => $paths) {
 	file_put_contents($scopeOut, json_encode($openapiScope, Helpers::jsonFlags()) . "\n");
 
 	Logger::info('app', 'Generated scope ' . $scope . ' with ' . $pathsCount . ' routes!');
+}
+
+$unusedSchemas = array_diff(array_keys($schemas), $usedSchemas);
+if ($unusedSchemas !== []) {
+	Logger::error('app', 'Unused schemas: ' . implode(', ', $unusedSchemas));
 }
 
 if (Logger::$errorCount > 0) {
