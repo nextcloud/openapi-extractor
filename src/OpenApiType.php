@@ -210,6 +210,8 @@ class OpenApiType {
 				$properties[$name] = $type;
 				if (!$item->optional) {
 					$required[] = $name;
+				} elseif ($type->nullable) {
+					Logger::warning($context, 'Property "' . $name . '" is both nullable and not required. Please consider only using one of these at once.');
 				}
 			}
 			return new OpenApiType(
