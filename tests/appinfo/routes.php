@@ -9,6 +9,7 @@ declare(strict_types=1);
  */
 
 return [
+	'resources' => [],
 	'ocs' => [
 		['name' => 'AdminSettings#adminScopeImplicitFromAdminRequired', 'url' => '/api/{apiVersion}/default-admin', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
 		['name' => 'AdminSettings#movedToDefaultScope', 'url' => '/api/{apiVersion}/default-admin-overwritten', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
