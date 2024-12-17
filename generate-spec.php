@@ -592,6 +592,11 @@ foreach ($routes as $scope => $scopeRoutes) {
 		preg_match_all('/{[^}]*}/', $route->url, $urlParameters);
 		$urlParameters = array_map(fn (string $name): string => substr($name, 1, -1), $urlParameters[0]);
 
+		$unusedRequirements = array_diff(array_keys($route->requirements), $urlParameters);
+		if ($unusedRequirements !== []) {
+			Logger::error($route->name, 'Unused requirements: ' . implode(',', $unusedRequirements));
+		}
+
 		foreach ($urlParameters as $urlParameter) {
 			$matchingParameters = array_filter($route->controllerMethod->parameters, fn (ControllerMethodParameter $param): bool => $param->name == $urlParameter);
 			$requirement = $route->requirements[$urlParameter] ?? null;
