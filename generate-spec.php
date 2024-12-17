@@ -463,15 +463,6 @@ foreach ($parsedRoutes as $key => $value) {
 			Logger::panic($routeName, 'Route is marked as ignore but also has other scopes');
 		}
 
-		if (in_array('ignore', $scopes, true)) {
-			if (count($scopes) === 1) {
-				Logger::debug($routeName, 'Route ignored because of OpenAPI attribute');
-				continue;
-			}
-
-			Logger::panic($routeName, 'Route is marked as ignore but also has other scopes');
-		}
-
 		if ($scopes === []) {
 			if ($controllerScopes !== []) {
 				$scopes = $controllerScopes;
@@ -482,6 +473,15 @@ foreach ($parsedRoutes as $key => $value) {
 			} else {
 				$scopes = ['default'];
 			}
+		}
+
+		if (in_array('ignore', $scopes, true)) {
+			if (count($scopes) === 1) {
+				Logger::debug($routeName, 'Route ignored because of OpenAPI attribute');
+				continue;
+			}
+
+			Logger::panic($routeName, 'Route is marked as ignore but also has other scopes');
 		}
 
 		$routeTags = Helpers::getOpenAPIAttributeTagsByScope($classMethod, $routeName, $tagName, reset($scopes));
