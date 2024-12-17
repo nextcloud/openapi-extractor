@@ -955,29 +955,29 @@ foreach ($scopePaths as $scope => $paths) {
 		$openapiScope['paths'] = array_merge(...$fullScopePathArrays);
 		$openapiScope['components']['schemas'] = $schemas;
 	} else {
-		$usedSchemas = [];
+		$usedRefs = [];
 		foreach ($paths as $urlRoutes) {
 			foreach ($urlRoutes as $routeData) {
 				foreach ($routeData['responses'] as $responseData) {
 					if (isset($responseData['content']) && $responseData['content'] !== []) {
-						$usedSchemas[] = Helpers::collectUsedRefs($responseData['content']);
+						$usedRefs[] = Helpers::collectUsedRefs($responseData['content']);
 					}
 				}
 				if (isset($routeData['requestBody']['content']) && $routeData['requestBody']['content'] !== []) {
-					$usedSchemas[] = Helpers::collectUsedRefs($routeData['requestBody']['content']);
+					$usedRefs[] = Helpers::collectUsedRefs($routeData['requestBody']['content']);
 				}
 			}
 		}
 
-		$usedSchemas = array_merge(...$usedSchemas);
+		$usedRefs = array_merge(...$usedRefs);
 
 		$scopedSchemas = [];
-		while ($usedSchema = array_shift($usedSchemas)) {
-			if (!str_starts_with((string)$usedSchema, '#/components/schemas/')) {
+		while ($usedRef = array_shift($usedRefs)) {
+			if (!str_starts_with((string)$usedRef, '#/components/schemas/')) {
 				continue;
 			}
 
-			$schemaName = substr((string)$usedSchema, strlen('#/components/schemas/'));
+			$schemaName = substr((string)$usedRef, strlen('#/components/schemas/'));
 
 			if (!isset($schemas[$schemaName])) {
 				Logger::error('app', "Schema $schemaName used by scope $scope is not defined");
@@ -986,7 +986,7 @@ foreach ($scopePaths as $scope => $paths) {
 			$newRefs = Helpers::collectUsedRefs($schemas[$schemaName]);
 			foreach ($newRefs as $newRef) {
 				if (!isset($scopedSchemas[substr((string)$newRef, strlen('#/components/schemas/'))])) {
-					$usedSchemas[] = $newRef;
+					$usedRefs[] = $newRef;
 				}
 			}
 
