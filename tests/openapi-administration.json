@@ -20,6 +20,26 @@
             }
         },
         "schemas": {
+            "Capabilities": {
+                "type": "object",
+                "required": [
+                    "test"
+                ],
+                "properties": {
+                    "test": {
+                        "type": "object",
+                        "required": [
+                            "a"
+                        ],
+                        "properties": {
+                            "a": {
+                                "type": "integer",
+                                "format": "int64"
+                            }
+                        }
+                    }
+                }
+            },
             "OCSMeta": {
                 "type": "object",
                 "required": [
@@ -41,6 +61,25 @@
                     },
                     "itemsperpage": {
                         "type": "string"
+                    }
+                }
+            },
+            "PublicCapabilities": {
+                "type": "object",
+                "required": [
+                    "test"
+                ],
+                "properties": {
+                    "test": {
+                        "type": "object",
+                        "required": [
+                            "b"
+                        ],
+                        "properties": {
+                            "b": {
+                                "type": "string"
+                            }
+                        }
                     }
                 }
             },
