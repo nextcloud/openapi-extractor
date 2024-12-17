@@ -797,6 +797,29 @@
                     }
                 }
             }
+        },
+        "/index.php/apps/notifications/plain/with-scope": {
+            "get": {
+                "operationId": "plain-with-scope",
+                "summary": "Route with manual scope to not get ignored",
+                "description": "This endpoint requires admin access",
+                "tags": [
+                    "plain"
+                ],
+                "security": [
+                    {
+                        "bearer_auth": []
+                    },
+                    {
+                        "basic_auth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Response returned"
+                    }
+                }
+            }
         }
     },
     "tags": []
