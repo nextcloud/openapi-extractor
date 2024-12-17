@@ -466,6 +466,8 @@ foreach ($parsedRoutes as $key => $value) {
 		if ($scopes === []) {
 			if ($controllerScopes !== []) {
 				$scopes = $controllerScopes;
+			} elseif (!$isOCS) {
+				$scopes = ['ignore'];
 			} elseif ($isExApp) {
 				$scopes = ['ex_app'];
 			} elseif ($isAdmin) {
