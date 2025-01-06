@@ -34,7 +34,14 @@ class ControllerMethod {
 	) {
 	}
 
-	public static function parse(string $context, array $definitions, ClassMethod $method, bool $isAdmin, bool $isDeprecated, bool $isPasswordConfirmation): ControllerMethod {
+	public static function parse(string $context,
+		array $definitions,
+		ClassMethod $method,
+		bool $isAdmin,
+		bool $isDeprecated,
+		bool $isPasswordConfirmation,
+		bool $isCORS,
+	): ControllerMethod {
 		global $phpDocParser, $lexer, $allowMissingDocs;
 
 		$parameters = [];
@@ -208,6 +215,10 @@ class ControllerMethod {
 
 		if ($isPasswordConfirmation) {
 			$methodDescription[] = 'This endpoint requires password confirmation';
+		}
+
+		if ($isCORS) {
+			$methodDescription[] = 'This endpoint allows CORS requests';
 		}
 
 		if (count($methodDescription) == 1) {

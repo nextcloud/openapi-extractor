@@ -11,6 +11,7 @@ namespace OCA\Notifications\Controller;
 
 use OCA\Notifications\ResponseDefinitions;
 use OCP\AppFramework\Http;
+use OCP\AppFramework\Http\Attribute\CORS;
 use OCP\AppFramework\Http\Attribute\IgnoreOpenAPI;
 use OCP\AppFramework\Http\Attribute\OpenAPI;
 use OCP\AppFramework\Http\Attribute\PasswordConfirmationRequired;
@@ -569,6 +570,30 @@ class SettingsController extends OCSController {
 	 */
 	#[PasswordConfirmationRequired]
 	public function whitespace(int $value): DataResponse {
+		return new DataResponse();
+	}
+
+	/**
+	 * Route with CORS annotation
+	 *
+	 * @CORS
+	 * @return DataResponse<Http::STATUS_OK, list<empty>, array{}>
+	 *
+	 * 200: OK
+	 */
+	public function withCorsAnnotation(): DataResponse {
+		return new DataResponse();
+	}
+
+	/**
+	 * Route with CORS attribute
+	 *
+	 * @return DataResponse<Http::STATUS_OK, list<empty>, array{}>
+	 *
+	 * 200: OK
+	 */
+	#[CORS]
+	public function withCorsAttribute(): DataResponse {
 		return new DataResponse();
 	}
 }
