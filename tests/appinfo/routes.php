@@ -74,5 +74,7 @@ return [
 		['name' => 'Settings#parameterRequestBody', 'url' => '/api/{apiVersion}/parameterPATCH', 'verb' => 'PATCH', 'postfix' => 'PATCH', 'requirements' => ['apiVersion' => '(v2)']],
 		['name' => 'Settings#objectDefaults', 'url' => '/api/{apiVersion}/objectDefaults', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
 		['name' => 'Settings#whitespace', 'url' => '/api/{apiVersion}/whitespace', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
+		['name' => 'Settings#withCorsAnnotation', 'url' => '/api/{apiVersion}/cors/annotation', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
+		['name' => 'Settings#withCorsAttribute', 'url' => '/api/{apiVersion}/cors/attribute', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
 	],
 ];
