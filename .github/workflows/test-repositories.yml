@@ -37,6 +37,7 @@ jobs:
           - "nextcloud/mail"
           - "nextcloud/notifications"
           - "nextcloud/password_policy"
+          - "nextcloud/recommendations"
           - "nextcloud/server"
           - "nextcloud/spreed"
           - "nextcloud/tables"
