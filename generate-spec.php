@@ -945,6 +945,10 @@ if (!$hasSingleScope) {
 
 $usedSchemas = ['Capabilities', 'PublicCapabilities'];
 
+foreach (glob(dirname($out) . '/openapi*.json') as $path) {
+	unlink($path);
+}
+
 foreach ($scopePaths as $scope => $paths) {
 	$openapiScope = $openapi;
 
