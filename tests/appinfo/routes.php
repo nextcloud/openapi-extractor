@@ -76,5 +76,7 @@ return [
 		['name' => 'Settings#whitespace', 'url' => '/api/{apiVersion}/whitespace', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
 		['name' => 'Settings#withCorsAnnotation', 'url' => '/api/{apiVersion}/cors/annotation', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
 		['name' => 'Settings#withCorsAttribute', 'url' => '/api/{apiVersion}/cors/attribute', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
+		['name' => 'Settings#enumNotAliased', 'url' => '/api/{apiVersion}/enum/not-aliased', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
+		['name' => 'Settings#enumAliased', 'url' => '/api/{apiVersion}/enum/aliased', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
 	],
 ];
