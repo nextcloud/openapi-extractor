@@ -59,6 +59,10 @@ namespace OCA\Notifications;
  *     publicKey: string,
  *     signature: string,
  * }
+ *
+ * @psalm-type NotificationsEnumString = 'a'|'b'
+ *
+ * @psalm-type NotificationsEnumInt = 0|1
  */
 class ResponseDefinitions {
 }

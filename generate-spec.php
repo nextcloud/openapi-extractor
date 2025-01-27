@@ -150,7 +150,7 @@ if (file_exists($definitionsPath)) {
 		}
 	}
 	foreach (array_keys($definitions) as $name) {
-		$schemas[Helpers::cleanSchemaName($name)] = OpenApiType::resolve('Response definitions: ' . $name, $definitions, $definitions[$name])->toArray();
+		$schemas[Helpers::cleanSchemaName($name)] = OpenApiType::resolve('Response definitions: ' . $name, $definitions, $definitions[$name], true)->toArray();
 	}
 } else {
 	Logger::debug('Response definitions', 'No response definitions were loaded');

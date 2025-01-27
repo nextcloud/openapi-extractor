@@ -23,6 +23,8 @@ use OCP\AppFramework\OCSController;
  * @psalm-import-type NotificationsPushDevice from ResponseDefinitions
  * @psalm-import-type NotificationsNotification from ResponseDefinitions
  * @psalm-import-type NotificationsCollection from ResponseDefinitions
+ * @psalm-import-type NotificationsEnumString from ResponseDefinitions
+ * @psalm-import-type NotificationsEnumInt from ResponseDefinitions
  */
 class SettingsController extends OCSController {
 	/**
@@ -594,6 +596,34 @@ class SettingsController extends OCSController {
 	 */
 	#[CORS]
 	public function withCorsAttribute(): DataResponse {
+		return new DataResponse();
+	}
+
+	/**
+	 * Not aliased enum
+	 *
+	 * @param 'a'|'b' $string A string enum without alias
+	 * @param 0|1 $int An int enum without alias
+	 *
+	 * @return DataResponse<Http::STATUS_OK, list<empty>, array{}>
+	 *
+	 * 200: OK
+	 */
+	public function enumNotAliased(string $string, int $int): DataResponse {
+		return new DataResponse();
+	}
+
+	/**
+	 * Aliased enum
+	 *
+	 * @param NotificationsEnumString $string A string enum with alias
+	 * @param NotificationsEnumInt $int An int enum with alias
+	 *
+	 * @return DataResponse<Http::STATUS_OK, list<empty>, array{}>
+	 *
+	 * 200: OK
+	 */
+	public function enumAliased(string $string, int $int): DataResponse {
 		return new DataResponse();
 	}
 }
