@@ -156,7 +156,7 @@ class OpenApiType {
 		return $values !== [] ? $values : new stdClass();
 	}
 
-	public static function resolve(string $context, array $definitions, ParamTagValueNode|NodeAbstract|TypeNode $node): OpenApiType {
+	public static function resolve(string $context, array $definitions, ParamTagValueNode|NodeAbstract|TypeNode $node, ?bool $isResponseDefinition = false): OpenApiType {
 		if ($node instanceof ParamTagValueNode) {
 			$type = self::resolve($context, $definitions, $node->type);
 			$type->description = $node->description;
@@ -276,6 +276,10 @@ class OpenApiType {
 				);
 			}
 
+			if (!$isResponseDefinition) {
+				Logger::warning($context, 'Consider using a Response definition for this enum to improve readability and reusability.');
+			}
+
 			return new OpenApiType(
 				context: $context,
 				type: 'string',
@@ -296,6 +300,10 @@ class OpenApiType {
 					type: 'integer',
 					format: 'int64',
 				);
+			}
+
+			if (!$isResponseDefinition) {
+				Logger::warning($context, 'Consider using a Response definition for this enum to improve readability and reusability.');
 			}
 
 			return new OpenApiType(
@@ -420,7 +428,8 @@ class OpenApiType {
 
 		return array_merge($nonEnums, array_map(static fn (string $type): \OpenAPIExtractor\OpenApiType => new OpenApiType(
 			context: $context,
-			type: $type, enum: $enums[$type],
+			type: $type,
+			enum: $enums[$type],
 		), array_keys($enums)));
 	}
 

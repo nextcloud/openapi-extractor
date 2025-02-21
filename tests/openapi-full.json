@@ -46,6 +46,21 @@
                     "$ref": "#/components/schemas/Item"
                 }
             },
+            "EnumInt": {
+                "type": "integer",
+                "format": "int64",
+                "enum": [
+                    0,
+                    1
+                ]
+            },
+            "EnumString": {
+                "type": "string",
+                "enum": [
+                    "a",
+                    "b"
+                ]
+            },
             "Item": {
                 "type": "object",
                 "required": [
@@ -4732,6 +4747,207 @@
                         "basic_auth": []
                     }
                 ],
+                "parameters": [
+                    {
+                        "name": "apiVersion",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "v2"
+                            ],
+                            "default": "v2"
+                        }
+                    },
+                    {
+                        "name": "OCS-APIRequest",
+                        "in": "header",
+                        "description": "Required to be true for the API request to pass",
+                        "required": true,
+                        "schema": {
+                            "type": "boolean",
+                            "default": true
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "required": [
+                                        "ocs"
+                                    ],
+                                    "properties": {
+                                        "ocs": {
+                                            "type": "object",
+                                            "required": [
+                                                "meta",
+                                                "data"
+                                            ],
+                                            "properties": {
+                                                "meta": {
+                                                    "$ref": "#/components/schemas/OCSMeta"
+                                                },
+                                                "data": {}
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/ocs/v2.php/apps/notifications/api/{apiVersion}/enum/not-aliased": {
+            "post": {
+                "operationId": "settings-enum-not-aliased",
+                "summary": "Not aliased enum",
+                "description": "This endpoint requires admin access",
+                "tags": [
+                    "settings"
+                ],
+                "security": [
+                    {
+                        "bearer_auth": []
+                    },
+                    {
+                        "basic_auth": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "string",
+                                    "int"
+                                ],
+                                "properties": {
+                                    "string": {
+                                        "type": "string",
+                                        "enum": [
+                                            "a",
+                                            "b"
+                                        ],
+                                        "description": "A string enum without alias"
+                                    },
+                                    "int": {
+                                        "type": "integer",
+                                        "format": "int64",
+                                        "enum": [
+                                            0,
+                                            1
+                                        ],
+                                        "description": "An int enum without alias"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "parameters": [
+                    {
+                        "name": "apiVersion",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "v2"
+                            ],
+                            "default": "v2"
+                        }
+                    },
+                    {
+                        "name": "OCS-APIRequest",
+                        "in": "header",
+                        "description": "Required to be true for the API request to pass",
+                        "required": true,
+                        "schema": {
+                            "type": "boolean",
+                            "default": true
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "required": [
+                                        "ocs"
+                                    ],
+                                    "properties": {
+                                        "ocs": {
+                                            "type": "object",
+                                            "required": [
+                                                "meta",
+                                                "data"
+                                            ],
+                                            "properties": {
+                                                "meta": {
+                                                    "$ref": "#/components/schemas/OCSMeta"
+                                                },
+                                                "data": {}
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/ocs/v2.php/apps/notifications/api/{apiVersion}/enum/aliased": {
+            "post": {
+                "operationId": "settings-enum-aliased",
+                "summary": "Aliased enum",
+                "description": "This endpoint requires admin access",
+                "tags": [
+                    "settings"
+                ],
+                "security": [
+                    {
+                        "bearer_auth": []
+                    },
+                    {
+                        "basic_auth": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "string",
+                                    "int"
+                                ],
+                                "properties": {
+                                    "string": {
+                                        "$ref": "#/components/schemas/EnumString",
+                                        "description": "A string enum with alias"
+                                    },
+                                    "int": {
+                                        "$ref": "#/components/schemas/EnumInt",
+                                        "description": "An int enum with alias"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
                 "parameters": [
                     {
                         "name": "apiVersion",
