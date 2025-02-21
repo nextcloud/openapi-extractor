@@ -128,6 +128,14 @@ class ResponseType {
 				null,
 			),
 			new ResponseType(
+				'StreamGeneratorResponse',
+				false,
+				false,
+				null,
+				null,
+				null,
+			),
+			new ResponseType(
 				'TemplateResponse',
 				false,
 				false,
