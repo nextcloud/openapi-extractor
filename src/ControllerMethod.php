@@ -8,6 +8,8 @@
 namespace OpenAPIExtractor;
 
 use PhpParser\Node\Stmt\ClassMethod;
+use PHPStan\PhpDocParser\Ast\PhpDoc\DeprecatedTagValueNode;
+use PHPStan\PhpDocParser\Ast\PhpDoc\GenericTagValueNode;
 use PHPStan\PhpDocParser\Ast\PhpDoc\ParamTagValueNode;
 use PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocTagNode;
 use PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocTextNode;
@@ -16,6 +18,8 @@ use PHPStan\PhpDocParser\Ast\PhpDoc\ThrowsTagValueNode;
 use PHPStan\PhpDocParser\Parser\TokenIterator;
 
 class ControllerMethod {
+	private const STATUS_CODE_DESCRIPTION_PATTERN = '/^(\d{3}): (.+)$/';
+
 	/**
 	 * @param ControllerMethodParameter[] $parameters
 	 * @param list<ControllerMethodResponse|null> $responses
@@ -55,37 +59,55 @@ class ControllerMethod {
 		$docParameters = [];
 
 		$doc = $method->getDocComment()?->getText();
-		if ($doc != null) {
+		if ($doc !== null) {
 			$docNodes = $phpDocParser->parse(new TokenIterator($lexer->tokenize($doc)))->children;
 
 			foreach ($docNodes as $docNode) {
 				if ($docNode instanceof PhpDocTextNode) {
-					$block = Helpers::cleanDocComment($docNode->text);
-					if ($block === '') {
-						continue;
-					}
-					$pattern = '/(\d{3}): /';
-					if (preg_match($pattern, $block)) {
-						$parts = preg_split($pattern, $block, -1, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY);
-						$counter = count($parts);
-						for ($i = 0; $i < $counter; $i += 2) {
-							$statusCode = intval($parts[$i]);
-							$responseDescriptions[$statusCode] = trim($parts[$i + 1]);
+					$nodeDescription = (string)$docNode->text;
+				} elseif ($docNode->value instanceof GenericTagValueNode) {
+					$nodeDescription = (string)$docNode->value;
+				} else {
+					$nodeDescription = (string)$docNode->value->description;
+				}
+
+				$nodeDescriptionLines = array_filter(explode("\n", $nodeDescription), static fn (string $line) => trim($line) !== '');
+
+				// Parse in blocks (separate by double newline) to preserve newlines within a block.
+				$nodeDescriptionBlocks = preg_split("/\n\s*\n/", $nodeDescription);
+				foreach ($nodeDescriptionBlocks as $nodeDescriptionBlock) {
+					$methodDescriptionBlockLines = [];
+					foreach (array_filter(explode("\n", $nodeDescriptionBlock), static fn (string $line) => trim($line) !== '') as $line) {
+						if (preg_match(self::STATUS_CODE_DESCRIPTION_PATTERN, $line)) {
+							$parts = preg_split(self::STATUS_CODE_DESCRIPTION_PATTERN, $line, -1, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY);
+							$responseDescriptions[(int)$parts[0]] = trim($parts[1]);
+						} elseif ($docNode instanceof PhpDocTextNode) {
+							$methodDescriptionBlockLines[] = $line;
+						} elseif (
+							$docNode instanceof PhpDocTagNode && (
+								$docNode->value instanceof ParamTagValueNode ||
+								$docNode->value instanceof ThrowsTagValueNode ||
+								$docNode->value instanceof DeprecatedTagValueNode ||
+								$docNode->name === '@license' ||
+								$docNode->name === '@since' ||
+								$docNode->name === '@psalm-suppress' ||
+								$docNode->name === '@suppress'
+							)) {
+							// Only add lines from other node types, as these have special handling (e.g. @param or @throws) or should be ignored entirely (e.g. @deprecated or @license).
+							continue;
+						} else {
+							$methodDescriptionBlockLines[] = $line;
 						}
-					} else {
-						$methodDescription[] = $block;
+					}
+					if ($methodDescriptionBlockLines !== []) {
+						$methodDescription[] = Helpers::cleanDocComment(implode(' ', $methodDescriptionBlockLines));
 					}
 				}
-			}
 
-			foreach ($docNodes as $docNode) {
 				if ($docNode instanceof PhpDocTagNode) {
 					if ($docNode->value instanceof ParamTagValueNode) {
-						if (array_key_exists($docNode->name, $docParameters)) {
-							$docParameters[$docNode->name][] = $docNode->value;
-						} else {
-							$docParameters[$docNode->name] = [$docNode->value];
-						}
+						$docParameters[$docNode->name] ??= [];
+						$docParameters[$docNode->name][] = $docNode->value;
 					}
 
 					if ($docNode->value instanceof ReturnTagValueNode) {
@@ -97,11 +119,12 @@ class ControllerMethod {
 					if ($docNode->value instanceof ThrowsTagValueNode) {
 						$type = $docNode->value->type;
 						$statusCode = StatusCodes::resolveException($context . ': @throws', $type);
-						if ($statusCode != null) {
-							if (!$allowMissingDocs && $docNode->value->description == '' && $statusCode < 500) {
+						if ($statusCode !== null) {
+							if (!$allowMissingDocs && $nodeDescriptionLines === [] && $statusCode < 500) {
 								Logger::error($context, "Missing description for exception '" . $type . "'");
 							} else {
-								$responseDescriptions[$statusCode] = $docNode->value->description;
+								// Only add lines that don't match the status code pattern to the description
+								$responseDescriptions[$statusCode] = implode("\n", array_filter($nodeDescriptionLines, static fn (string $line) => !preg_match(self::STATUS_CODE_DESCRIPTION_PATTERN, $line)));
 							}
 
 							if (str_starts_with($type->name, 'OCS') && str_ends_with($type->name, 'Exception')) {
@@ -144,17 +167,19 @@ class ControllerMethod {
 				}
 			}
 
-			if ($paramTag instanceof \PHPStan\PhpDocParser\Ast\PhpDoc\ParamTagValueNode && $psalmParamTag instanceof \PHPStan\PhpDocParser\Ast\PhpDoc\ParamTagValueNode) {
-				// Use all the type information from @psalm-param because it is more specific,
-				// but pull the description from @param and @psalm-param because usually only one of them has it.
-				if ($psalmParamTag->description !== '') {
-					$description = $psalmParamTag->description;
-				} elseif ($paramTag->description !== '') {
-					$description = $paramTag->description;
-				} else {
-					$description = '';
-				}
+			// Use all the type information from @psalm-param because it is more specific,
+			// but pull the description from @param and @psalm-param because usually only one of them has it.
+			if (($psalmParamTag?->description ?? '') !== '') {
+				$description = $psalmParamTag->description;
+			} elseif (($paramTag?->description ?? '') !== '') {
+				$description = $paramTag->description;
+			} else {
+				$description = '';
+			}
+			// Only keep lines that don't match the status code pattern in the description
+			$description = implode("\n", array_filter(array_filter(explode("\n", $description), static fn (string $line) => trim($line) !== ''), static fn (string $line) => !preg_match(self::STATUS_CODE_DESCRIPTION_PATTERN, $line)));
 
+			if ($paramTag instanceof \PHPStan\PhpDocParser\Ast\PhpDoc\ParamTagValueNode && $psalmParamTag instanceof \PHPStan\PhpDocParser\Ast\PhpDoc\ParamTagValueNode) {
 				try {
 					$type = OpenApiType::resolve(
 						$context . ': @param: ' . $psalmParamTag->parameterName,
@@ -183,19 +208,22 @@ class ControllerMethod {
 					);
 				}
 
-				$param = new ControllerMethodParameter($context, $definitions, $methodParameterName, $methodParameter, $type);
 			} elseif ($psalmParamTag instanceof \PHPStan\PhpDocParser\Ast\PhpDoc\ParamTagValueNode) {
 				$type = OpenApiType::resolve($context . ': @param: ' . $methodParameterName, $definitions, $psalmParamTag);
-				$param = new ControllerMethodParameter($context, $definitions, $methodParameterName, $methodParameter, $type);
 			} elseif ($paramTag instanceof \PHPStan\PhpDocParser\Ast\PhpDoc\ParamTagValueNode) {
 				$type = OpenApiType::resolve($context . ': @param: ' . $methodParameterName, $definitions, $paramTag);
-				$param = new ControllerMethodParameter($context, $definitions, $methodParameterName, $methodParameter, $type);
 			} elseif ($allowMissingDocs) {
-				$param = new ControllerMethodParameter($context, $definitions, $methodParameterName, $methodParameter, null);
+				$type = null;
 			} else {
 				Logger::error($context, "Missing doc parameter for '" . $methodParameterName . "'");
 				continue;
 			}
+
+			if ($type !== null) {
+				$type->description = $description;
+			}
+
+			$param = new ControllerMethodParameter($context, $definitions, $methodParameterName, $methodParameter, $type);
 
 			if (!$allowMissingDocs && $param->type->description == '') {
 				Logger::error($context . ': @param: ' . $methodParameterName, 'Missing description');

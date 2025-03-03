@@ -596,4 +596,43 @@ class SettingsController extends OCSController {
 	public function withCorsAttribute(): DataResponse {
 		return new DataResponse();
 	}
+
+	/**
+	 * Summary.
+	 * More summary.
+	 *
+	 * Description.
+	 * More description.
+	 *
+	 * 200: OK
+	 *
+	 * @NoAdminRequired
+	 *
+	 * 201: CREATED
+	 *
+	 * @param string $param Some param
+	 *
+	 * 202: ACCEPTED
+	 *
+	 * @return DataResponse<Http::STATUS_OK|Http::STATUS_CREATED|Http::STATUS_ACCEPTED|Http::STATUS_NON_AUTHORATIVE_INFORMATION|Http::STATUS_NO_CONTENT, list<empty>, array{}>
+	 *
+	 * 203: STATUS_NON_AUTHORATIVE_INFORMATION
+	 *
+	 * @throws \Exception STATUS_INTERNAL_SERVER_ERROR
+	 *
+	 * 204: STATUS_NO_CONTENT
+	 *
+	 * @license This is not actually a license
+	 *
+	 * @deprecated This is not deprecated
+	 *
+	 * @since Version 1.0.0
+	 *
+	 * @psalm-suppress some issue
+	 *
+	 * @suppress another issue
+	 */
+	public function docsParsingStatuscode(string $param): DataResponse {
+		return new DataResponse();
+	}
 }

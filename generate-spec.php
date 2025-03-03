@@ -35,6 +35,7 @@ use PHPStan\PhpDocParser\Parser\ConstExprParser;
 use PHPStan\PhpDocParser\Parser\PhpDocParser;
 use PHPStan\PhpDocParser\Parser\TokenIterator;
 use PHPStan\PhpDocParser\Parser\TypeParser;
+use PHPStan\PhpDocParser\ParserConfig;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use stdClass;
@@ -69,10 +70,11 @@ if ($out == '') {
 $astParser = (new ParserFactory())->createForNewestSupportedVersion();
 $nodeFinder = new NodeFinder;
 
-$lexer = new Lexer();
-$constExprParser = new ConstExprParser();
-$typeParser = new TypeParser($constExprParser);
-$phpDocParser = new PhpDocParser($typeParser, $constExprParser);
+$config = new ParserConfig(usedAttributes: ['lines' => true, 'indexes' => true]);
+$lexer = new Lexer($config);
+$constExprParser = new ConstExprParser($config);
+$typeParser = new TypeParser($config, $constExprParser);
+$phpDocParser = new PhpDocParser($config, $typeParser, $constExprParser);
 
 $infoXMLPath = $dir . '/appinfo/info.xml';
 
