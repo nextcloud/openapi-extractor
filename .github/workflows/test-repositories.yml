@@ -8,13 +8,7 @@
 
 name: Generate OpenAPI in Repositories
 
-on:
-  pull_request:
-  push:
-    branches:
-      - main
-      - master
-      - stable*
+on: pull_request
 
 permissions:
   contents: read
@@ -85,8 +79,8 @@ jobs:
       - name: Show changes of the API for assistance
         working-directory: temp-repository/
         run: |
-            git status
-            git --no-pager diff
+          git status
+          git --no-pager diff
 
   summary:
     permissions:
@@ -99,5 +93,10 @@ jobs:
     name: openapi-repositories-summary
 
     steps:
-      - name: Summary status
-        run: if ${{ needs.openapi-repositories.result != 'success' && needs.openapi-repositories.result != 'skipped' }}; then exit 1; fi
+      - name: Generate Markdown Summary
+        uses: Ma11hewThomas/github-markdown-builder@v1
+        with:
+          template-file-path: './.github/workflows/template.hbs'
+          pull-request: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
