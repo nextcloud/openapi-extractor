@@ -76,5 +76,6 @@ return [
 		['name' => 'Settings#whitespace', 'url' => '/api/{apiVersion}/whitespace', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
 		['name' => 'Settings#withCorsAnnotation', 'url' => '/api/{apiVersion}/cors/annotation', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
 		['name' => 'Settings#withCorsAttribute', 'url' => '/api/{apiVersion}/cors/attribute', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
+		['name' => 'Settings#docsParsingStatuscode', 'url' => '/api/{apiVersion}/docs-parsing-status-code', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
 	],
 ];
