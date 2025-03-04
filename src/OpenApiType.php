@@ -40,6 +40,7 @@ class OpenApiType {
 		public ?string $format = null,
 		public bool $nullable = false,
 		public bool $hasDefaultValue = false,
+		public bool $deprecated = false,
 		public mixed $defaultValue = null,
 		public ?OpenApiType $items = null,
 		public ?array $properties = null,
@@ -97,6 +98,9 @@ class OpenApiType {
 		}
 		if ($this->nullable) {
 			$values['nullable'] = true;
+		}
+		if ($this->deprecated) {
+			$values['deprecated'] = true;
 		}
 		if ($this->hasDefaultValue && $this->defaultValue !== null) {
 			$values['default'] = $this->type === 'object' && empty($this->defaultValue) ? new stdClass() : $this->defaultValue;

@@ -77,5 +77,11 @@ return [
 		['name' => 'Settings#withCorsAnnotation', 'url' => '/api/{apiVersion}/cors/annotation', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
 		['name' => 'Settings#withCorsAttribute', 'url' => '/api/{apiVersion}/cors/attribute', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
 		['name' => 'Settings#docsParsingStatuscode', 'url' => '/api/{apiVersion}/docs-parsing-status-code', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
+		['name' => 'Settings#deprecatedRoute', 'url' => '/api/{apiVersion}/deprecated', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
+		['name' => 'Settings#deprecatedRouteGet', 'url' => '/api/{apiVersion}/deprecated-get', 'verb' => 'GET', 'requirements' => ['apiVersion' => '(v2)']],
+		['name' => 'Settings#deprecatedParameter', 'url' => '/api/{apiVersion}/deprecated-parameter', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
+		['name' => 'Settings#deprecatedParameterGet', 'url' => '/api/{apiVersion}/deprecated-parameter-get', 'verb' => 'GET', 'requirements' => ['apiVersion' => '(v2)']],
+		['name' => 'Settings#deprecatedRouteAndParameter', 'url' => '/api/{apiVersion}/deprecated-route-parameter', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
+		['name' => 'Settings#deprecatedRouteAndParameterGet', 'url' => '/api/{apiVersion}/deprecated-route-parameter-get', 'verb' => 'GET', 'requirements' => ['apiVersion' => '(v2)']],
 	],
 ];

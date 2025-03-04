@@ -824,6 +824,9 @@ foreach ($routes as $scope => $scopeRoutes) {
 			if (!$queryParameter->type->nullable && !$queryParameter->type->hasDefaultValue) {
 				$parameter['required'] = true;
 			}
+			if ($queryParameter->type->deprecated) {
+				$parameter['deprecated'] = true;
+			}
 			$parameter['schema'] = $queryParameter->type->toArray(true);
 
 			$parameters[] = $parameter;

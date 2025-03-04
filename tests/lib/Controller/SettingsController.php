@@ -635,4 +635,84 @@ class SettingsController extends OCSController {
 	public function docsParsingStatuscode(string $param): DataResponse {
 		return new DataResponse();
 	}
+
+	/**
+	 * A deprecated POST route
+	 *
+	 * @param bool $active Not deprecated
+	 * @return DataResponse<Http::STATUS_OK, list<empty>, array{}>
+	 * @deprecated 1.0.0 Use {@see SettingsController::trueFalseParameter()} instead
+	 *
+	 * 200: Admin settings updated
+	 */
+	public function deprecatedRoute(bool $active): DataResponse {
+		return new DataResponse();
+	}
+
+	/**
+	 * A deprecated GET route
+	 *
+	 * @param bool $active Not deprecated
+	 * @return DataResponse<Http::STATUS_OK, list<empty>, array{}>
+	 * @deprecated 1.0.0 Use {@see SettingsController::trueFalseParameter()} instead
+	 *
+	 * 200: Admin settings updated
+	 */
+	public function deprecatedRouteGet(bool $active): DataResponse {
+		return new DataResponse();
+	}
+
+	/**
+	 * A deprecated parameter does not deprecate the POST method
+	 *
+	 * @param bool $active Not deprecated
+	 * @param bool $deprecated boolean @deprecated This parameter will be removed in a future version
+	 * @return DataResponse<Http::STATUS_OK, list<empty>, array{}>
+	 *
+	 * 200: Admin settings updated
+	 */
+	public function deprecatedParameter(bool $active, bool $deprecated): DataResponse {
+		return new DataResponse();
+	}
+
+	/**
+	 * A deprecated parameter does not deprecate the GET method
+	 *
+	 * @param bool $active Not deprecated
+	 * @param bool $deprecated boolean @deprecated This parameter will be removed in a future version
+	 * @return DataResponse<Http::STATUS_OK, list<empty>, array{}>
+	 *
+	 * 200: Admin settings updated
+	 */
+	public function deprecatedParameterGet(bool $active, bool $deprecated): DataResponse {
+		return new DataResponse();
+	}
+
+	/**
+	 * A deprecated parameter on a deprecated POST method
+	 *
+	 * @param bool $active Not deprecated
+	 * @param bool $deprecated boolean @deprecated This parameter will be removed in a future version
+	 * @return DataResponse<Http::STATUS_OK, list<empty>, array{}>
+	 * @deprecated 1.0.0 Use {@see SettingsController::trueFalseParameter()} instead
+	 *
+	 * 200: Admin settings updated
+	 */
+	public function deprecatedRouteAndParameter(bool $active, bool $deprecated): DataResponse {
+		return new DataResponse();
+	}
+
+	/**
+	 * A deprecated parameter on a deprecated GET method
+	 *
+	 * @param bool $active Not deprecated
+	 * @param bool $deprecated boolean @deprecated This parameter will be removed in a future version
+	 * @return DataResponse<Http::STATUS_OK, list<empty>, array{}>
+	 * @deprecated 1.0.0 Use {@see SettingsController::trueFalseParameter()} instead
+	 *
+	 * 200: Admin settings updated
+	 */
+	public function deprecatedRouteAndParameterGet(bool $active, bool $deprecated): DataResponse {
+		return new DataResponse();
+	}
 }
