@@ -28,7 +28,7 @@ jobs:
           - "nextcloud/spreed"
           - "nextcloud/tables"
 
-    name: openapi-repositories
+    name: ${{ matrix.repositories }}
 
     steps:
       - name: Checkout
