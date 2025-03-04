@@ -25,8 +25,17 @@ jobs:
       matrix:
         php-versions: [ "8.1" ]
         repositories:
+          - "nextcloud/app_template"
+          - "nextcloud/assistant"
+          - "nextcloud/groupfolders"
+          - "nextcloud/mail"
+          - "nextcloud/notifications"
+          - "nextcloud/password_policy"
+          - "nextcloud/recommendations"
+          - "nextcloud/server"
           - "nextcloud/spreed"
           - "nextcloud/tables"
+          - "nextcloud/terms_of_service"
 
     name: ${{ matrix.repositories }}
 
