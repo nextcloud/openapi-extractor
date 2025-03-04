@@ -93,4 +93,4 @@ jobs:
           template-file-path: './.github/workflows/template.hbs'
           pull-request: true
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.COMMAND_BOT_PAT }}
