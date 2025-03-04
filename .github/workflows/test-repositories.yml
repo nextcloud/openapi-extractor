@@ -84,6 +84,9 @@ jobs:
     name: openapi-repositories-summary
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
+
       - name: Generate Markdown Summary
         uses: Ma11hewThomas/github-markdown-builder@v1
         with:
