@@ -150,8 +150,13 @@ class Helpers {
 
 	public static function classMethodHasAnnotationOrAttribute(ClassMethod|Class_|Node $node, string $annotation): bool {
 		$doc = $node->getDocComment()?->getText();
-		if ($doc !== null && str_contains($doc, '@' . $annotation)) {
-			return true;
+
+		if ($doc !== null) {
+			if ($annotation !== 'deprecated' && str_contains($doc, '@' . $annotation)) {
+				return true;
+			} elseif ($annotation === 'deprecated' && str_contains($doc, '* @' . $annotation)) {
+				return true;
+			}
 		}
 
 		/** @var AttributeGroup $attrGroup */

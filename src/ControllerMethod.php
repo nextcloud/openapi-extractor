@@ -230,6 +230,11 @@ class ControllerMethod {
 				continue;
 			}
 
+			if (str_contains($param->type->description, '@deprecated')) {
+				$param->type->deprecated = true;
+				$param->type->description = str_replace('@deprecated', 'Deprecated:', $param->type->description);
+			}
+
 			$parameters[] = $param;
 		}
 
