@@ -70,7 +70,7 @@ if ($out == '') {
 $astParser = (new ParserFactory())->createForNewestSupportedVersion();
 $nodeFinder = new NodeFinder;
 
-$config = new ParserConfig(usedAttributes: ['lines' => true, 'indexes' => true]);
+$config = new ParserConfig(usedAttributes: ['lines' => true, 'indexes' => true, 'comments' => true]);
 $lexer = new Lexer($config);
 $constExprParser = new ConstExprParser($config);
 $typeParser = new TypeParser($config, $constExprParser);

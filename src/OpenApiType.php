@@ -13,6 +13,8 @@ use PhpParser\Node\Name;
 use PhpParser\Node\NullableType;
 use PhpParser\Node\UnionType;
 use PhpParser\NodeAbstract;
+use PHPStan\PhpDocParser\Ast\Attribute;
+use PHPStan\PhpDocParser\Ast\Comment;
 use PHPStan\PhpDocParser\Ast\ConstExpr\ConstExprIntegerNode;
 use PHPStan\PhpDocParser\Ast\ConstExpr\ConstExprStringNode;
 use PHPStan\PhpDocParser\Ast\PhpDoc\ParamTagValueNode;
@@ -207,6 +209,10 @@ class OpenApiType {
 			foreach ($node->items as $item) {
 				$name = $item->keyName instanceof ConstExprStringNode ? $item->keyName->value : $item->keyName->name;
 				$type = self::resolve($context . ': ' . $name, $definitions, $item->valueType);
+				$comments = array_map(static fn (Comment $comment) => preg_replace('/^\/\/\s*/', '', $comment->text), $item->keyName->getAttribute(Attribute::COMMENTS) ?? []);
+				if ($comments !== []) {
+					$type->description = implode("\n", $comments);
+				}
 				$properties[$name] = $type;
 				if (!$item->optional) {
 					$required[] = $name;
