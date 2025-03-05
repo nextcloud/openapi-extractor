@@ -5000,7 +5000,7 @@
                                     "deprecated": {
                                         "type": "boolean",
                                         "deprecated": true,
-                                        "description": "boolean @deprecated This parameter will be removed in a future version"
+                                        "description": "boolean Deprecated: This parameter will be removed in a future version"
                                     }
                                 }
                             }
@@ -5108,7 +5108,7 @@
                     {
                         "name": "deprecated",
                         "in": "query",
-                        "description": "boolean @deprecated This parameter will be removed in a future version",
+                        "description": "boolean Deprecated: This parameter will be removed in a future version",
                         "required": true,
                         "deprecated": true,
                         "schema": {
@@ -5197,7 +5197,7 @@
                                     "deprecated": {
                                         "type": "boolean",
                                         "deprecated": true,
-                                        "description": "boolean @deprecated This parameter will be removed in a future version"
+                                        "description": "boolean Deprecated: This parameter will be removed in a future version"
                                     }
                                 }
                             }
@@ -5306,7 +5306,7 @@
                     {
                         "name": "deprecated",
                         "in": "query",
-                        "description": "boolean @deprecated This parameter will be removed in a future version",
+                        "description": "boolean Deprecated: This parameter will be removed in a future version",
                         "required": true,
                         "deprecated": true,
                         "schema": {
