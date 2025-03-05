@@ -222,14 +222,21 @@
                 "type": "object",
                 "required": [
                     "publicKey",
-                    "signature"
+                    "signature",
+                    "multipleComments"
                 ],
                 "properties": {
                     "publicKey": {
-                        "type": "string"
+                        "type": "string",
+                        "description": "A comment."
                     },
                     "signature": {
-                        "type": "string"
+                        "type": "string",
+                        "description": "A comment with a link: https://example.com."
+                    },
+                    "multipleComments": {
+                        "type": "string",
+                        "description": "A comment. Another comment."
                     }
                 }
             }

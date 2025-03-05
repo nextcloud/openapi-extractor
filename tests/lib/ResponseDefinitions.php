@@ -56,8 +56,13 @@ namespace OCA\Notifications;
  * }
  *
  * @psalm-type NotificationsRequestProperty = array{
+ *     // A comment.
  *     publicKey: string,
+ * 	   // A comment with a link: https://example.com.
  *     signature: string,
+ *     // A comment.
+ *     // Another comment.
+ *     multipleComments: string,
  * }
  */
 class ResponseDefinitions {
