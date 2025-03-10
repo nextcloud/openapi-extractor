@@ -83,5 +83,7 @@ return [
 		['name' => 'Settings#deprecatedParameterGet', 'url' => '/api/{apiVersion}/deprecated-parameter-get', 'verb' => 'GET', 'requirements' => ['apiVersion' => '(v2)']],
 		['name' => 'Settings#deprecatedRouteAndParameter', 'url' => '/api/{apiVersion}/deprecated-route-parameter', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
 		['name' => 'Settings#deprecatedRouteAndParameterGet', 'url' => '/api/{apiVersion}/deprecated-route-parameter-get', 'verb' => 'GET', 'requirements' => ['apiVersion' => '(v2)']],
+		['name' => 'Settings#samePathGet', 'url' => '/api/{apiVersion}/same-path', 'verb' => 'GET', 'requirements' => ['apiVersion' => '(v2)']],
+		['name' => 'Settings#samePathPost', 'url' => '/api/{apiVersion}/same-path', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
 	],
 ];
