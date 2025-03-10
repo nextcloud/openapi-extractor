@@ -715,4 +715,28 @@ class SettingsController extends OCSController {
 	public function deprecatedRouteAndParameterGet(bool $active, bool $deprecated): DataResponse {
 		return new DataResponse();
 	}
+
+	/**
+	 * A GET method with the same path as the POST method
+	 *
+	 * @return DataResponse<Http::STATUS_OK, list<empty>, array{}>
+	 *
+	 * 200: Admin settings updated
+	 */
+	#[OpenAPI(scope: OpenAPI::SCOPE_ADMINISTRATION)]
+	#[OpenAPI(scope: OpenAPI::SCOPE_FEDERATION)]
+	public function samePathGet(): DataResponse {
+		return new DataResponse();
+	}
+
+	/**
+	 * A POST method with the same path as the GET method
+	 *
+	 * @return DataResponse<Http::STATUS_OK, list<empty>, array{}>
+	 *
+	 * 200: Admin settings updated
+	 */
+	public function samePathPost(): DataResponse {
+		return new DataResponse();
+	}
 }

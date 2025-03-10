@@ -966,7 +966,16 @@ foreach ($scopePaths as $scope => $paths) {
 	}
 
 	if ($scope === 'full') {
-		$openapiScope['paths'] = array_merge(...$fullScopePathArrays);
+		foreach ($fullScopePathArrays as $fullScopePaths) {
+			foreach ($fullScopePaths as $fullScopePath => $operations) {
+				$openapiScope['paths'][$fullScopePath] ??= [];
+				foreach ($operations as $method => $operation) {
+					// Don't need to check if we overwrite an existing operation,
+					// as we already check for collisions when validating the routes.
+					$openapiScope['paths'][$fullScopePath][$method] = $operation;
+				}
+			}
+		}
 		$openapiScope['components']['schemas'] = $schemas;
 	} else {
 		$usedRefs = [];
