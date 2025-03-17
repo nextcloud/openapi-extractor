@@ -8,4 +8,4 @@
 
 namespace OpenAPIExtractor;
 
-include_once __DIR__ . '/../generate-spec.php';
+include_once __DIR__ . '/../merge-specs.php';
