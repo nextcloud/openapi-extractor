@@ -84,32 +84,32 @@ foreach ($otherSpecPaths as $specPath) {
 $data
 ['paths']
 ['/ocs/v2.php/cloud/capabilities']
-['get']
-['responses']
-['200']
-['content']
-['application/json']
-['schema']
-['properties']
-['ocs']
-['properties']
-['data']
-['properties']
-['capabilities']
-['anyOf']
-	= array_map(fn (string $capability): array => ['$ref' => '#/components/schemas/' . $capability], $capabilities);
+	->get
+	->responses
+	->{'200'}
+	->content
+	->{'application/json'}
+	->schema
+	->properties
+	->ocs
+	->properties
+	->data
+	->properties
+	->capabilities
+	->anyOf
+		= array_map(static fn (string $capability): array => ['$ref' => '#/components/schemas/' . $capability], $capabilities);
 
-function loadSpec(string $path): array {
-	return rewriteRefs(json_decode(file_get_contents($path), true));
+function loadSpec(string $path): object {
+	return rewriteRefs(json_decode(file_get_contents($path), false, 512, JSON_THROW_ON_ERROR));
 }
 
-function getAppID(array $spec): string {
-	return explode('-', $spec['info']['title'])[0];
+function getAppID(object $spec): string {
+	return explode('-', $spec->info->title)[0];
 }
 
-function rewriteRefs(array $spec): array {
+function rewriteRefs(object $spec): object {
 	$readableAppID = Helpers::generateReadableAppID(getAppID($spec));
-	array_walk_recursive($spec, function (mixed &$item, string $key) use ($readableAppID): void {
+	object_walk_recursive($spec, static function (mixed &$item, string $key) use ($readableAppID): void {
 		if ($key === '$ref' && $item !== '#/components/schemas/OCSMeta') {
 			$item = str_replace('#/components/schemas/', '#/components/schemas/' . $readableAppID, $item);
 		}
@@ -117,11 +117,27 @@ function rewriteRefs(array $spec): array {
 	return $spec;
 }
 
-function collectCapabilities(array $spec): array {
+function object_walk_recursive(object $object, \Closure $callback): void {
+	foreach (array_keys(get_object_vars($object)) as $key) {
+		$callback($object->{$key}, $key);
+		if (is_object($object->{$key})) {
+			object_walk_recursive($object->{$key}, $callback);
+		}
+		if (is_array($object->{$key})) {
+			foreach ($object->{$key} as $item) {
+				if (is_object($item)) {
+					object_walk_recursive($item, $callback);
+				}
+			}
+		}
+	}
+}
+
+function collectCapabilities(object $spec): array {
 	$capabilities = [];
 	$readableAppID = Helpers::generateReadableAppID(getAppID($spec));
-	foreach (array_keys($spec['components']['schemas']) as $name) {
-		if ($name == 'Capabilities' || $name == 'PublicCapabilities') {
+	foreach (array_keys(get_object_vars($spec->components->schemas)) as $name) {
+		if ($name === 'Capabilities' || $name === 'PublicCapabilities') {
 			$capabilities[] = $readableAppID . $name;
 		}
 	}
@@ -129,55 +145,49 @@ function collectCapabilities(array $spec): array {
 	return $capabilities;
 }
 
-function rewriteSchemaNames(array $spec): array {
-	$schemas = $spec['components']['schemas'];
+function rewriteSchemaNames(object $spec): array {
+	$schemas = get_object_vars($spec->components->schemas);
 	$readableAppID = Helpers::generateReadableAppID(getAppID($spec));
 	return array_combine(
-		array_map(fn (string $key): string => $key === 'OCSMeta' ? $key : $readableAppID . $key, array_keys($schemas)),
+		array_map(static fn (string $key): string => $key === 'OCSMeta' ? $key : $readableAppID . $key, array_keys($schemas)),
 		array_values($schemas),
 	);
 }
 
-function rewriteTags(array $spec): array {
-	return array_map(function (array $tag) use ($spec) {
-		$tag['name'] = getAppID($spec) . '/' . $tag['name'];
+function rewriteTags(object $spec): array {
+	return array_map(static function (object $tag) use ($spec) {
+		$tag->name = getAppID($spec) . '/' . $tag->name;
 		return $tag;
-	}, $spec['tags']);
+	}, $spec->tags);
 }
 
-function rewriteOperations(array $spec): array {
+function rewriteOperations(object $spec): array {
 	global $firstStatusCode;
 
-	foreach (array_keys($spec['paths']) as $path) {
-		foreach (array_keys($spec['paths'][$path]) as $method) {
+	foreach (array_keys(get_object_vars($spec->paths)) as $path) {
+		foreach (array_keys(get_object_vars($spec->paths->{$path})) as $method) {
 			if (!in_array($method, ['delete', 'get', 'post', 'put', 'patch', 'options'])) {
 				continue;
 			}
-			$operation = &$spec['paths'][$path][$method];
-			if (array_key_exists('operationId', $operation)) {
-				$operation['operationId'] = getAppID($spec) . '-' . $operation['operationId'];
+			$operation = &$spec->paths->{$path}->{$method};
+			if (property_exists($operation, 'operationId')) {
+				$operation->operationId = getAppID($spec) . '-' . $operation->operationId;
 			}
-			if (array_key_exists('tags', $operation)) {
-				$operation['tags'] = array_map(fn (string $tag): string => getAppID($spec) . '/' . $tag, $operation['tags']);
+			if (property_exists($operation, 'tags')) {
+				$operation->tags = array_map(static fn (string $tag): string => getAppID($spec) . '/' . $tag, $operation->tags);
 			} else {
-				$operation['tags'] = [getAppID($spec)];
+				$operation->tags = [getAppID($spec)];
 			}
-			if ($firstStatusCode && array_key_exists('responses', $operation)) {
+			if ($firstStatusCode && property_exists($operation, 'responses')) {
 				/** @var string $value */
-				$value = array_key_first($operation['responses']);
-				$operation['responses'] = [$value => $operation['responses'][$value]];
-			}
-			if (array_key_exists('security', $operation)) {
-				$counter = count($operation['security']);
-				for ($i = 0; $i < $counter; $i++) {
-					if (count($operation['security'][$i]) == 0) {
-						$operation['security'][$i] = new stdClass(); // When reading {} will be converted to [], so we have to fix it
-					}
-				}
+				$value = array_key_first(get_object_vars($operation->responses));
+				$response = $operation->responses->{$value};
+				$operation->responses = new stdClass();
+				$operation->responses->{$value} = $response;
 			}
 		}
 	}
-	return $spec['paths'];
+	return get_object_vars($spec->paths);
 }
 
 file_put_contents($mergedSpecPath, json_encode($data, Helpers::jsonFlags()) . "\n");
