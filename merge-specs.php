@@ -103,8 +103,12 @@ function loadSpec(string $path): array {
 	return rewriteRefs(json_decode(file_get_contents($path), true));
 }
 
+function getAppID(array $spec): string {
+	return explode('-', $spec['info']['title'])[0];
+}
+
 function rewriteRefs(array $spec): array {
-	$readableAppID = Helpers::generateReadableAppID($spec['info']['title']);
+	$readableAppID = Helpers::generateReadableAppID(getAppID($spec));
 	array_walk_recursive($spec, function (mixed &$item, string $key) use ($readableAppID): void {
 		if ($key === '$ref' && $item !== '#/components/schemas/OCSMeta') {
 			$item = str_replace('#/components/schemas/', '#/components/schemas/' . $readableAppID, $item);
@@ -115,7 +119,7 @@ function rewriteRefs(array $spec): array {
 
 function collectCapabilities(array $spec): array {
 	$capabilities = [];
-	$readableAppID = Helpers::generateReadableAppID($spec['info']['title']);
+	$readableAppID = Helpers::generateReadableAppID(getAppID($spec));
 	foreach (array_keys($spec['components']['schemas']) as $name) {
 		if ($name == 'Capabilities' || $name == 'PublicCapabilities') {
 			$capabilities[] = $readableAppID . $name;
@@ -127,7 +131,7 @@ function collectCapabilities(array $spec): array {
 
 function rewriteSchemaNames(array $spec): array {
 	$schemas = $spec['components']['schemas'];
-	$readableAppID = Helpers::generateReadableAppID($spec['info']['title']);
+	$readableAppID = Helpers::generateReadableAppID(getAppID($spec));
 	return array_combine(
 		array_map(fn (string $key): string => $key === 'OCSMeta' ? $key : $readableAppID . $key, array_keys($schemas)),
 		array_values($schemas),
@@ -136,7 +140,7 @@ function rewriteSchemaNames(array $spec): array {
 
 function rewriteTags(array $spec): array {
 	return array_map(function (array $tag) use ($spec) {
-		$tag['name'] = $spec['info']['title'] . '/' . $tag['name'];
+		$tag['name'] = getAppID($spec) . '/' . $tag['name'];
 		return $tag;
 	}, $spec['tags']);
 }
@@ -151,12 +155,12 @@ function rewriteOperations(array $spec): array {
 			}
 			$operation = &$spec['paths'][$path][$method];
 			if (array_key_exists('operationId', $operation)) {
-				$operation['operationId'] = $spec['info']['title'] . '-' . $operation['operationId'];
+				$operation['operationId'] = getAppID($spec) . '-' . $operation['operationId'];
 			}
 			if (array_key_exists('tags', $operation)) {
-				$operation['tags'] = array_map(fn (string $tag): string => $spec['info']['title'] . '/' . $tag, $operation['tags']);
+				$operation['tags'] = array_map(fn (string $tag): string => getAppID($spec) . '/' . $tag, $operation['tags']);
 			} else {
-				$operation['tags'] = [$spec['info']['title']];
+				$operation['tags'] = [getAppID($spec)];
 			}
 			if ($firstStatusCode && array_key_exists('responses', $operation)) {
 				/** @var string $value */
