@@ -76,11 +76,24 @@ jobs:
         if: matrix.repositories == 'nextcloud/server'
         working-directory: temp-repository/
         run: |
+          specs=()
           for path in core apps/*; do
             if [ ! -f "$path/.noopenapi" ]; then
               ../bin/generate-spec "$path" "$path/openapi.json" || exit 1
+              if [[ "$(basename "$path")" != "core" ]]; then
+                if [ -f "$path/openapi-full.json" ]; then
+                  specs+=("$path/openapi-full.json")
+                else
+                  specs+=("$path/openapi.json")
+                fi
+              fi
             fi
           done
+
+          ../bin/merge-specs \
+            --core core/openapi-full.json \
+            --merged openapi.json \
+            "${specs[@]}"
 
       - name: Show changes of the API for assistance
         working-directory: temp-repository/
