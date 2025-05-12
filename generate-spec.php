@@ -16,7 +16,6 @@ foreach ([__DIR__ . '/../../autoload.php', __DIR__ . '/vendor/autoload.php'] as 
 }
 
 use Ahc\Cli\Input\Command;
-use DirectoryIterator;
 use PhpParser\Node\AttributeGroup;
 use PhpParser\Node\Expr\ClassConstFetch;
 use PhpParser\Node\Expr\New_;
@@ -25,6 +24,8 @@ use PhpParser\Node\Stmt\Class_;
 use PhpParser\Node\Stmt\ClassMethod;
 use PhpParser\Node\Stmt\Throw_;
 use PhpParser\NodeFinder;
+use PhpParser\NodeTraverser;
+use PhpParser\NodeVisitor\NameResolver;
 use PhpParser\ParserFactory;
 use PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocTagNode;
 use PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocTextNode;
@@ -69,6 +70,9 @@ if ($out == '') {
 
 $astParser = (new ParserFactory())->createForNewestSupportedVersion();
 $nodeFinder = new NodeFinder;
+$nameResolver = new NameResolver;
+$nodeTraverser = new NodeTraverser;
+$nodeTraverser->addVisitor($nameResolver);
 
 $config = new ParserConfig(usedAttributes: ['lines' => true, 'indexes' => true, 'comments' => true]);
 $lexer = new Lexer($config);
@@ -84,9 +88,12 @@ if (file_exists($infoXMLPath)) {
 		Logger::panic('appinfo', 'info.xml file at ' . $infoXMLPath . ' is not parsable');
 	}
 
+	$rawNamespace = $xml->namespace ?? ucfirst($xml->id);
+
 	$appIsCore = false;
+	$appNamespace = 'OCA\\' . $rawNamespace;
 	$appID = (string)$xml->id;
-	$readableAppID = $xml->namespace ? (string)$xml->namespace : Helpers::generateReadableAppID($appID);
+	$readableAppID = (string)$rawNamespace;
 	$appSummary = (string)$xml->summary;
 	$appVersion = (string)$xml->version;
 	$appLicence = (string)$xml->licence;
@@ -104,6 +111,7 @@ if (file_exists($infoXMLPath)) {
 	}
 
 	$appIsCore = true;
+	$appNamespace = 'OC\\Core';
 	$appID = 'core';
 	$readableAppID = 'Core';
 	$appSummary = 'Core functionality of Nextcloud';
@@ -242,9 +250,9 @@ $parsedRoutes = file_exists($appinfoDir . '/routes.php') ? Route::parseRoutes($a
 $controllers = [];
 $controllersDir = $sourceDir . '/Controller';
 if (file_exists($controllersDir)) {
-	$dir = new DirectoryIterator($controllersDir);
+	$iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($controllersDir));
 	$controllerFiles = [];
-	foreach ($dir as $file) {
+	foreach ($iterator as $file) {
 		$filePath = $file->getPathname();
 		if (!str_ends_with($filePath, 'Controller.php')) {
 			continue;
@@ -254,7 +262,10 @@ if (file_exists($controllersDir)) {
 	sort($controllerFiles);
 
 	foreach ($controllerFiles as $filePath) {
-		$controllers[basename($filePath, 'Controller.php')] = $astParser->parse(file_get_contents($filePath));
+		$offset = strlen($controllersDir . '/');
+		$name = substr($filePath, $offset, strlen($filePath) - $offset - strlen('Controller.php'));
+		$name = str_replace('/', '\\', $name);
+		$controllers[$name] = $nodeTraverser->traverse($astParser->parse(file_get_contents($filePath)));
 	}
 }
 
@@ -263,7 +274,7 @@ foreach ($controllers as $controllerName => $stmts) {
 	$controllerClass = null;
 	/** @var Class_ $class */
 	foreach ($nodeFinder->findInstanceOf($stmts, Class_::class) as $class) {
-		if ($class->name->name === $controllerName . 'Controller') {
+		if ($class->namespacedName->name === $appNamespace . '\\Controller\\' . $controllerName . 'Controller') {
 			$controllerClass = $class;
 			break;
 		}
@@ -369,7 +380,7 @@ foreach ($parsedRoutes as $key => $value) {
 		$controllerClass = null;
 		/** @var Class_ $class */
 		foreach ($nodeFinder->findInstanceOf($controllers[$controllerName] ?? [], Class_::class) as $class) {
-			if ($class->name == $controllerName . 'Controller') {
+			if ($class->namespacedName->name === $appNamespace . '\\Controller\\' . $controllerName . 'Controller') {
 				$controllerClass = $class;
 				break;
 			}
@@ -410,7 +421,7 @@ foreach ($parsedRoutes as $key => $value) {
 			Logger::panic($routeName, "Controller '" . $controllerName . "' is marked as ignore but also has other scopes");
 		}
 
-		$tagName = implode('_', array_map(fn (string $s) => strtolower($s), Helpers::splitOnUppercaseFollowedByNonUppercase($controllerName)));
+		$tagName = implode('_', array_map(fn (string $s) => strtolower($s), Helpers::splitOnUppercaseFollowedByNonUppercase(str_replace('\\', '', $controllerName))));
 		$doc = $controllerClass->getDocComment()?->getText();
 		if ($doc != null && count(array_filter($tags, fn (array $tag): bool => $tag['name'] === $tagName)) == 0) {
 			$classDescription = [];
