@@ -32,7 +32,10 @@ jobs:
         php-versions: [ "8.1" ]
         repositories:
           - "nextcloud/app_template"
+          - "nextcloud/approve_links"
           - "nextcloud/assistant"
+          - "nextcloud/files_retention"
+          - "nextcloud/forms"
           - "nextcloud/groupfolders"
           - "nextcloud/mail"
           - "nextcloud/notifications"
