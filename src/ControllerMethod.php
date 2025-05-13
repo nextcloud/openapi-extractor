@@ -7,6 +7,9 @@
 
 namespace OpenAPIExtractor;
 
+use PhpParser\Node\Expr\MethodCall;
+use PhpParser\Node\Expr\PropertyFetch;
+use PhpParser\Node\Expr\Variable;
 use PhpParser\Node\Stmt\ClassMethod;
 use PhpParser\Node\Stmt\Return_;
 use PHPStan\PhpDocParser\Ast\PhpDoc\DeprecatedTagValueNode;
@@ -23,6 +26,7 @@ class ControllerMethod {
 
 	/**
 	 * @param ControllerMethodParameter[] $parameters
+	 * @param list<string> $requestHeaders
 	 * @param list<ControllerMethodResponse|null> $responses
 	 * @param OpenApiType[] $returns
 	 * @param array<int, string> $responseDescription
@@ -30,6 +34,7 @@ class ControllerMethod {
 	 */
 	public function __construct(
 		public array $parameters,
+		public array $requestHeaders,
 		public array $responses,
 		public array $responseDescription,
 		public array $description,
@@ -274,7 +279,18 @@ class ControllerMethod {
 			Logger::warning($context, 'Summary ends with a punctuation mark');
 		}
 
-		return new ControllerMethod($parameters, $responses, $responseDescriptions, $methodDescription, $methodSummary, $isDeprecated);
+		$headers = [];
+		foreach ($nodeFinder->findInstanceOf($method->getStmts(), MethodCall::class) as $methodCall) {
+			if ($methodCall->var instanceof PropertyFetch &&
+				$methodCall->var->var instanceof Variable &&
+				$methodCall->var->var->name === 'this' &&
+				$methodCall->var->name->name === 'request' &&
+				$methodCall->name->name === 'getHeader') {
+				$headers[] = Helpers::exprToValue($context . ': getHeader', $methodCall->args[0]->value);
+			}
+		}
+
+		return new ControllerMethod($parameters, array_unique($headers), $responses, $responseDescriptions, $methodDescription, $methodSummary, $isDeprecated);
 	}
 
 }

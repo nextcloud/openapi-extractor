@@ -838,6 +838,20 @@ foreach ($routes as $scope => $scopeRoutes) {
 
 			$parameters[] = $parameter;
 		}
+
+		foreach ($route->controllerMethod->requestHeaders as $requestHeader) {
+			$parameters[] = [
+				'name' => $requestHeader,
+				'in' => 'header',
+				// Not required, because getHeader() will return an empty string by default.
+				// It might still mean that a header is always required, but the controller method has to check the
+				// value manually anyway.
+				'schema' => [
+					'type' => 'string',
+				],
+			];
+		}
+
 		if ($route->isOCS || !$route->isNoCSRFRequired) {
 			$parameters[] = [
 				'name' => 'OCS-APIRequest',
