@@ -8,6 +8,7 @@
 namespace OpenAPIExtractor;
 
 use PhpParser\Node\Stmt\ClassMethod;
+use PhpParser\Node\Stmt\Return_;
 use PHPStan\PhpDocParser\Ast\PhpDoc\DeprecatedTagValueNode;
 use PHPStan\PhpDocParser\Ast\PhpDoc\GenericTagValueNode;
 use PHPStan\PhpDocParser\Ast\PhpDoc\ParamTagValueNode;
@@ -30,7 +31,6 @@ class ControllerMethod {
 	public function __construct(
 		public array $parameters,
 		public array $responses,
-		public array $returns,
 		public array $responseDescription,
 		public array $description,
 		public ?string $summary,
@@ -46,17 +46,19 @@ class ControllerMethod {
 		bool $isPasswordConfirmation,
 		bool $isCORS,
 	): ControllerMethod {
-		global $phpDocParser, $lexer, $allowMissingDocs;
+		global $phpDocParser, $lexer, $nodeFinder, $allowMissingDocs;
 
 		$parameters = [];
 		$responses = [];
 		$responseDescriptions = [];
-		$returns = [];
 
 		$methodDescription = [];
 		$methodSummary = null;
 		$methodParameters = $method->getParams();
 		$docParameters = [];
+
+		$returnStmtCount = count($nodeFinder->findInstanceOf($method->getStmts(), Return_::class));
+		$returnTagCount = 0;
 
 		$doc = $method->getDocComment()?->getText();
 		if ($doc !== null) {
@@ -111,6 +113,8 @@ class ControllerMethod {
 					}
 
 					if ($docNode->value instanceof ReturnTagValueNode) {
+						$returnTagCount++;
+
 						$type = $docNode->value->type;
 
 						$responses = array_merge($responses, ResponseType::resolve($context . ': @return', $type));
@@ -136,6 +140,10 @@ class ControllerMethod {
 					}
 				}
 			}
+		}
+
+		if ($returnStmtCount !== 0 && $returnTagCount === 0) {
+			Logger::error($context, 'Missing @return annotation');
 		}
 
 		if (!$allowMissingDocs) {
@@ -266,7 +274,7 @@ class ControllerMethod {
 			Logger::warning($context, 'Summary ends with a punctuation mark');
 		}
 
-		return new ControllerMethod($parameters, $responses, $returns, $responseDescriptions, $methodDescription, $methodSummary, $isDeprecated);
+		return new ControllerMethod($parameters, $responses, $responseDescriptions, $methodDescription, $methodSummary, $isDeprecated);
 	}
 
 }
