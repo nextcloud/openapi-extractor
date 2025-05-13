@@ -85,5 +85,6 @@ return [
 		['name' => 'Settings#deprecatedRouteAndParameterGet', 'url' => '/api/{apiVersion}/deprecated-route-parameter-get', 'verb' => 'GET', 'requirements' => ['apiVersion' => '(v2)']],
 		['name' => 'Settings#samePathGet', 'url' => '/api/{apiVersion}/same-path', 'verb' => 'GET', 'requirements' => ['apiVersion' => '(v2)']],
 		['name' => 'Settings#samePathPost', 'url' => '/api/{apiVersion}/same-path', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
+		['name' => 'V1\SubDir#subDirRoute', 'url' => '/sub-dir', 'verb' => 'GET'],
 	],
 ];
