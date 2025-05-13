@@ -30,7 +30,6 @@ class ControllerMethod {
 	public function __construct(
 		public array $parameters,
 		public array $responses,
-		public array $returns,
 		public array $responseDescription,
 		public array $description,
 		public ?string $summary,
@@ -51,7 +50,6 @@ class ControllerMethod {
 		$parameters = [];
 		$responses = [];
 		$responseDescriptions = [];
-		$returns = [];
 
 		$methodDescription = [];
 		$methodSummary = null;
@@ -266,7 +264,7 @@ class ControllerMethod {
 			Logger::warning($context, 'Summary ends with a punctuation mark');
 		}
 
-		return new ControllerMethod($parameters, $responses, $returns, $responseDescriptions, $methodDescription, $methodSummary, $isDeprecated);
+		return new ControllerMethod($parameters, $responses, $responseDescriptions, $methodDescription, $methodSummary, $isDeprecated);
 	}
 
 }

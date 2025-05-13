@@ -520,10 +520,6 @@ foreach ($parsedRoutes as $key => $value) {
 		}
 
 		$classMethodInfo = ControllerMethod::parse($routeName, $definitions, $methodFunction, $isAdmin, $isDeprecated, $isPasswordConfirmation, $isCORS);
-		if ($classMethodInfo->returns !== []) {
-			Logger::error($routeName, 'Returns an invalid response');
-			continue;
-		}
 		if (count($classMethodInfo->responses) == 0) {
 			Logger::error($routeName, 'Returns no responses');
 			continue;
