@@ -739,4 +739,17 @@ class SettingsController extends OCSController {
 	public function samePathPost(): DataResponse {
 		return new DataResponse();
 	}
+
+	/**
+	 * A method with a request header.
+	 *
+	 * @return DataResponse<Http::STATUS_OK, list<empty>, array{}>
+	 *
+	 * 200: Admin settings updated
+	 */
+	public function requestHeader(): DataResponse {
+		$value = $this->request->getHeader('X-Custom-Header');
+
+		return new DataResponse();
+	}
 }
