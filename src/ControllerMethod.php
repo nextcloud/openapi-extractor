@@ -190,7 +190,7 @@ class ControllerMethod {
 				$description = '';
 			}
 			// Only keep lines that don't match the status code pattern in the description
-			$description = implode("\n", array_filter(array_filter(explode("\n", $description), static fn (string $line) => trim($line) !== ''), static fn (string $line) => !preg_match(self::STATUS_CODE_DESCRIPTION_PATTERN, $line)));
+			$description = Helpers::cleanDocComment(implode("\n", array_filter(array_filter(explode("\n", $description), static fn (string $line) => trim($line) !== ''), static fn (string $line) => !preg_match(self::STATUS_CODE_DESCRIPTION_PATTERN, $line))));
 
 			if ($paramTag instanceof \PHPStan\PhpDocParser\Ast\PhpDoc\ParamTagValueNode && $psalmParamTag instanceof \PHPStan\PhpDocParser\Ast\PhpDoc\ParamTagValueNode) {
 				try {
@@ -226,17 +226,24 @@ class ControllerMethod {
 			} elseif ($paramTag instanceof \PHPStan\PhpDocParser\Ast\PhpDoc\ParamTagValueNode) {
 				$type = OpenApiType::resolve($context . ': @param: ' . $methodParameterName, $definitions, $paramTag);
 			} elseif ($allowMissingDocs) {
-				$type = null;
+				$type = OpenApiType::resolve($context . ': $' . $methodParameterName . ': ' . $methodParameterName, $definitions, $methodParameter->type);
 			} else {
 				Logger::error($context, "Missing doc parameter for '" . $methodParameterName . "'");
 				continue;
 			}
 
-			if ($type !== null) {
-				$type->description = $description;
+			$type->description = $description;
+
+			if ($methodParameter->default !== null) {
+				try {
+					$type->defaultValue = Helpers::exprToValue($context, $methodParameter->default);
+					$type->hasDefaultValue = true;
+				} catch (UnsupportedExprException $e) {
+					Logger::debug($context, $e);
+				}
 			}
 
-			$param = new ControllerMethodParameter($context, $definitions, $methodParameterName, $methodParameter, $type);
+			$param = new ControllerMethodParameter($context, $definitions, $methodParameterName, $type);
 
 			if (!$allowMissingDocs && $param->type->description == '') {
 				Logger::error($context . ': @param: ' . $methodParameterName, 'Missing description');
