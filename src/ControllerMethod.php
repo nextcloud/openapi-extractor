@@ -291,9 +291,38 @@ class ControllerMethod {
 			if ($methodCall->var instanceof PropertyFetch &&
 				$methodCall->var->var instanceof Variable &&
 				$methodCall->var->var->name === 'this' &&
-				$methodCall->var->name->name === 'request' &&
-				$methodCall->name->name === 'getHeader') {
-				$headers[] = Helpers::exprToValue($context . ': getHeader', $methodCall->args[0]->value);
+				$methodCall->var->name->name === 'request') {
+				if ($methodCall->name->name === 'getHeader') {
+					$headers[] = $methodCall->args[0]->value->value;
+				}
+				if ($methodCall->name->name === 'getParam') {
+					$name = $methodCall->args[0]->value->value;
+
+					if (preg_match('/^[a-zA-Z][a-zA-Z0-9_]*$/', $name)) {
+						Logger::error($context . ': getParam: ' . $name, 'Do not use getParam() when a controller method parameter also works. With getParam() it is not possible to add a comment and specify the parameter type, therefore it should be avoided whenever possible.');
+					}
+
+					$defaultValue = null;
+					$hasDefaultValue = false;
+					try {
+						$defaultValue = count($methodCall->args) > 1 ? Helpers::exprToValue($context . ': getParam: ' . $name, $methodCall->args[1]->value) : null;
+						$hasDefaultValue = true;
+					} catch (UnsupportedExprException $e) {
+						Logger::debug($context, $e);
+					}
+
+					$type = new OpenApiType(
+						context: $context,
+						// We can not know the type, so need to fallback to object :/
+						type: 'object',
+						// IRequest::getParam() has null as a default value, so the parameter always has a default value and allows null.
+						nullable: true,
+						hasDefaultValue: $hasDefaultValue,
+						defaultValue: $defaultValue,
+					);
+
+					$parameters[] = new ControllerMethodParameter($context, $definitions, $name, $type);
+				}
 			}
 		}
 

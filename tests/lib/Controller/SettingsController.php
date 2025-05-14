@@ -764,4 +764,18 @@ class SettingsController extends OCSController {
 
 		return new DataResponse();
 	}
+
+	/**
+	 * A method with a request params.
+	 *
+	 * @return DataResponse<Http::STATUS_OK, list<empty>, array{}>
+	 *
+	 * 200: Admin settings updated
+	 */
+	public function requestParams(): DataResponse {
+		$value = $this->request->getParam('some-param');
+		$value = $this->request->getParam('some-param-with-explicit-default-value', 'abc');
+
+		return new DataResponse();
+	}
 }
