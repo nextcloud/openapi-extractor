@@ -350,6 +350,18 @@ class SettingsController extends OCSController {
 	}
 
 	/**
+	 * A route with string or null
+	 *
+	 * @param ?string $value string or null
+	 * @return DataResponse<Http::STATUS_OK, list<empty>, array{}>
+	 *
+	 * 200: Admin settings updated
+	 */
+	public function stringDefaultNullParameter(?string $value = null): DataResponse {
+		return new DataResponse();
+	}
+
+	/**
 	 * A route with int or 0
 	 *
 	 * @param int|0 $value int or 0
