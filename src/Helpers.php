@@ -177,7 +177,7 @@ class Helpers {
 	}
 
 	protected static function getScopeNameFromAttributeArgument(Arg $arg, int $key, string $routeName): ?string {
-		if ($arg->name?->name === 'scope' || ($arg->name === null && $key === 0)) {
+		if ($arg->name?->name === 'scope' || (!$arg->name instanceof \PhpParser\Node\Identifier && $key === 0)) {
 			if ($arg->value instanceof ClassConstFetch) {
 				if ($arg->value->class->getLast() === self::OPENAPI_ATTRIBUTE_CLASSNAME) {
 					return self::getScopeNameFromConst($arg->value);

@@ -220,7 +220,7 @@ class ResponseType {
 					if ($responseType->hasContentTypeTemplate) {
 						if ($args[$i] instanceof ConstTypeNode) {
 							$contentTypes = [$args[$i]->constExpr->value];
-						} elseif ($args[$i] instanceof IdentifierTypeNode && $args[$i]->name == 'string') {
+						} elseif ($args[$i] instanceof IdentifierTypeNode && $args[$i]->name === 'string') {
 							$contentTypes = ['*/*'];
 						} elseif ($args[$i] instanceof UnionTypeNode) {
 							$contentTypes = array_map(fn ($arg) => $arg->constExpr->value, $args[$i]->types);

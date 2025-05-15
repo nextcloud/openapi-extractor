@@ -213,7 +213,7 @@ class OpenApiType {
 			foreach ($node->items as $item) {
 				$name = $item->keyName instanceof ConstExprStringNode ? $item->keyName->value : $item->keyName->name;
 				$type = self::resolve($context . ': ' . $name, $definitions, $item->valueType);
-				$comments = array_map(static fn (Comment $comment) => preg_replace('/^\/\/\s*/', '', $comment->text), $item->keyName->getAttribute(Attribute::COMMENTS) ?? []);
+				$comments = array_map(static fn (Comment $comment): ?string => preg_replace('/^\/\/\s*/', '', $comment->text), $item->keyName->getAttribute(Attribute::COMMENTS) ?? []);
 				if ($comments !== []) {
 					$type->description = implode("\n", $comments);
 				}
@@ -245,7 +245,7 @@ class OpenApiType {
 			Logger::panic($context, "JSON objects can only be indexed by '" . implode("', '", $allowedTypes) . "' but got '" . $node->genericTypes[0]->name . "'");
 		}
 
-		if ($node instanceof GenericTypeNode && $node->type->name == 'int' && count($node->genericTypes) == 2) {
+		if ($node instanceof GenericTypeNode && $node->type->name === 'int' && count($node->genericTypes) == 2) {
 			$min = null;
 			$max = null;
 			if ($node->genericTypes[0] instanceof ConstTypeNode) {
@@ -321,11 +321,11 @@ class OpenApiType {
 			$items = [];
 
 			foreach ($node->types as $type) {
-				if (($type instanceof IdentifierTypeNode || $type instanceof Identifier) && $type->name == 'null') {
+				if (($type instanceof IdentifierTypeNode || $type instanceof Identifier) && $type->name === 'null') {
 					$nullable = true;
 					continue;
 				}
-				if (($type instanceof IdentifierTypeNode || $type instanceof Identifier) && $type->name == 'mixed') {
+				if (($type instanceof IdentifierTypeNode || $type instanceof Identifier) && $type->name === 'mixed') {
 					Logger::error($context, "Unions and intersections should not contain 'mixed'");
 				}
 				$items[] = self::resolve($context, $definitions, $type);
@@ -372,7 +372,7 @@ class OpenApiType {
 
 		if ($node instanceof ConstTypeNode && $node->constExpr instanceof ConstExprStringNode) {
 			$value = $node->constExpr->value;
-			if ($value == '') {
+			if ($value === '') {
 				// Not a valid enum
 				return new OpenApiType(
 					context: $context,

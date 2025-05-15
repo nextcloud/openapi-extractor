@@ -71,20 +71,20 @@ class ControllerMethod {
 
 			foreach ($docNodes as $docNode) {
 				if ($docNode instanceof PhpDocTextNode) {
-					$nodeDescription = (string)$docNode->text;
+					$nodeDescription = $docNode->text;
 				} elseif ($docNode->value instanceof GenericTagValueNode) {
 					$nodeDescription = (string)$docNode->value;
 				} else {
 					$nodeDescription = (string)$docNode->value->description;
 				}
 
-				$nodeDescriptionLines = array_filter(explode("\n", $nodeDescription), static fn (string $line) => trim($line) !== '');
+				$nodeDescriptionLines = array_filter(explode("\n", $nodeDescription), static fn (string $line): bool => trim($line) !== '');
 
 				// Parse in blocks (separate by double newline) to preserve newlines within a block.
 				$nodeDescriptionBlocks = preg_split("/\n\s*\n/", $nodeDescription);
 				foreach ($nodeDescriptionBlocks as $nodeDescriptionBlock) {
 					$methodDescriptionBlockLines = [];
-					foreach (array_filter(explode("\n", $nodeDescriptionBlock), static fn (string $line) => trim($line) !== '') as $line) {
+					foreach (array_filter(explode("\n", $nodeDescriptionBlock), static fn (string $line): bool => trim($line) !== '') as $line) {
 						if (preg_match(self::STATUS_CODE_DESCRIPTION_PATTERN, $line)) {
 							$parts = preg_split(self::STATUS_CODE_DESCRIPTION_PATTERN, $line, -1, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY);
 							$responseDescriptions[(int)$parts[0]] = trim($parts[1]);
@@ -133,7 +133,7 @@ class ControllerMethod {
 								Logger::error($context, "Missing description for exception '" . $type . "'");
 							} else {
 								// Only add lines that don't match the status code pattern to the description
-								$responseDescriptions[$statusCode] = implode("\n", array_filter($nodeDescriptionLines, static fn (string $line) => !preg_match(self::STATUS_CODE_DESCRIPTION_PATTERN, $line)));
+								$responseDescriptions[$statusCode] = implode("\n", array_filter($nodeDescriptionLines, static fn (string $line): bool => in_array(preg_match(self::STATUS_CODE_DESCRIPTION_PATTERN, $line), [0, false], true)));
 							}
 
 							if (str_starts_with($type->name, 'OCS') && str_ends_with($type->name, 'Exception')) {
@@ -169,9 +169,9 @@ class ControllerMethod {
 					$docParameterName = substr($docParameter->parameterName, 1);
 
 					if ($docParameterName == $methodParameterName) {
-						if ($docParameterType == '@param') {
+						if ($docParameterType === '@param') {
 							$paramTag = $docParameter;
-						} elseif ($docParameterType == '@psalm-param') {
+						} elseif ($docParameterType === '@psalm-param') {
 							$psalmParamTag = $docParameter;
 						} else {
 							Logger::panic($context . ': @param', 'Unknown param type ' . $docParameterType);
@@ -190,7 +190,7 @@ class ControllerMethod {
 				$description = '';
 			}
 			// Only keep lines that don't match the status code pattern in the description
-			$description = Helpers::cleanDocComment(implode("\n", array_filter(array_filter(explode("\n", $description), static fn (string $line) => trim($line) !== ''), static fn (string $line) => !preg_match(self::STATUS_CODE_DESCRIPTION_PATTERN, $line))));
+			$description = Helpers::cleanDocComment(implode("\n", array_filter(array_filter(explode("\n", $description), static fn (string $line): bool => trim($line) !== ''), static fn (string $line): bool => in_array(preg_match(self::STATUS_CODE_DESCRIPTION_PATTERN, $line), [0, false], true))));
 
 			if ($paramTag instanceof \PHPStan\PhpDocParser\Ast\PhpDoc\ParamTagValueNode && $psalmParamTag instanceof \PHPStan\PhpDocParser\Ast\PhpDoc\ParamTagValueNode) {
 				try {
@@ -250,7 +250,7 @@ class ControllerMethod {
 				continue;
 			}
 
-			if (str_contains($param->type->description, '@deprecated')) {
+			if (str_contains((string)$param->type->description, '@deprecated')) {
 				$param->type->deprecated = true;
 				$param->type->description = str_replace('@deprecated', 'Deprecated:', $param->type->description);
 			}
@@ -298,7 +298,7 @@ class ControllerMethod {
 				if ($methodCall->name->name === 'getParam') {
 					$name = $methodCall->args[0]->value->value;
 
-					if (preg_match('/^[a-zA-Z][a-zA-Z0-9_]*$/', $name)) {
+					if (preg_match('/^[a-zA-Z]\w*$/', (string)$name)) {
 						Logger::error($context . ': getParam: ' . $name, 'Do not use getParam() when a controller method parameter also works. With getParam() it is not possible to add a comment and specify the parameter type, therefore it should be avoided whenever possible.');
 					}
 

@@ -254,7 +254,7 @@ if (file_exists($controllersDir)) {
 	$controllerFiles = [];
 	foreach ($iterator as $file) {
 		$filePath = $file->getPathname();
-		if (!str_ends_with($filePath, 'Controller.php')) {
+		if (!str_ends_with((string)$filePath, 'Controller.php')) {
 			continue;
 		}
 		$controllerFiles[] = $filePath;
@@ -263,7 +263,7 @@ if (file_exists($controllersDir)) {
 
 	foreach ($controllerFiles as $filePath) {
 		$offset = strlen($controllersDir . '/');
-		$name = substr($filePath, $offset, strlen($filePath) - $offset - strlen('Controller.php'));
+		$name = substr((string)$filePath, $offset, strlen((string)$filePath) - $offset - strlen('Controller.php'));
 		$name = str_replace('/', '\\', $name);
 		$controllers[$name] = $nodeTraverser->traverse($astParser->parse(file_get_contents($filePath)));
 	}
@@ -286,7 +286,7 @@ foreach ($controllers as $controllerName => $stmts) {
 
 	/** @var ClassMethod $classMethod */
 	foreach ($nodeFinder->findInstanceOf($controllerClass->stmts, ClassMethod::class) as $classMethod) {
-		$name = substr($class->name->name, 0, -strlen('Controller')) . '#' . $classMethod->name->name;
+		$name = substr((string)$class->name->name, 0, -strlen('Controller')) . '#' . $classMethod->name->name;
 
 		/** @var AttributeGroup $attrGroup */
 		foreach ($classMethod->attrGroups as $attrGroup) {
