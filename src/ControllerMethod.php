@@ -190,7 +190,7 @@ class ControllerMethod {
 				$description = '';
 			}
 			// Only keep lines that don't match the status code pattern in the description
-			$description = implode("\n", array_filter(array_filter(explode("\n", $description), static fn (string $line) => trim($line) !== ''), static fn (string $line) => !preg_match(self::STATUS_CODE_DESCRIPTION_PATTERN, $line)));
+			$description = Helpers::cleanDocComment(implode("\n", array_filter(array_filter(explode("\n", $description), static fn (string $line) => trim($line) !== ''), static fn (string $line) => !preg_match(self::STATUS_CODE_DESCRIPTION_PATTERN, $line))));
 
 			if ($paramTag instanceof \PHPStan\PhpDocParser\Ast\PhpDoc\ParamTagValueNode && $psalmParamTag instanceof \PHPStan\PhpDocParser\Ast\PhpDoc\ParamTagValueNode) {
 				try {
@@ -226,17 +226,24 @@ class ControllerMethod {
 			} elseif ($paramTag instanceof \PHPStan\PhpDocParser\Ast\PhpDoc\ParamTagValueNode) {
 				$type = OpenApiType::resolve($context . ': @param: ' . $methodParameterName, $definitions, $paramTag);
 			} elseif ($allowMissingDocs) {
-				$type = null;
+				$type = OpenApiType::resolve($context . ': $' . $methodParameterName . ': ' . $methodParameterName, $definitions, $methodParameter->type);
 			} else {
 				Logger::error($context, "Missing doc parameter for '" . $methodParameterName . "'");
 				continue;
 			}
 
-			if ($type !== null) {
-				$type->description = $description;
+			$type->description = $description;
+
+			if ($methodParameter->default !== null) {
+				try {
+					$type->defaultValue = Helpers::exprToValue($context, $methodParameter->default);
+					$type->hasDefaultValue = true;
+				} catch (UnsupportedExprException $e) {
+					Logger::debug($context, $e);
+				}
 			}
 
-			$param = new ControllerMethodParameter($context, $definitions, $methodParameterName, $methodParameter, $type);
+			$param = new ControllerMethodParameter($context, $definitions, $methodParameterName, $type);
 
 			if (!$allowMissingDocs && $param->type->description == '') {
 				Logger::error($context . ': @param: ' . $methodParameterName, 'Missing description');
@@ -284,9 +291,38 @@ class ControllerMethod {
 			if ($methodCall->var instanceof PropertyFetch &&
 				$methodCall->var->var instanceof Variable &&
 				$methodCall->var->var->name === 'this' &&
-				$methodCall->var->name->name === 'request' &&
-				$methodCall->name->name === 'getHeader') {
-				$headers[] = Helpers::exprToValue($context . ': getHeader', $methodCall->args[0]->value);
+				$methodCall->var->name->name === 'request') {
+				if ($methodCall->name->name === 'getHeader') {
+					$headers[] = $methodCall->args[0]->value->value;
+				}
+				if ($methodCall->name->name === 'getParam') {
+					$name = $methodCall->args[0]->value->value;
+
+					if (preg_match('/^[a-zA-Z][a-zA-Z0-9_]*$/', $name)) {
+						Logger::error($context . ': getParam: ' . $name, 'Do not use getParam() when a controller method parameter also works. With getParam() it is not possible to add a comment and specify the parameter type, therefore it should be avoided whenever possible.');
+					}
+
+					$defaultValue = null;
+					$hasDefaultValue = false;
+					try {
+						$defaultValue = count($methodCall->args) > 1 ? Helpers::exprToValue($context . ': getParam: ' . $name, $methodCall->args[1]->value) : null;
+						$hasDefaultValue = true;
+					} catch (UnsupportedExprException $e) {
+						Logger::debug($context, $e);
+					}
+
+					$type = new OpenApiType(
+						context: $context,
+						// We can not know the type, so need to fallback to object :/
+						type: 'object',
+						// IRequest::getParam() has null as a default value, so the parameter always has a default value and allows null.
+						nullable: true,
+						hasDefaultValue: $hasDefaultValue,
+						defaultValue: $defaultValue,
+					);
+
+					$parameters[] = new ControllerMethodParameter($context, $definitions, $name, $type);
+				}
 			}
 		}
 

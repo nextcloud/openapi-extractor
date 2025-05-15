@@ -614,13 +614,9 @@ foreach ($routes as $scope => $scopeRoutes) {
 			$requirement = $route->requirements[$urlParameter] ?? null;
 			if (count($matchingParameters) == 1) {
 				$parameter = $matchingParameters[array_keys($matchingParameters)[0]];
-				if ($parameter?->methodParameter == null && ($route->requirements == null || !array_key_exists($urlParameter, $route->requirements))) {
-					Logger::error($route->name, "Unable to find parameter for '" . $urlParameter . "'");
-					continue;
-				}
 
 				$schema = $parameter->type->toArray(true);
-				$description = $parameter?->docType != null && $parameter->docType->description != '' ? Helpers::cleanDocComment($parameter->docType->description) : null;
+				$description = $parameter->type->description;
 			} else {
 				$schema = [
 					'type' => 'string',
@@ -825,8 +821,8 @@ foreach ($routes as $scope => $scopeRoutes) {
 				'name' => $queryParameter->name . ($queryParameter->type->type === 'array' ? '[]' : ''),
 				'in' => 'query',
 			];
-			if ($queryParameter->docType !== null && $queryParameter->docType->description !== '') {
-				$parameter['description'] = Helpers::cleanDocComment($queryParameter->docType->description);
+			if ($queryParameter->type->description !== null && $queryParameter->type->description !== '') {
+				$parameter['description'] = Helpers::cleanDocComment($queryParameter->type->description);
 			}
 			if (!$queryParameter->type->nullable && !$queryParameter->type->hasDefaultValue) {
 				$parameter['required'] = true;

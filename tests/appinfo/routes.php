@@ -52,6 +52,7 @@ return [
 		['name' => 'Settings#booleanTrueFalseParameter', 'url' => '/api/{apiVersion}/boolean-true-false', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
 		['name' => 'Settings#trueFalseParameter', 'url' => '/api/{apiVersion}/true-false', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
 		['name' => 'Settings#stringValueParameter', 'url' => '/api/{apiVersion}/string-value', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
+		['name' => 'Settings#stringDefaultNullParameter', 'url' => '/api/{apiVersion}/string-default-null', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
 		['name' => 'Settings#intValueParameter', 'url' => '/api/{apiVersion}/int-value', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
 		['name' => 'Settings#numericParameter', 'url' => '/api/{apiVersion}/numeric', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
 		['name' => 'Settings#arrayListParameter', 'url' => '/api/{apiVersion}/array-list', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
@@ -86,6 +87,7 @@ return [
 		['name' => 'Settings#samePathGet', 'url' => '/api/{apiVersion}/same-path', 'verb' => 'GET', 'requirements' => ['apiVersion' => '(v2)']],
 		['name' => 'Settings#samePathPost', 'url' => '/api/{apiVersion}/same-path', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
 		['name' => 'Settings#requestHeader', 'url' => '/api/{apiVersion}/request-header', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
+		['name' => 'Settings#requestParams', 'url' => '/api/{apiVersion}/request-params', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
 		['name' => 'V1\SubDir#subDirRoute', 'url' => '/sub-dir', 'verb' => 'GET'],
 	],
 ];

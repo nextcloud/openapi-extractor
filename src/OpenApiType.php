@@ -104,8 +104,8 @@ class OpenApiType {
 		if ($this->deprecated) {
 			$values['deprecated'] = true;
 		}
-		if ($this->hasDefaultValue && $this->defaultValue !== null) {
-			$values['default'] = $this->type === 'object' && empty($this->defaultValue) ? new stdClass() : $this->defaultValue;
+		if ($this->hasDefaultValue) {
+			$values['default'] = $this->type === 'object' && is_array($this->defaultValue) && count($this->defaultValue) === 0 ? new stdClass() : $this->defaultValue;
 		}
 		if ($this->enum !== null) {
 			$values['enum'] = $this->enum;

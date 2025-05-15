@@ -350,6 +350,18 @@ class SettingsController extends OCSController {
 	}
 
 	/**
+	 * A route with string or null
+	 *
+	 * @param ?string $value string or null
+	 * @return DataResponse<Http::STATUS_OK, list<empty>, array{}>
+	 *
+	 * 200: Admin settings updated
+	 */
+	public function stringDefaultNullParameter(?string $value = null): DataResponse {
+		return new DataResponse();
+	}
+
+	/**
 	 * A route with int or 0
 	 *
 	 * @param int|0 $value int or 0
@@ -749,6 +761,20 @@ class SettingsController extends OCSController {
 	 */
 	public function requestHeader(): DataResponse {
 		$value = $this->request->getHeader('X-Custom-Header');
+
+		return new DataResponse();
+	}
+
+	/**
+	 * A method with a request params.
+	 *
+	 * @return DataResponse<Http::STATUS_OK, list<empty>, array{}>
+	 *
+	 * 200: Admin settings updated
+	 */
+	public function requestParams(): DataResponse {
+		$value = $this->request->getParam('some-param');
+		$value = $this->request->getParam('some-param-with-explicit-default-value', 'abc');
 
 		return new DataResponse();
 	}
