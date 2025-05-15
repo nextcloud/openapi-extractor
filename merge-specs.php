@@ -104,7 +104,7 @@ function loadSpec(string $path): object {
 }
 
 function getAppID(object $spec): string {
-	return explode('-', $spec->info->title)[0];
+	return explode('-', (string)$spec->info->title)[0];
 }
 
 function rewriteRefs(object $spec): object {
@@ -155,7 +155,7 @@ function rewriteSchemaNames(object $spec): array {
 }
 
 function rewriteTags(object $spec): array {
-	return array_map(static function (object $tag) use ($spec) {
+	return array_map(static function (object $tag) use ($spec): object {
 		$tag->name = getAppID($spec) . '/' . $tag->name;
 		return $tag;
 	}, $spec->tags);

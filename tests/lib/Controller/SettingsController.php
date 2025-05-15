@@ -760,7 +760,7 @@ class SettingsController extends OCSController {
 	 * 200: Admin settings updated
 	 */
 	public function requestHeader(): DataResponse {
-		$value = $this->request->getHeader('X-Custom-Header');
+		$this->request->getHeader('X-Custom-Header');
 
 		return new DataResponse();
 	}
@@ -773,8 +773,8 @@ class SettingsController extends OCSController {
 	 * 200: Admin settings updated
 	 */
 	public function requestParams(): DataResponse {
-		$value = $this->request->getParam('some-param');
-		$value = $this->request->getParam('some-param-with-explicit-default-value', 'abc');
+		$this->request->getParam('some-param');
+		$this->request->getParam('some-param-with-explicit-default-value', 'abc');
 
 		return new DataResponse();
 	}
