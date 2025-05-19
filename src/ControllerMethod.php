@@ -151,8 +151,14 @@ class ControllerMethod {
 			Logger::error($context, 'Missing @return annotation');
 		}
 
+		$responseStatusCodes = array_unique(array_map(static fn (ControllerMethodResponse $response): int => $response->statusCode, $responses));
+		$unusedResponseDescriptions = array_diff(array_keys($responseDescriptions), $responseStatusCodes);
+		if ($unusedResponseDescriptions !== []) {
+			Logger::error($context, 'Unused descriptions for status codes ' . implode(', ', $unusedResponseDescriptions));
+		}
+
 		if (!$allowMissingDocs) {
-			foreach (array_unique(array_map(fn (ControllerMethodResponse $response): int => $response->statusCode, array_filter($responses, fn (?ControllerMethodResponse $response): bool => $response != null))) as $statusCode) {
+			foreach ($responseStatusCodes as $statusCode) {
 				if ($statusCode < 500 && (!array_key_exists($statusCode, $responseDescriptions) || $responseDescriptions[$statusCode] === '')) {
 					Logger::error($context, 'Missing description for status code ' . $statusCode);
 				}
