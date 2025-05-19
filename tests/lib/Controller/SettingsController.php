@@ -15,6 +15,7 @@ use OCP\AppFramework\Http\Attribute\CORS;
 use OCP\AppFramework\Http\Attribute\IgnoreOpenAPI;
 use OCP\AppFramework\Http\Attribute\OpenAPI;
 use OCP\AppFramework\Http\Attribute\PasswordConfirmationRequired;
+use OCP\AppFramework\Http\Attribute\RequestHeader;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\AppFramework\OCS\OCSNotFoundException;
 use OCP\AppFramework\OCSController;
@@ -759,8 +760,16 @@ class SettingsController extends OCSController {
 	 *
 	 * 200: Admin settings updated
 	 */
+	#[RequestHeader('X-Custom-Header-1', 'A custom header 1')]
+	#[RequestHeader('X-Custom-Header-2', description: 'A custom header 2')]
+	#[RequestHeader(name: 'X-Custom-Header-3', description: 'A custom header 3')]
+	#[RequestHeader(description: 'A custom header 4', name: 'X-Custom-Header-4')]
 	public function requestHeader(): DataResponse {
-		$this->request->getHeader('X-Custom-Header');
+		$this->request->getHeader('X-Custom-Header-1');
+		$this->request->getHeader('X-Custom-Header-2');
+		$this->request->getHeader('X-Custom-Header-3');
+		$this->request->getHeader('X-Custom-Header-4');
+		$this->request->getHeader('X-Custom-Header-5');
 
 		return new DataResponse();
 	}
