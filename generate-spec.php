@@ -835,17 +835,21 @@ foreach ($routes as $scope => $scopeRoutes) {
 			$parameters[] = $parameter;
 		}
 
-		foreach ($route->controllerMethod->requestHeaders as $requestHeader) {
-			$parameters[] = [
+		foreach ($route->controllerMethod->requestHeaders as $requestHeader => $requestHeaderDescription) {
+			$parameter = [
 				'name' => $requestHeader,
 				'in' => 'header',
 				// Not required, because getHeader() will return an empty string by default.
 				// It might still mean that a header is always required, but the controller method has to check the
 				// value manually anyway.
-				'schema' => [
-					'type' => 'string',
-				],
 			];
+			if ($requestHeaderDescription !== null) {
+				$parameter['description'] = $requestHeaderDescription;
+			}
+			$parameter['schema'] = [
+				'type' => 'string',
+			];
+			$parameters[] = $parameter;
 		}
 
 		if ($route->isOCS || !$route->isNoCSRFRequired) {

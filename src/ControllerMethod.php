@@ -7,6 +7,7 @@
 
 namespace OpenAPIExtractor;
 
+use PhpParser\Node\AttributeGroup;
 use PhpParser\Node\Expr\MethodCall;
 use PhpParser\Node\Expr\PropertyFetch;
 use PhpParser\Node\Expr\Variable;
@@ -20,13 +21,14 @@ use PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocTextNode;
 use PHPStan\PhpDocParser\Ast\PhpDoc\ReturnTagValueNode;
 use PHPStan\PhpDocParser\Ast\PhpDoc\ThrowsTagValueNode;
 use PHPStan\PhpDocParser\Parser\TokenIterator;
+use RuntimeException;
 
 class ControllerMethod {
 	private const STATUS_CODE_DESCRIPTION_PATTERN = '/^(\d{3}): (.+)$/';
 
 	/**
 	 * @param ControllerMethodParameter[] $parameters
-	 * @param list<string> $requestHeaders
+	 * @param array<string, string> $requestHeaders
 	 * @param list<ControllerMethodResponse|null> $responses
 	 * @param OpenApiType[] $returns
 	 * @param array<int, string> $responseDescription
@@ -198,7 +200,7 @@ class ControllerMethod {
 			// Only keep lines that don't match the status code pattern in the description
 			$description = Helpers::cleanDocComment(implode("\n", array_filter(array_filter(explode("\n", $description), static fn (string $line): bool => trim($line) !== ''), static fn (string $line): bool => in_array(preg_match(self::STATUS_CODE_DESCRIPTION_PATTERN, $line), [0, false], true))));
 
-			if ($paramTag instanceof \PHPStan\PhpDocParser\Ast\PhpDoc\ParamTagValueNode && $psalmParamTag instanceof \PHPStan\PhpDocParser\Ast\PhpDoc\ParamTagValueNode) {
+			if ($paramTag instanceof ParamTagValueNode && $psalmParamTag instanceof ParamTagValueNode) {
 				try {
 					$type = OpenApiType::resolve(
 						$context . ': @param: ' . $psalmParamTag->parameterName,
@@ -227,9 +229,9 @@ class ControllerMethod {
 					);
 				}
 
-			} elseif ($psalmParamTag instanceof \PHPStan\PhpDocParser\Ast\PhpDoc\ParamTagValueNode) {
+			} elseif ($psalmParamTag instanceof ParamTagValueNode) {
 				$type = OpenApiType::resolve($context . ': @param: ' . $methodParameterName, $definitions, $psalmParamTag);
-			} elseif ($paramTag instanceof \PHPStan\PhpDocParser\Ast\PhpDoc\ParamTagValueNode) {
+			} elseif ($paramTag instanceof ParamTagValueNode) {
 				$type = OpenApiType::resolve($context . ': @param: ' . $methodParameterName, $definitions, $paramTag);
 			} elseif ($allowMissingDocs) {
 				$type = OpenApiType::resolve($context . ': $' . $methodParameterName . ': ' . $methodParameterName, $definitions, $methodParameter->type);
@@ -292,14 +294,14 @@ class ControllerMethod {
 			Logger::warning($context, 'Summary ends with a punctuation mark');
 		}
 
-		$headers = [];
+		$codeRequestHeaders = [];
 		foreach ($nodeFinder->findInstanceOf($method->getStmts(), MethodCall::class) as $methodCall) {
 			if ($methodCall->var instanceof PropertyFetch &&
 				$methodCall->var->var instanceof Variable &&
 				$methodCall->var->var->name === 'this' &&
 				$methodCall->var->name->name === 'request') {
 				if ($methodCall->name->name === 'getHeader') {
-					$headers[] = $methodCall->args[0]->value->value;
+					$codeRequestHeaders[] = $methodCall->args[0]->value->value;
 				}
 				if ($methodCall->name->name === 'getParam') {
 					$name = $methodCall->args[0]->value->value;
@@ -332,7 +334,47 @@ class ControllerMethod {
 			}
 		}
 
-		return new ControllerMethod($parameters, array_unique($headers), $responses, $responseDescriptions, $methodDescription, $methodSummary, $isDeprecated);
+		$attributeRequestHeaders = [];
+		/** @var AttributeGroup $attrGroup */
+		foreach ($method->attrGroups as $attrGroup) {
+			foreach ($attrGroup->attrs as $attr) {
+				if ($attr->name->getLast() === 'RequestHeader') {
+					$args = [];
+					foreach ($attr->args as $key => $arg) {
+						$attrName = $arg->name?->name;
+						if ($attrName === null) {
+							$attrName = match ($key) {
+								0 => 'name',
+								1 => 'description',
+								default => throw new RuntimeException('Should not happen.'),
+							};
+						}
+						$args[$attrName] = $arg->value->value;
+					}
+
+					if (array_key_exists($args['name'], $attributeRequestHeaders)) {
+						Logger::error($context, 'Request header "' . $args['name'] . '" already documented.');
+					}
+
+					$attributeRequestHeaders[$args['name']] = $args['description'];
+				}
+			}
+		}
+
+		$undocumentedRequestHeaders = array_diff($codeRequestHeaders, array_keys($attributeRequestHeaders));
+		if ($undocumentedRequestHeaders !== []) {
+			Logger::warning($context, 'Undocumented request headers (use the RequestHeader attribute): ' . implode(', ', $undocumentedRequestHeaders));
+			foreach ($undocumentedRequestHeaders as $header) {
+				$attributeRequestHeaders[$header] = null;
+			}
+		}
+
+		$unusedRequestHeaders = array_diff(array_keys($attributeRequestHeaders), $codeRequestHeaders);
+		if ($unusedRequestHeaders !== []) {
+			Logger::error($context, 'Unused request header descriptions: ' . implode(', ', $unusedRequestHeaders));
+		}
+
+		return new ControllerMethod($parameters, $attributeRequestHeaders, $responses, $responseDescriptions, $methodDescription, $methodSummary, $isDeprecated);
 	}
 
 }
