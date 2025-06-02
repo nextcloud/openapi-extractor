@@ -5629,7 +5629,7 @@
                         }
                     },
                     {
-                        "name": "X-Custom-Header-1",
+                        "name": "x-custom-header-1",
                         "in": "header",
                         "description": "A custom header 1",
                         "schema": {
@@ -5637,7 +5637,7 @@
                         }
                     },
                     {
-                        "name": "X-Custom-Header-2",
+                        "name": "x-custom-header-2",
                         "in": "header",
                         "description": "A custom header 2",
                         "schema": {
@@ -5645,7 +5645,7 @@
                         }
                     },
                     {
-                        "name": "X-Custom-Header-3",
+                        "name": "x-custom-header-3",
                         "in": "header",
                         "description": "A custom header 3",
                         "schema": {
@@ -5653,7 +5653,7 @@
                         }
                     },
                     {
-                        "name": "X-Custom-Header-4",
+                        "name": "x-custom-header-4",
                         "in": "header",
                         "description": "A custom header 4",
                         "schema": {
@@ -5661,7 +5661,7 @@
                         }
                     },
                     {
-                        "name": "X-Custom-Header-5",
+                        "name": "x-custom-header-5",
                         "in": "header",
                         "schema": {
                             "type": "string"

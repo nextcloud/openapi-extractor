@@ -80,13 +80,13 @@ class ControllerMethod {
 					$nodeDescription = (string)$docNode->value->description;
 				}
 
-				$nodeDescriptionLines = array_filter(explode("\n", $nodeDescription), static fn (string $line): bool => trim($line) !== '');
+				$nodeDescriptionLines = array_filter(explode("\n", $nodeDescription), static fn(string $line): bool => trim($line) !== '');
 
 				// Parse in blocks (separate by double newline) to preserve newlines within a block.
 				$nodeDescriptionBlocks = preg_split("/\n\s*\n/", $nodeDescription);
 				foreach ($nodeDescriptionBlocks as $nodeDescriptionBlock) {
 					$methodDescriptionBlockLines = [];
-					foreach (array_filter(explode("\n", $nodeDescriptionBlock), static fn (string $line): bool => trim($line) !== '') as $line) {
+					foreach (array_filter(explode("\n", $nodeDescriptionBlock), static fn(string $line): bool => trim($line) !== '') as $line) {
 						if (preg_match(self::STATUS_CODE_DESCRIPTION_PATTERN, $line)) {
 							$parts = preg_split(self::STATUS_CODE_DESCRIPTION_PATTERN, $line, -1, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY);
 							$responseDescriptions[(int)$parts[0]] = trim($parts[1]);
@@ -135,7 +135,7 @@ class ControllerMethod {
 								Logger::error($context, "Missing description for exception '" . $type . "'");
 							} else {
 								// Only add lines that don't match the status code pattern to the description
-								$responseDescriptions[$statusCode] = implode("\n", array_filter($nodeDescriptionLines, static fn (string $line): bool => in_array(preg_match(self::STATUS_CODE_DESCRIPTION_PATTERN, $line), [0, false], true)));
+								$responseDescriptions[$statusCode] = implode("\n", array_filter($nodeDescriptionLines, static fn(string $line): bool => in_array(preg_match(self::STATUS_CODE_DESCRIPTION_PATTERN, $line), [0, false], true)));
 							}
 
 							if (str_starts_with($type->name, 'OCS') && str_ends_with($type->name, 'Exception')) {
@@ -153,7 +153,7 @@ class ControllerMethod {
 			Logger::error($context, 'Missing @return annotation');
 		}
 
-		$responseStatusCodes = array_unique(array_map(static fn (ControllerMethodResponse $response): int => $response->statusCode, $responses));
+		$responseStatusCodes = array_unique(array_map(static fn(ControllerMethodResponse $response): int => $response->statusCode, $responses));
 		$unusedResponseDescriptions = array_diff(array_keys($responseDescriptions), $responseStatusCodes);
 		if ($unusedResponseDescriptions !== []) {
 			Logger::error($context, 'Unused descriptions for status codes ' . implode(', ', $unusedResponseDescriptions));
@@ -198,7 +198,7 @@ class ControllerMethod {
 				$description = '';
 			}
 			// Only keep lines that don't match the status code pattern in the description
-			$description = Helpers::cleanDocComment(implode("\n", array_filter(array_filter(explode("\n", $description), static fn (string $line): bool => trim($line) !== ''), static fn (string $line): bool => in_array(preg_match(self::STATUS_CODE_DESCRIPTION_PATTERN, $line), [0, false], true))));
+			$description = Helpers::cleanDocComment(implode("\n", array_filter(array_filter(explode("\n", $description), static fn(string $line): bool => trim($line) !== ''), static fn(string $line): bool => in_array(preg_match(self::STATUS_CODE_DESCRIPTION_PATTERN, $line), [0, false], true))));
 
 			if ($paramTag instanceof ParamTagValueNode && $psalmParamTag instanceof ParamTagValueNode) {
 				try {
@@ -301,7 +301,13 @@ class ControllerMethod {
 				$methodCall->var->var->name === 'this' &&
 				$methodCall->var->name->name === 'request') {
 				if ($methodCall->name->name === 'getHeader') {
-					$codeRequestHeaders[] = $methodCall->args[0]->value->value;
+					$headerName = self::cleanHeaderName($methodCall->args[0]->value->value);
+
+					if ($headerName !== $methodCall->args[0]->value->value) {
+						Logger::error($context, 'Request header "' . $methodCall->args[0]->value->value . '" should be "' . $headerName . '".');
+					}
+
+					$codeRequestHeaders[] = $headerName;
 				}
 				if ($methodCall->name->name === 'getParam') {
 					$name = $methodCall->args[0]->value->value;
@@ -352,11 +358,16 @@ class ControllerMethod {
 						$args[$attrName] = $arg->value->value;
 					}
 
-					if (array_key_exists($args['name'], $attributeRequestHeaders)) {
-						Logger::error($context, 'Request header "' . $args['name'] . '" already documented.');
+					$headerName = self::cleanHeaderName($args['name']);
+					if ($headerName !== $args['name']) {
+						Logger::error($context, 'Request header "' . $args['name'] . '" should be "' . $headerName . '".');
 					}
 
-					$attributeRequestHeaders[$args['name']] = $args['description'];
+					if (array_key_exists($headerName, $attributeRequestHeaders)) {
+						Logger::error($context, 'Request header "' . $headerName . '" already documented.');
+					}
+
+					$attributeRequestHeaders[$headerName] = $args['description'];
 				}
 			}
 		}
@@ -377,4 +388,7 @@ class ControllerMethod {
 		return new ControllerMethod($parameters, $attributeRequestHeaders, $responses, $responseDescriptions, $methodDescription, $methodSummary, $isDeprecated);
 	}
 
+	private static function cleanHeaderName(string $header): string {
+		return str_replace('_', '-', strtolower($header));
+	}
 }
