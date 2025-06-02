@@ -770,6 +770,8 @@ class SettingsController extends OCSController {
 		$this->request->getHeader('x-custom-header-3');
 		$this->request->getHeader('x-custom-header-4');
 		$this->request->getHeader('x-custom-header-5');
+		$this->request->getHeader('custom-header-6');
+		$this->request->getHeader('user-agent');
 
 		return new DataResponse();
 	}

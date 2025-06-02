@@ -26,6 +26,262 @@ use RuntimeException;
 class ControllerMethod {
 	private const STATUS_CODE_DESCRIPTION_PATTERN = '/^(\d{3}): (.+)$/';
 
+	// Generate the list using this command:
+	// curl https://www.iana.org/assignments/http-fields/field-names.csv | cut -d ',' -f 1 | tail -n +2 | head -n -1 | tr '[:upper:]' '[:lower:]' | grep -E '^[a-z]' | sed -e "s/^/'/g" | sed -e "s/$/',/g"
+	private const HTTP_STANDARD_HEADERS = [
+		'a-im',
+		'accept',
+		'accept-additions',
+		'accept-ch',
+		'accept-charset',
+		'accept-datetime',
+		'accept-encoding',
+		'accept-features',
+		'accept-language',
+		'accept-patch',
+		'accept-post',
+		'accept-ranges',
+		'accept-signature',
+		'access-control',
+		'access-control-allow-credentials',
+		'access-control-allow-headers',
+		'access-control-allow-methods',
+		'access-control-allow-origin',
+		'access-control-expose-headers',
+		'access-control-max-age',
+		'access-control-request-headers',
+		'access-control-request-method',
+		'activate-storage-access',
+		'age',
+		'allow',
+		'alpn',
+		'alt-svc',
+		'alt-used',
+		'alternates',
+		'amp-cache-transform',
+		'apply-to-redirect-ref',
+		'authentication-control',
+		'authentication-info',
+		'authorization',
+		'available-dictionary',
+		'c-ext',
+		'c-man',
+		'c-opt',
+		'c-pep',
+		'c-pep-info',
+		'cache-control',
+		'cache-group-invalidation',
+		'cache-groups',
+		'cache-status',
+		'cal-managed-id',
+		'caldav-timezones',
+		'capsule-protocol',
+		'cdn-cache-control',
+		'cdn-loop',
+		'cert-not-after',
+		'cert-not-before',
+		'clear-site-data',
+		'client-cert',
+		'client-cert-chain',
+		'close',
+		'cmcd-object',
+		'cmcd-request',
+		'cmcd-session',
+		'cmcd-status',
+		'cmsd-dynamic',
+		'cmsd-static',
+		'concealed-auth-export',
+		'configuration-context',
+		'connection',
+		'content-base',
+		'content-digest',
+		'content-disposition',
+		'content-encoding',
+		'content-id',
+		'content-language',
+		'content-length',
+		'content-location',
+		'content-md5',
+		'content-range',
+		'content-script-type',
+		'content-security-policy',
+		'content-security-policy-report-only',
+		'content-style-type',
+		'content-type',
+		'content-version',
+		'cookie',
+		'cookie2',
+		'cross-origin-embedder-policy',
+		'cross-origin-embedder-policy-report-only',
+		'cross-origin-opener-policy',
+		'cross-origin-opener-policy-report-only',
+		'cross-origin-resource-policy',
+		'cta-common-access-token',
+		'dasl',
+		'date',
+		'dav',
+		'default-style',
+		'delta-base',
+		'deprecation',
+		'depth',
+		'derived-from',
+		'destination',
+		'detached-jws',
+		'differential-id',
+		'dictionary-id',
+		'digest',
+		'dpop',
+		'dpop-nonce',
+		'early-data',
+		'ediint-features',
+		'etag',
+		'expect',
+		'expect-ct',
+		'expires',
+		'ext',
+		'forwarded',
+		'from',
+		'getprofile',
+		'hobareg',
+		'host',
+		'http2-settings',
+		'if',
+		'if-match',
+		'if-modified-since',
+		'if-none-match',
+		'if-range',
+		'if-schedule-tag-match',
+		'if-unmodified-since',
+		'im',
+		'include-referred-token-binding-id',
+		'isolation',
+		'keep-alive',
+		'label',
+		'last-event-id',
+		'last-modified',
+		'link',
+		'link-template',
+		'location',
+		'lock-token',
+		'man',
+		'max-forwards',
+		'memento-datetime',
+		'meter',
+		'method-check',
+		'method-check-expires',
+		'mime-version',
+		'negotiate',
+		'nel',
+		'odata-entityid',
+		'odata-isolation',
+		'odata-maxversion',
+		'odata-version',
+		'opt',
+		'optional-www-authenticate',
+		'ordering-type',
+		'origin',
+		'origin-agent-cluster',
+		'oscore',
+		'oslc-core-version',
+		'overwrite',
+		'p3p',
+		'pep',
+		'pep-info',
+		'permissions-policy',
+		'pics-label',
+		'ping-from',
+		'ping-to',
+		'position',
+		'pragma',
+		'prefer',
+		'preference-applied',
+		'priority',
+		'profileobject',
+		'protocol',
+		'protocol-info',
+		'protocol-query',
+		'protocol-request',
+		'proxy-authenticate',
+		'proxy-authentication-info',
+		'proxy-authorization',
+		'proxy-features',
+		'proxy-instruction',
+		'proxy-status',
+		'public',
+		'public-key-pins',
+		'public-key-pins-report-only',
+		'range',
+		'redirect-ref',
+		'referer',
+		'referer-root',
+		'referrer-policy',
+		'refresh',
+		'repeatability-client-id',
+		'repeatability-first-sent',
+		'repeatability-request-id',
+		'repeatability-result',
+		'replay-nonce',
+		'reporting-endpoints',
+		'repr-digest',
+		'retry-after',
+		'safe',
+		'schedule-reply',
+		'schedule-tag',
+		'sec-fetch-dest',
+		'sec-fetch-mode',
+		'sec-fetch-site',
+		'sec-fetch-storage-access',
+		'sec-fetch-user',
+		'sec-gpc',
+		'sec-purpose',
+		'sec-token-binding',
+		'sec-websocket-accept',
+		'sec-websocket-extensions',
+		'sec-websocket-key',
+		'sec-websocket-protocol',
+		'sec-websocket-version',
+		'security-scheme',
+		'server',
+		'server-timing',
+		'set-cookie',
+		'set-cookie2',
+		'setprofile',
+		'signature',
+		'signature-input',
+		'slug',
+		'soapaction',
+		'status-uri',
+		'strict-transport-security',
+		'sunset',
+		'surrogate-capability',
+		'surrogate-control',
+		'tcn',
+		'te',
+		'timeout',
+		'timing-allow-origin',
+		'topic',
+		'traceparent',
+		'tracestate',
+		'trailer',
+		'transfer-encoding',
+		'ttl',
+		'upgrade',
+		'urgency',
+		'uri',
+		'use-as-dictionary',
+		'user-agent',
+		'variant-vary',
+		'vary',
+		'via',
+		'want-content-digest',
+		'want-digest',
+		'want-repr-digest',
+		'warning',
+		'www-authenticate',
+		'x-content-type-options',
+		'x-frame-options',
+	];
+
 	/**
 	 * @param ControllerMethodParameter[] $parameters
 	 * @param array<string, string> $requestHeaders
@@ -80,13 +336,13 @@ class ControllerMethod {
 					$nodeDescription = (string)$docNode->value->description;
 				}
 
-				$nodeDescriptionLines = array_filter(explode("\n", $nodeDescription), static fn(string $line): bool => trim($line) !== '');
+				$nodeDescriptionLines = array_filter(explode("\n", $nodeDescription), static fn (string $line): bool => trim($line) !== '');
 
 				// Parse in blocks (separate by double newline) to preserve newlines within a block.
 				$nodeDescriptionBlocks = preg_split("/\n\s*\n/", $nodeDescription);
 				foreach ($nodeDescriptionBlocks as $nodeDescriptionBlock) {
 					$methodDescriptionBlockLines = [];
-					foreach (array_filter(explode("\n", $nodeDescriptionBlock), static fn(string $line): bool => trim($line) !== '') as $line) {
+					foreach (array_filter(explode("\n", $nodeDescriptionBlock), static fn (string $line): bool => trim($line) !== '') as $line) {
 						if (preg_match(self::STATUS_CODE_DESCRIPTION_PATTERN, $line)) {
 							$parts = preg_split(self::STATUS_CODE_DESCRIPTION_PATTERN, $line, -1, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY);
 							$responseDescriptions[(int)$parts[0]] = trim($parts[1]);
@@ -135,7 +391,7 @@ class ControllerMethod {
 								Logger::error($context, "Missing description for exception '" . $type . "'");
 							} else {
 								// Only add lines that don't match the status code pattern to the description
-								$responseDescriptions[$statusCode] = implode("\n", array_filter($nodeDescriptionLines, static fn(string $line): bool => in_array(preg_match(self::STATUS_CODE_DESCRIPTION_PATTERN, $line), [0, false], true)));
+								$responseDescriptions[$statusCode] = implode("\n", array_filter($nodeDescriptionLines, static fn (string $line): bool => in_array(preg_match(self::STATUS_CODE_DESCRIPTION_PATTERN, $line), [0, false], true)));
 							}
 
 							if (str_starts_with($type->name, 'OCS') && str_ends_with($type->name, 'Exception')) {
@@ -153,7 +409,7 @@ class ControllerMethod {
 			Logger::error($context, 'Missing @return annotation');
 		}
 
-		$responseStatusCodes = array_unique(array_map(static fn(ControllerMethodResponse $response): int => $response->statusCode, $responses));
+		$responseStatusCodes = array_unique(array_map(static fn (ControllerMethodResponse $response): int => $response->statusCode, $responses));
 		$unusedResponseDescriptions = array_diff(array_keys($responseDescriptions), $responseStatusCodes);
 		if ($unusedResponseDescriptions !== []) {
 			Logger::error($context, 'Unused descriptions for status codes ' . implode(', ', $unusedResponseDescriptions));
@@ -198,7 +454,7 @@ class ControllerMethod {
 				$description = '';
 			}
 			// Only keep lines that don't match the status code pattern in the description
-			$description = Helpers::cleanDocComment(implode("\n", array_filter(array_filter(explode("\n", $description), static fn(string $line): bool => trim($line) !== ''), static fn(string $line): bool => in_array(preg_match(self::STATUS_CODE_DESCRIPTION_PATTERN, $line), [0, false], true))));
+			$description = Helpers::cleanDocComment(implode("\n", array_filter(array_filter(explode("\n", $description), static fn (string $line): bool => trim($line) !== ''), static fn (string $line): bool => in_array(preg_match(self::STATUS_CODE_DESCRIPTION_PATTERN, $line), [0, false], true))));
 
 			if ($paramTag instanceof ParamTagValueNode && $psalmParamTag instanceof ParamTagValueNode) {
 				try {
@@ -307,6 +563,8 @@ class ControllerMethod {
 						Logger::error($context, 'Request header "' . $methodCall->args[0]->value->value . '" should be "' . $headerName . '".');
 					}
 
+					self::checkCustomHeaderName($context, $headerName);
+
 					$codeRequestHeaders[] = $headerName;
 				}
 				if ($methodCall->name->name === 'getParam') {
@@ -363,6 +621,8 @@ class ControllerMethod {
 						Logger::error($context, 'Request header "' . $args['name'] . '" should be "' . $headerName . '".');
 					}
 
+					self::checkCustomHeaderName($context, $headerName);
+
 					if (array_key_exists($headerName, $attributeRequestHeaders)) {
 						Logger::error($context, 'Request header "' . $headerName . '" already documented.');
 					}
@@ -390,5 +650,15 @@ class ControllerMethod {
 
 	private static function cleanHeaderName(string $header): string {
 		return str_replace('_', '-', strtolower($header));
+	}
+
+	private static function checkCustomHeaderName(string $context, string $header): void {
+		if (in_array($header, self::HTTP_STANDARD_HEADERS, true)) {
+			return;
+		}
+
+		if (!str_starts_with($header, 'x-')) {
+			Logger::warning($context, 'Request header "' . $header . '" should start with "x-" to denote a custom header.');
+		}
 	}
 }
