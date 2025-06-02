@@ -760,16 +760,18 @@ class SettingsController extends OCSController {
 	 *
 	 * 200: Admin settings updated
 	 */
-	#[RequestHeader('X-Custom-Header-1', 'A custom header 1')]
-	#[RequestHeader('X-Custom-Header-2', description: 'A custom header 2')]
-	#[RequestHeader(name: 'X-Custom-Header-3', description: 'A custom header 3')]
-	#[RequestHeader(description: 'A custom header 4', name: 'X-Custom-Header-4')]
+	#[RequestHeader('x-custom-header-1', 'A custom header 1')]
+	#[RequestHeader('x-custom-header-2', description: 'A custom header 2')]
+	#[RequestHeader(name: 'x-custom-header-3', description: 'A custom header 3')]
+	#[RequestHeader(description: 'A custom header 4', name: 'x-custom-header-4')]
 	public function requestHeader(): DataResponse {
-		$this->request->getHeader('X-Custom-Header-1');
-		$this->request->getHeader('X-Custom-Header-2');
-		$this->request->getHeader('X-Custom-Header-3');
-		$this->request->getHeader('X-Custom-Header-4');
-		$this->request->getHeader('X-Custom-Header-5');
+		$this->request->getHeader('x-custom-header-1');
+		$this->request->getHeader('x-custom-header-2');
+		$this->request->getHeader('x-custom-header-3');
+		$this->request->getHeader('x-custom-header-4');
+		$this->request->getHeader('x-custom-header-5');
+		$this->request->getHeader('custom-header-6');
+		$this->request->getHeader('user-agent');
 
 		return new DataResponse();
 	}
