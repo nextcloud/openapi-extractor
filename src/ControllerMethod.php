@@ -610,10 +610,16 @@ class ControllerMethod {
 							$attrName = match ($key) {
 								0 => 'name',
 								1 => 'description',
+								2 => 'indirect',
 								default => throw new RuntimeException('Should not happen.'),
 							};
 						}
-						$args[$attrName] = $arg->value->value;
+
+						$args[$attrName] = match ($attrName) {
+							'name', 'description' => $arg->value->value,
+							'indirect' => $arg->value->name->name === 'true',
+							default => throw new RuntimeException('Should not happen.'),
+						};
 					}
 
 					$headerName = self::cleanHeaderName($args['name']);
@@ -628,6 +634,9 @@ class ControllerMethod {
 					}
 
 					$attributeRequestHeaders[$headerName] = $args['description'];
+					if ($args['indirect'] ?? false) {
+						$codeRequestHeaders[] = $headerName;
+					}
 				}
 			}
 		}
