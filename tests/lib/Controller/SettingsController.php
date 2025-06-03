@@ -764,6 +764,7 @@ class SettingsController extends OCSController {
 	#[RequestHeader('x-custom-header-2', description: 'A custom header 2')]
 	#[RequestHeader(name: 'x-custom-header-3', description: 'A custom header 3')]
 	#[RequestHeader(description: 'A custom header 4', name: 'x-custom-header-4')]
+	#[RequestHeader('x-custom-header-7', 'A custom header 7', true)]
 	public function requestHeader(): DataResponse {
 		$this->request->getHeader('x-custom-header-1');
 		$this->request->getHeader('x-custom-header-2');

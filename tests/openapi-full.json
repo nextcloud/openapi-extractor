@@ -5661,6 +5661,14 @@
                         }
                     },
                     {
+                        "name": "x-custom-header-7",
+                        "in": "header",
+                        "description": "A custom header 7",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
                         "name": "x-custom-header-5",
                         "in": "header",
                         "schema": {
