@@ -265,6 +265,13 @@ class OpenApiType {
 
 		if ($node instanceof NullableTypeNode || $node instanceof NullableType) {
 			$type = self::resolve($context, $definitions, $node->type);
+			if ($type->ref !== null) {
+				// https://github.com/OAI/OpenAPI-Specification/issues/1368#issuecomment-354037150
+				$type = new OpenApiType(
+					$context,
+					allOf: [$type],
+				);
+			}
 			$type->nullable = true;
 			return $type;
 		}
@@ -336,6 +343,13 @@ class OpenApiType {
 
 			if (count($items) == 1) {
 				$type = $items[0];
+				if ($type->ref !== null) {
+					// https://github.com/OAI/OpenAPI-Specification/issues/1368#issuecomment-354037150
+					$type = new OpenApiType(
+						$context,
+						allOf: [$type],
+					);
+				}
 				$type->nullable = $nullable;
 				return $type;
 			}
