@@ -63,6 +63,9 @@ namespace OCA\Notifications;
  *     // A comment.
  *     // Another comment.
  *     multipleComments: string,
+ *     ref1: ?NotificationsPushDevice,
+ *     ref2: null|NotificationsPushDevice,
+ *     ref3: string|null|NotificationsPushDevice,
  * }
  */
 class ResponseDefinitions {

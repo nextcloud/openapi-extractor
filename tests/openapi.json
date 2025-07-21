@@ -218,12 +218,48 @@
                     }
                 }
             },
+            "PushDevice": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/PushDeviceBase"
+                    },
+                    {
+                        "type": "object",
+                        "required": [
+                            "publicKey",
+                            "signature"
+                        ],
+                        "properties": {
+                            "publicKey": {
+                                "type": "string"
+                            },
+                            "signature": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                ]
+            },
+            "PushDeviceBase": {
+                "type": "object",
+                "required": [
+                    "deviceIdentifier"
+                ],
+                "properties": {
+                    "deviceIdentifier": {
+                        "type": "string"
+                    }
+                }
+            },
             "RequestProperty": {
                 "type": "object",
                 "required": [
                     "publicKey",
                     "signature",
-                    "multipleComments"
+                    "multipleComments",
+                    "ref1",
+                    "ref2",
+                    "ref3"
                 ],
                 "properties": {
                     "publicKey": {
@@ -237,6 +273,33 @@
                     "multipleComments": {
                         "type": "string",
                         "description": "A comment. Another comment."
+                    },
+                    "ref1": {
+                        "nullable": true,
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/PushDevice"
+                            }
+                        ]
+                    },
+                    "ref2": {
+                        "nullable": true,
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/PushDevice"
+                            }
+                        ]
+                    },
+                    "ref3": {
+                        "nullable": true,
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "$ref": "#/components/schemas/PushDevice"
+                            }
+                        ]
                     }
                 }
             }
