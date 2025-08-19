@@ -350,13 +350,13 @@ class ControllerMethod {
 							$methodDescriptionBlockLines[] = $line;
 						} elseif (
 							$docNode instanceof PhpDocTagNode && (
-								$docNode->value instanceof ParamTagValueNode ||
-								$docNode->value instanceof ThrowsTagValueNode ||
-								$docNode->value instanceof DeprecatedTagValueNode ||
-								$docNode->name === '@license' ||
-								$docNode->name === '@since' ||
-								$docNode->name === '@psalm-suppress' ||
-								$docNode->name === '@suppress'
+								$docNode->value instanceof ParamTagValueNode
+								|| $docNode->value instanceof ThrowsTagValueNode
+								|| $docNode->value instanceof DeprecatedTagValueNode
+								|| $docNode->name === '@license'
+								|| $docNode->name === '@since'
+								|| $docNode->name === '@psalm-suppress'
+								|| $docNode->name === '@suppress'
 							)) {
 							// Only add lines from other node types, as these have special handling (e.g. @param or @throws) or should be ignored entirely (e.g. @deprecated or @license).
 							continue;
@@ -552,10 +552,10 @@ class ControllerMethod {
 
 		$codeRequestHeaders = [];
 		foreach ($nodeFinder->findInstanceOf($method->getStmts(), MethodCall::class) as $methodCall) {
-			if ($methodCall->var instanceof PropertyFetch &&
-				$methodCall->var->var instanceof Variable &&
-				$methodCall->var->var->name === 'this' &&
-				$methodCall->var->name->name === 'request') {
+			if ($methodCall->var instanceof PropertyFetch
+				&& $methodCall->var->var instanceof Variable
+				&& $methodCall->var->var->name === 'this'
+				&& $methodCall->var->name->name === 'request') {
 				if ($methodCall->name->name === 'getHeader') {
 					$headerName = self::cleanHeaderName($methodCall->args[0]->value->value);
 
