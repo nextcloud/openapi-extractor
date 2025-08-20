@@ -15,6 +15,7 @@ use OCP\AppFramework\Http\Attribute\CORS;
 use OCP\AppFramework\Http\Attribute\IgnoreOpenAPI;
 use OCP\AppFramework\Http\Attribute\OpenAPI;
 use OCP\AppFramework\Http\Attribute\PasswordConfirmationRequired;
+use OCP\AppFramework\Http\Attribute\PublicPage;
 use OCP\AppFramework\Http\Attribute\RequestHeader;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\AppFramework\OCS\OCSNotFoundException;
@@ -788,6 +789,30 @@ class SettingsController extends OCSController {
 		$this->request->getParam('some-param');
 		$this->request->getParam('some-param-with-explicit-default-value', 'abc');
 
+		return new DataResponse();
+	}
+
+	/**
+	 * A public page with annotation.
+	 *
+	 * @PublicPage
+	 * @return DataResponse<Http::STATUS_OK, list<empty>, array{}>
+	 *
+	 * 200: Admin settings updated
+	 */
+	public function publicPageAnnotation(): DataResponse {
+		return new DataResponse();
+	}
+
+	/**
+	 * A public page with attribute.
+	 *
+	 * @return DataResponse<Http::STATUS_OK, list<empty>, array{}>
+	 *
+	 * 200: Admin settings updated
+	 */
+	#[PublicPage]
+	public function publicPageAttribute(): DataResponse {
 		return new DataResponse();
 	}
 }

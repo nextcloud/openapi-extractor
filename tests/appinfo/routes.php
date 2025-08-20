@@ -88,6 +88,8 @@ return [
 		['name' => 'Settings#samePathPost', 'url' => '/api/{apiVersion}/same-path', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
 		['name' => 'Settings#requestHeader', 'url' => '/api/{apiVersion}/request-header', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
 		['name' => 'Settings#requestParams', 'url' => '/api/{apiVersion}/request-params', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
+		['name' => 'Settings#publicPageAnnotation', 'url' => '/api/{apiVersion}/public-page/annotation', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
+		['name' => 'Settings#publicPageAttribute', 'url' => '/api/{apiVersion}/public-page/attribute', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
 		['name' => 'V1\SubDir#subDirRoute', 'url' => '/sub-dir', 'verb' => 'GET'],
 	],
 ];
