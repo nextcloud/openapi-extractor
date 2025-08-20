@@ -13,6 +13,7 @@ use OCA\Notifications\ResponseDefinitions;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\CORS;
 use OCP\AppFramework\Http\Attribute\IgnoreOpenAPI;
+use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\Attribute\OpenAPI;
 use OCP\AppFramework\Http\Attribute\PasswordConfirmationRequired;
 use OCP\AppFramework\Http\Attribute\PublicPage;
@@ -825,6 +826,29 @@ class SettingsController extends OCSController {
 	 * 200: Admin settings updated
 	 */
 	public function mergedResponses(): DataResponse|JSONResponse {
+		return new DataResponse();
+	}
+
+	/**
+	 * A page with a custom 401.
+	 *
+	 * @return DataResponse<Http::STATUS_UNAUTHORIZED, array{a: string}, array{}>
+	 *
+	 * 401: Admin settings updated
+	 */
+	#[NoAdminRequired]
+	public function custom401(): DataResponse {
+		return new DataResponse();
+	}
+
+	/**
+	 * A page with a custom 403.
+	 *
+	 * @return DataResponse<Http::STATUS_FORBIDDEN, array{a: string}, array{}>
+	 *
+	 * 403: Admin settings updated
+	 */
+	public function custom403(): DataResponse {
 		return new DataResponse();
 	}
 }

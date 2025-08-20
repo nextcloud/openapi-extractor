@@ -466,7 +466,6 @@ foreach ($parsedRoutes as $key => $value) {
 		$isIgnored = Helpers::classMethodHasAnnotationOrAttribute($methodFunction, 'IgnoreOpenAPI');
 		$isPasswordConfirmation = Helpers::classMethodHasAnnotationOrAttribute($methodFunction, 'PasswordConfirmationRequired');
 		$isExApp = Helpers::classMethodHasAnnotationOrAttribute($methodFunction, 'ExAppRequired');
-		$isCORS = Helpers::classMethodHasAnnotationOrAttribute($methodFunction, 'CORS');
 		$scopes = Helpers::getOpenAPIAttributeScopes($classMethod, $routeName);
 
 		if ($isIgnored) {
@@ -520,7 +519,7 @@ foreach ($parsedRoutes as $key => $value) {
 			];
 		}
 
-		$classMethodInfo = ControllerMethod::parse($routeName, $definitions, $methodFunction, $isAdmin, $isDeprecated, $isPasswordConfirmation, $isCORS);
+		$classMethodInfo = ControllerMethod::parse($routeName, $definitions, $methodFunction, $isPublic, $isAdmin, $isDeprecated, $isPasswordConfirmation, $isCORS, $isOCS);
 		if (count($classMethodInfo->responses) == 0) {
 			Logger::error($routeName, 'Returns no responses');
 			continue;

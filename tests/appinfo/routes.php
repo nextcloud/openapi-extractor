@@ -91,6 +91,8 @@ return [
 		['name' => 'Settings#publicPageAnnotation', 'url' => '/api/{apiVersion}/public-page/annotation', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
 		['name' => 'Settings#publicPageAttribute', 'url' => '/api/{apiVersion}/public-page/attribute', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
 		['name' => 'Settings#mergedResponses', 'url' => '/api/{apiVersion}/merged-responses', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
+		['name' => 'Settings#custom401', 'url' => '/api/{apiVersion}/custom/401', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
+		['name' => 'Settings#custom403', 'url' => '/api/{apiVersion}/custom/403', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
 		['name' => 'V1\SubDir#subDirRoute', 'url' => '/sub-dir', 'verb' => 'GET'],
 	],
 ];
