@@ -269,6 +269,7 @@ if (file_exists($controllersDir)) {
 	}
 }
 
+/** @var array<string, list<Route>> $routes */
 $routes = [];
 foreach ($controllers as $controllerName => $stmts) {
 	$controllerClass = null;
