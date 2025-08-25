@@ -725,10 +725,11 @@ foreach ($routes as $scope => $scopeRoutes) {
 				} else {
 					$mergedContentTypeResponses[$contentType] = [
 						'schema' => [
-							[$hasEmpty ? 'anyOf' : 'oneOf' => array_map(function (ControllerMethodResponse $response) use ($route): \stdClass|array {
+							// At least one should match, but it's possible that multiple match, so oneOf can't be used.
+							'anyOf' => array_map(function (ControllerMethodResponse $response) use ($route): stdClass|array {
 								$schema = Helpers::cleanEmptyResponseArray($response->type->toArray());
 								return Helpers::wrapOCSResponse($route, $response, $schema);
-							}, $uniqueResponses)],
+							}, $uniqueResponses),
 						],
 					];
 				}

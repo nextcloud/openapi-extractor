@@ -18,6 +18,7 @@ use OCP\AppFramework\Http\Attribute\PasswordConfirmationRequired;
 use OCP\AppFramework\Http\Attribute\PublicPage;
 use OCP\AppFramework\Http\Attribute\RequestHeader;
 use OCP\AppFramework\Http\DataResponse;
+use OCP\AppFramework\Http\JSONResponse;
 use OCP\AppFramework\OCS\OCSNotFoundException;
 use OCP\AppFramework\OCSController;
 
@@ -813,6 +814,17 @@ class SettingsController extends OCSController {
 	 */
 	#[PublicPage]
 	public function publicPageAttribute(): DataResponse {
+		return new DataResponse();
+	}
+
+	/**
+	 * A with merged responses.
+	 *
+	 * @return DataResponse<Http::STATUS_OK, array{a: string}, array{}>|JSONResponse<Http::STATUS_OK, array{b: int}, array{}>
+	 *
+	 * 200: Admin settings updated
+	 */
+	public function mergedResponses(): DataResponse|JSONResponse {
 		return new DataResponse();
 	}
 }
