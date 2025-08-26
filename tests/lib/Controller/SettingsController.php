@@ -13,10 +13,13 @@ use OCA\Notifications\ResponseDefinitions;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\CORS;
 use OCP\AppFramework\Http\Attribute\IgnoreOpenAPI;
+use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\Attribute\OpenAPI;
 use OCP\AppFramework\Http\Attribute\PasswordConfirmationRequired;
+use OCP\AppFramework\Http\Attribute\PublicPage;
 use OCP\AppFramework\Http\Attribute\RequestHeader;
 use OCP\AppFramework\Http\DataResponse;
+use OCP\AppFramework\Http\JSONResponse;
 use OCP\AppFramework\OCS\OCSNotFoundException;
 use OCP\AppFramework\OCSController;
 
@@ -788,6 +791,64 @@ class SettingsController extends OCSController {
 		$this->request->getParam('some-param');
 		$this->request->getParam('some-param-with-explicit-default-value', 'abc');
 
+		return new DataResponse();
+	}
+
+	/**
+	 * A public page with annotation.
+	 *
+	 * @PublicPage
+	 * @return DataResponse<Http::STATUS_OK, list<empty>, array{}>
+	 *
+	 * 200: Admin settings updated
+	 */
+	public function publicPageAnnotation(): DataResponse {
+		return new DataResponse();
+	}
+
+	/**
+	 * A public page with attribute.
+	 *
+	 * @return DataResponse<Http::STATUS_OK, list<empty>, array{}>
+	 *
+	 * 200: Admin settings updated
+	 */
+	#[PublicPage]
+	public function publicPageAttribute(): DataResponse {
+		return new DataResponse();
+	}
+
+	/**
+	 * A with merged responses.
+	 *
+	 * @return DataResponse<Http::STATUS_OK, array{a: string}, array{}>|JSONResponse<Http::STATUS_OK, array{b: int}, array{}>
+	 *
+	 * 200: Admin settings updated
+	 */
+	public function mergedResponses(): DataResponse|JSONResponse {
+		return new DataResponse();
+	}
+
+	/**
+	 * A page with a custom 401.
+	 *
+	 * @return DataResponse<Http::STATUS_UNAUTHORIZED, array{a: string}, array{}>
+	 *
+	 * 401: Admin settings updated
+	 */
+	#[NoAdminRequired]
+	public function custom401(): DataResponse {
+		return new DataResponse();
+	}
+
+	/**
+	 * A page with a custom 403.
+	 *
+	 * @return DataResponse<Http::STATUS_FORBIDDEN, array{a: string}, array{}>
+	 *
+	 * 403: Admin settings updated
+	 */
+	public function custom403(): DataResponse {
 		return new DataResponse();
 	}
 }

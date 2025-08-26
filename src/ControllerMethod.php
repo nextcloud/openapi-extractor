@@ -304,10 +304,12 @@ class ControllerMethod {
 	public static function parse(string $context,
 		array $definitions,
 		ClassMethod $method,
+		bool $isPublic,
 		bool $isAdmin,
 		bool $isDeprecated,
 		bool $isPasswordConfirmation,
 		bool $isCORS,
+		bool $isOCS,
 	): ControllerMethod {
 		global $phpDocParser, $lexer, $nodeFinder, $allowMissingDocs;
 
@@ -407,6 +409,46 @@ class ControllerMethod {
 
 		if ($returnStmtCount !== 0 && $returnTagCount === 0) {
 			Logger::error($context, 'Missing @return annotation');
+		}
+
+		if (!$isPublic || $isAdmin) {
+			$statusCodes = [];
+			if (!$isPublic) {
+				$responseDescriptions[401] ??= 'Current user is not logged in';
+				$statusCodes[] = 401;
+			}
+			if ($isAdmin) {
+				$responseDescriptions[403] ??= 'Logged in account must be an admin';
+				$statusCodes[] = 403;
+			}
+
+			foreach ($statusCodes as $statusCode) {
+				if ($isOCS) {
+					$responses[] = new ControllerMethodResponse(
+						'DataResponse',
+						$statusCode,
+						'application/json',
+						new OpenApiType($context),
+					);
+				} else {
+					$responses[] = new ControllerMethodResponse(
+						'JsonResponse',
+						$statusCode,
+						'application/json',
+						new OpenApiType(
+							$context,
+							type: 'object',
+							properties: [
+								'message' => new OpenApiType(
+									$context,
+									type: 'string',
+								),
+							],
+							required: ['message'],
+						),
+					);
+				}
+			}
 		}
 
 		$responseStatusCodes = array_unique(array_map(static fn (ControllerMethodResponse $response): int => $response->statusCode, $responses));
