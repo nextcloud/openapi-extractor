@@ -7656,11 +7656,7 @@
                         "description": "Not deprecated",
                         "required": true,
                         "schema": {
-                            "type": "integer",
-                            "enum": [
-                                0,
-                                1
-                            ]
+                            "type": "boolean"
                         }
                     },
                     {
@@ -7950,11 +7946,7 @@
                         "description": "Not deprecated",
                         "required": true,
                         "schema": {
-                            "type": "integer",
-                            "enum": [
-                                0,
-                                1
-                            ]
+                            "type": "boolean"
                         }
                     },
                     {
@@ -7964,11 +7956,8 @@
                         "required": true,
                         "deprecated": true,
                         "schema": {
-                            "type": "integer",
-                            "enum": [
-                                0,
-                                1
-                            ]
+                            "type": "boolean",
+                            "deprecated": true
                         }
                     },
                     {
@@ -8260,11 +8249,7 @@
                         "description": "Not deprecated",
                         "required": true,
                         "schema": {
-                            "type": "integer",
-                            "enum": [
-                                0,
-                                1
-                            ]
+                            "type": "boolean"
                         }
                     },
                     {
@@ -8274,11 +8259,8 @@
                         "required": true,
                         "deprecated": true,
                         "schema": {
-                            "type": "integer",
-                            "enum": [
-                                0,
-                                1
-                            ]
+                            "type": "boolean",
+                            "deprecated": true
                         }
                     },
                     {
