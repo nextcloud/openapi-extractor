@@ -64,18 +64,6 @@ class OpenApiType {
 
 	public function toArray(bool $isParameter = false): array|stdClass {
 		if ($isParameter) {
-			if ($this->type === 'boolean') {
-				return (new OpenApiType(
-					context: $this->context,
-					type: 'integer',
-					nullable: $this->nullable,
-					hasDefaultValue: $this->hasDefaultValue,
-					defaultValue: $this->hasDefaultValue ? ($this->defaultValue === true ? 1 : 0) : (null),
-					description: $this->description,
-					enum: [0, 1],
-				))->toArray($isParameter);
-			}
-
 			if ($this->type === 'object' || $this->ref !== null || $this->anyOf !== null || $this->allOf !== null) {
 				Logger::warning($this->context, 'Complex types can not be part of query or URL parameters. Falling back to string due to undefined serialization!');
 
