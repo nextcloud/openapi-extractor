@@ -17,7 +17,7 @@ class ReturnArraysController extends OCSController {
 	/**
 	 * Route with array using string keys
 	 *
-	 * @return DataResponse<Http::STATUS_OK, array<string, mixed>, array{}>
+	 * @return DataResponse<Http::STATUS_OK, non-empty-array<string, mixed>|\stdClass, array{}>
 	 *
 	 * 200: OK
 	 */
@@ -28,7 +28,7 @@ class ReturnArraysController extends OCSController {
 	/**
 	 * Route with array using non-empty-string keys
 	 *
-	 * @return DataResponse<Http::STATUS_OK, array<non-empty-string, mixed>, array{}>
+	 * @return DataResponse<Http::STATUS_OK, non-empty-array<non-empty-string, mixed>|\stdClass, array{}>
 	 *
 	 * 200: OK
 	 */
@@ -39,7 +39,7 @@ class ReturnArraysController extends OCSController {
 	/**
 	 * Route with array using lowercase-string keys
 	 *
-	 * @return DataResponse<Http::STATUS_OK, array<lowercase-string, mixed>, array{}>
+	 * @return DataResponse<Http::STATUS_OK, non-empty-array<lowercase-string, mixed>|\stdClass, array{}>
 	 *
 	 * 200: OK
 	 */
@@ -50,7 +50,7 @@ class ReturnArraysController extends OCSController {
 	/**
 	 * Route with array using non-empty-lowercase-string keys
 	 *
-	 * @return DataResponse<Http::STATUS_OK, array<non-empty-lowercase-string, mixed>, array{}>
+	 * @return DataResponse<Http::STATUS_OK, non-empty-array<non-empty-lowercase-string, mixed>|\stdClass, array{}>
 	 *
 	 * 200: OK
 	 */
