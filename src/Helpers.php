@@ -45,11 +45,16 @@ class Helpers {
 	public static function license(string $openapiVersion, string $license): array {
 		$identifier = match ($license) {
 			'agpl' => 'AGPL-3.0-only',
+			'mit' => 'MIT',
+			'mpl' => 'MPL-2.0',
+			'apache' => 'Apache-2.0',
+			'gpl3' => 'GPL-3.0-only',
+			'AGPL-3.0-only', 'AGPL-3.0-or-later', 'Apache-2.0', 'GPL-3.0-only', 'GPL-3.0-or-later', 'MIT', 'MPL-2.0' => $license,
 			default => Logger::panic('license', 'Unable to convert ' . $license . ' to SPDX identifier'),
 		};
 
 		$out = [
-			'name' => 'agpl',
+			'name' => $license,
 		];
 		if (version_compare($openapiVersion, '3.1.0', '>=')) {
 			$out['identifier'] = $identifier;
