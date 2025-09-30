@@ -52,7 +52,8 @@
                     "label",
                     "link",
                     "type",
-                    "primary"
+                    "primary",
+                    "class"
                 ],
                 "properties": {
                     "label": {
@@ -66,6 +67,10 @@
                     },
                     "primary": {
                         "type": "boolean"
+                    },
+                    "class": {
+                        "type": "string",
+                        "minLength": 1
                     }
                 }
             },

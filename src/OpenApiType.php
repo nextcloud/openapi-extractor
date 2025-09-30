@@ -397,6 +397,14 @@ class OpenApiType {
 			);
 		}
 
+		if ($node instanceof GenericTypeNode && $node->type->name === 'class-string') {
+			return new OpenApiType(
+				context: $context,
+				type: 'string',
+				minLength: 1,
+			);
+		}
+
 		if ($node instanceof ConstTypeNode) {
 			Logger::panic($context, 'Constants are not supported');
 		}
