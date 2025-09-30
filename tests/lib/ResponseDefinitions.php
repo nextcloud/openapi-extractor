@@ -18,6 +18,7 @@ use OCA\Notifications\Controller\AdminSettingsController;
  *     type: string,
  *     primary: bool,
  *     class: class-string<AdminSettingsController>,
+ *     arrayClass: array<class-string<AdminSettingsController>, int>,
  * }
  *
  * @psalm-type NotificationsCollection = list<NotificationsItem>

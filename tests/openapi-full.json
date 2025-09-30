@@ -53,7 +53,8 @@
                     "link",
                     "type",
                     "primary",
-                    "class"
+                    "class",
+                    "arrayClass"
                 ],
                 "properties": {
                     "label": {
@@ -71,6 +72,13 @@
                     "class": {
                         "type": "string",
                         "minLength": 1
+                    },
+                    "arrayClass": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "integer",
+                            "format": "int64"
+                        }
                     }
                 }
             },
