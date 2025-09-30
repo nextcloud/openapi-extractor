@@ -9,12 +9,15 @@ declare(strict_types=1);
 
 namespace OCA\Notifications;
 
+use OCA\Notifications\Controller\AdminSettingsController;
+
 /**
  * @psalm-type NotificationsItem = array{
  *     label: string,
  *     link: string,
  *     type: string,
  *     primary: bool,
+ *     class: class-string<AdminSettingsController>,
  * }
  *
  * @psalm-type NotificationsCollection = list<NotificationsItem>
