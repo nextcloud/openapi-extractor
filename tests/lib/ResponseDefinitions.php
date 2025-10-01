@@ -70,6 +70,10 @@ use OCA\Notifications\Controller\AdminSettingsController;
  *     ref2: null|NotificationsPushDevice,
  *     ref3: string|null|NotificationsPushDevice,
  * }
+ *
+ * @psalm-type NotificationsSchemaOnlyInCapabilities = array{
+ *     key: string,
+ * }
  */
 class ResponseDefinitions {
 }

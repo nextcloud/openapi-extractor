@@ -29,12 +29,16 @@
                     "test": {
                         "type": "object",
                         "required": [
-                            "a"
+                            "a",
+                            "b"
                         ],
                         "properties": {
                             "a": {
                                 "type": "integer",
                                 "format": "int64"
+                            },
+                            "b": {
+                                "$ref": "#/components/schemas/SchemaOnlyInCapabilities"
                             }
                         }
                     }
@@ -80,6 +84,17 @@
                                 "type": "string"
                             }
                         }
+                    }
+                }
+            },
+            "SchemaOnlyInCapabilities": {
+                "type": "object",
+                "required": [
+                    "key"
+                ],
+                "properties": {
+                    "key": {
+                        "type": "string"
                     }
                 }
             }

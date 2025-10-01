@@ -1014,9 +1014,15 @@ foreach ($scopePaths as $scope => $paths) {
 			}
 		}
 
-		$usedRefs = array_merge(...$usedRefs);
-
 		$scopedSchemas = [];
+		foreach (['Capabilities', 'PublicCapabilities'] as $class) {
+			if (isset($schemas[$class])) {
+				$scopedSchemas[$class] = $schemas[$class];
+				$usedRefs[] = Helpers::collectUsedRefs($schemas[$class]);
+			}
+		}
+
+		$usedRefs = array_merge(...$usedRefs);
 		while ($usedRef = array_shift($usedRefs)) {
 			if (!str_starts_with((string)$usedRef, '#/components/schemas/')) {
 				continue;
@@ -1037,13 +1043,6 @@ foreach ($scopePaths as $scope => $paths) {
 
 			$scopedSchemas[$schemaName] = $schemas[$schemaName];
 			$usedSchemas[] = $schemaName;
-		}
-
-		if (isset($schemas['Capabilities'])) {
-			$scopedSchemas['Capabilities'] = $schemas['Capabilities'];
-		}
-		if (isset($schemas['PublicCapabilities'])) {
-			$scopedSchemas['PublicCapabilities'] = $schemas['PublicCapabilities'];
 		}
 
 		if ($scopedSchemas === []) {
