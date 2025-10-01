@@ -101,7 +101,7 @@ class OpenApiType {
 		if ($this->description !== null && $this->description !== '' && !$isParameter) {
 			$values['description'] = Helpers::cleanDocComment($this->description);
 		}
-		if ($this->items instanceof \OpenAPIExtractor\OpenApiType) {
+		if ($this->items instanceof OpenApiType) {
 			$values['items'] = $this->items->toArray();
 		}
 		if ($this->minLength !== null) {
@@ -127,7 +127,7 @@ class OpenApiType {
 		}
 		if ($this->properties !== null && $this->properties !== []) {
 			$values['properties'] = array_combine(array_keys($this->properties),
-				array_map(static fn (OpenApiType $property): array|\stdClass => $property->toArray(), array_values($this->properties)),
+				array_map(static fn (OpenApiType $property): array|stdClass => $property->toArray(), array_values($this->properties)),
 			);
 		}
 		if ($this->additionalProperties !== null) {
@@ -138,13 +138,13 @@ class OpenApiType {
 			}
 		}
 		if ($this->oneOf !== null) {
-			$values['oneOf'] = array_map(fn (OpenApiType $type): array|\stdClass => $type->toArray(), $this->oneOf);
+			$values['oneOf'] = array_map(fn (OpenApiType $type): array|stdClass => $type->toArray(), $this->oneOf);
 		}
 		if ($this->anyOf !== null) {
-			$values['anyOf'] = array_map(fn (OpenApiType $type): array|\stdClass => $type->toArray(), $this->anyOf);
+			$values['anyOf'] = array_map(fn (OpenApiType $type): array|stdClass => $type->toArray(), $this->anyOf);
 		}
 		if ($this->allOf !== null) {
-			$values['allOf'] = array_map(fn (OpenApiType $type): array|\stdClass => $type->toArray(), $this->allOf);
+			$values['allOf'] = array_map(fn (OpenApiType $type): array|stdClass => $type->toArray(), $this->allOf);
 		}
 
 		return $values !== [] ? $values : new stdClass();
@@ -172,9 +172,9 @@ class OpenApiType {
 				items: self::resolve($context . ': items', $definitions, $node->type),
 			);
 		}
-		if ($node instanceof GenericTypeNode && ($node->type->name === 'array' || $node->type->name === 'list' || $node->type->name === 'non-empty-list') && count($node->genericTypes) === 1) {
-			if ($node->type->name === 'array') {
-				Logger::error($context, "The 'array<TYPE>' syntax for arrays is forbidden due to ambiguities. Use 'list<TYPE>' for JSON arrays or 'array<string, TYPE>' for JSON objects instead.");
+		if ($node instanceof GenericTypeNode && ($node->type->name === 'array' || $node->type->name === 'non-empty-array' || $node->type->name === 'list' || $node->type->name === 'non-empty-list') && count($node->genericTypes) === 1) {
+			if ($node->type->name === 'array' || $node->type->name === 'non-empty-array') {
+				Logger::error($context, "The 'array<TYPE>' and 'non-empty-array<TYPE>' syntax for arrays is forbidden due to ambiguities. Use 'list<TYPE>' for JSON arrays or 'non-empty-array<string, TYPE>' for JSON objects instead.");
 			}
 
 			if ($node->genericTypes[0] instanceof IdentifierTypeNode && $node->genericTypes[0]->name === 'empty') {
@@ -220,7 +220,11 @@ class OpenApiType {
 			);
 		}
 
-		if ($node instanceof GenericTypeNode && $node->type->name === 'array' && count($node->genericTypes) === 2 && $node->genericTypes[0] instanceof IdentifierTypeNode) {
+		if ($node instanceof GenericTypeNode && in_array($node->type->name, ['array', 'non-empty-array']) && count($node->genericTypes) === 2 && $node->genericTypes[0] instanceof IdentifierTypeNode) {
+			if ($node->type->name !== 'non-empty-array') {
+				Logger::error($context, 'You must ensure JSON objects are not empty using the "non-empty-array" type. To allow return empty JSON objects your code must manually check if the array is empty in order to return "new \\stdClass()" and use "non-empty-array|\\stdClass" as the type.');
+			}
+
 			$allowedTypes = ['string', 'lowercase-string', 'non-empty-string', 'non-empty-lowercase-string'];
 			if (in_array($node->genericTypes[0]->name, $allowedTypes, true)) {
 				return new OpenApiType(
@@ -438,7 +442,7 @@ class OpenApiType {
 			}
 		}
 
-		return array_merge($nonEnums, array_map(static fn (string $type): \OpenAPIExtractor\OpenApiType => new OpenApiType(
+		return array_merge($nonEnums, array_map(static fn (string $type): OpenApiType => new OpenApiType(
 			context: $context,
 			type: $type, enum: $enums[$type],
 		), array_keys($enums)));
@@ -446,7 +450,7 @@ class OpenApiType {
 
 	private static function resolveIdentifier(string $context, array $definitions, string $name): OpenApiType {
 		if ($name === 'array') {
-			Logger::error($context, "Instead of 'array' use:\n'new stdClass()' for empty objects\n'array<string, mixed>' for non-empty objects\n'array<emtpy>' for empty lists\n'array<YourTypeHere>' for lists");
+			Logger::error($context, "Instead of 'array' use:\n'new stdClass()' for empty objects\n'non-empty-array<string, mixed>' for non-empty objects\n'list<emtpy>' for empty lists\n'list<YourTypeHere>' for lists");
 		}
 		if (str_starts_with($name, '\\')) {
 			$name = substr($name, 1);
@@ -465,7 +469,7 @@ class OpenApiType {
 			'numeric' => new OpenApiType(context: $context, type: 'number'),
 			// https://www.php.net/manual/en/language.types.float.php: Both float and double are always stored with double precision
 			'float', 'double' => new OpenApiType(context: $context, type: 'number', format: 'double'),
-			'mixed', 'empty', 'array' => new OpenApiType(context: $context, type: 'object'),
+			'mixed', 'empty' => new OpenApiType(context: $context, type: 'object'),
 			'object', 'stdClass' => new OpenApiType(context: $context, type: 'object', additionalProperties: true),
 			'null' => new OpenApiType(context: $context, nullable: true),
 			default => (function () use ($context, $definitions, $name) {

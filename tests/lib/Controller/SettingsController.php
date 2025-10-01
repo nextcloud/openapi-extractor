@@ -404,7 +404,7 @@ class SettingsController extends OCSController {
 	/**
 	 * A route with keyed array
 	 *
-	 * @param array<string, string> $value Some array value
+	 * @param non-empty-array<string, string>|\stdClass $value Some array value
 	 * @return DataResponse<Http::STATUS_OK, list<empty>, array{}>
 	 *
 	 * 200: Admin settings updated
@@ -543,7 +543,7 @@ class SettingsController extends OCSController {
 	 * Route with parameter
 	 *
 	 * @param int $simple Value
-	 * @param array<string, string> $complex Values
+	 * @param non-empty-array<string, string>|\stdClass $complex Values
 	 * @return DataResponse<Http::STATUS_OK, array{test: list<empty>}, array{}>
 	 *
 	 * 200: OK
@@ -557,8 +557,8 @@ class SettingsController extends OCSController {
 	/**
 	 * Route with object defaults
 	 *
-	 * @param array<string, string> $empty Empty
-	 * @param array<string, string> $values Values
+	 * @param non-empty-array<string, string>|\stdClass $empty Empty
+	 * @param non-empty-array<string, string>|\stdClass $values Values
 	 * @return DataResponse<Http::STATUS_OK, array{test: list<empty>}, array{}>
 	 *
 	 * 200: OK
