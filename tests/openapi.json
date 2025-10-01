@@ -29,12 +29,16 @@
                     "test": {
                         "type": "object",
                         "required": [
-                            "a"
+                            "a",
+                            "b"
                         ],
                         "properties": {
                             "a": {
                                 "type": "integer",
                                 "format": "int64"
+                            },
+                            "b": {
+                                "$ref": "#/components/schemas/SchemaOnlyInCapabilities"
                             }
                         }
                     }
@@ -305,6 +309,17 @@
                                 "$ref": "#/components/schemas/PushDevice"
                             }
                         ]
+                    }
+                }
+            },
+            "SchemaOnlyInCapabilities": {
+                "type": "object",
+                "required": [
+                    "key"
+                ],
+                "properties": {
+                    "key": {
+                        "type": "string"
                     }
                 }
             }
