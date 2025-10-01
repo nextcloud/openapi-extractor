@@ -220,9 +220,10 @@ class OpenApiType {
 			);
 		}
 
-		if ($node instanceof GenericTypeNode && $node->type->name === 'array' && count($node->genericTypes) === 2 && $node->genericTypes[0] instanceof IdentifierTypeNode) {
-			$allowedTypes = ['string', 'lowercase-string', 'non-empty-string', 'non-empty-lowercase-string'];
-			if (in_array($node->genericTypes[0]->name, $allowedTypes, true)) {
+		if ($node instanceof GenericTypeNode && $node->type->name === 'array' && count($node->genericTypes) === 2 && ($node->genericTypes[0] instanceof IdentifierTypeNode || $node->genericTypes[0] instanceof GenericTypeNode)) {
+			$key = $node->genericTypes[0] instanceof IdentifierTypeNode ? $node->genericTypes[0]->name : $node->genericTypes[0]->type->name;
+			$allowedTypes = ['string', 'lowercase-string', 'non-empty-string', 'non-empty-lowercase-string', 'class-string'];
+			if (in_array($key, $allowedTypes, true)) {
 				return new OpenApiType(
 					context: $context,
 					type: 'object',
