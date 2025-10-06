@@ -29,7 +29,7 @@ class Route {
 		if (str_contains($content, 'return ')) {
 			if (str_contains($content, '$this')) {
 				preg_match('/return ([^;]*);/', $content, $matches);
-				return self::includeRoutes("<?php\nreturn ${matches[1]};");
+				return self::includeRoutes("<?php\nreturn $matches[1];");
 			}
 			return include($path);
 		} elseif (str_contains($content, 'registerRoutes')) {
