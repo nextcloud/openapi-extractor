@@ -10,3 +10,17 @@ updates:
     time: "03:00"
     timezone: Europe/Paris
   open-pull-requests-limit: 10
+
+    # GitHub Actions
+- package-ecosystem: "github-actions"
+  directory: ".github/workflows"
+  commit-message:
+      prefix: "ci"
+      include: "scope"
+  schedule:
+      interval: weekly
+      day: saturday
+      time: "03:00"
+      timezone: Europe/Berlin
+  cooldown:
+      default-days: 4
