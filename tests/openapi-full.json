@@ -9476,14 +9476,11 @@
                     }
                 ],
                 "requestBody": {
-                    "required": true,
+                    "required": false,
                     "content": {
                         "application/json": {
                             "schema": {
                                 "type": "object",
-                                "required": [
-                                    "option2"
-                                ],
                                 "properties": {
                                     "option1": {
                                         "type": "integer",
