@@ -29,7 +29,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php-versions: [ "8.1" ]
+        php-versions: [ "8.3" ]
         repositories:
           - "nextcloud/app_template"
           - "nextcloud/approve_links"
@@ -50,10 +50,12 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+        with:
+          persist-credentials: false
 
       - name: Set up php ${{ matrix.php-versions }}
-        uses: shivammathur/setup-php@4bd44f22a98a19e0950cbad5f31095157cc9621b # v2
+        uses: shivammathur/setup-php@44454db4f0199b8b9685a5d763dc37cbf79108e1 # v2.36.0
         with:
           php-version: ${{ matrix.php-versions }}
           coverage: none
@@ -62,8 +64,9 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Checkout repository for testing
-        uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
         with:
+          persist-credentials: false
           repository: ${{ matrix.repositories }}
           path: temp-repository
 
@@ -107,7 +110,7 @@ jobs:
   summary:
     permissions:
       contents: none
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-low
     needs: openapi-repositories
 
     if: always()
