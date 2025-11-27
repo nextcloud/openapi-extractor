@@ -42,6 +42,7 @@ class OpenApiType {
 		public ?string $format = null,
 		public bool $nullable = false,
 		public bool $hasDefaultValue = false,
+		public bool $hasUnknownDefaultValue = false,
 		public bool $deprecated = false,
 		public mixed $defaultValue = null,
 		public ?OpenApiType $items = null,
@@ -92,7 +93,7 @@ class OpenApiType {
 		if ($this->deprecated) {
 			$values['deprecated'] = true;
 		}
-		if ($this->hasDefaultValue) {
+		if ($this->hasDefaultValue && !$this->hasUnknownDefaultValue) {
 			$values['default'] = $this->type === 'object' && is_array($this->defaultValue) && count($this->defaultValue) === 0 ? new stdClass() : $this->defaultValue;
 		}
 		if ($this->enum !== null) {

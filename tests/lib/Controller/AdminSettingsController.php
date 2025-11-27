@@ -61,4 +61,24 @@ class AdminSettingsController extends OCSController {
 	public function movedToSettingsTagUnnamed(): DataResponse {
 		return new DataResponse();
 	}
+
+	public const ALSO_OPTIONAL = 1;
+
+	/**
+	 * OCS Route with attribute
+	 *
+	 * @param int $option1 This is optional with magic number
+	 * @param int $option2 This is optional with constant
+	 * @return DataResponse<Http::STATUS_OK, list<empty>, array{}>
+	 *
+	 * 200: Success
+	 */
+	#[ApiRoute(verb: 'POST', url: '/optional-parameters')]
+	public function optionalParameters(
+		int $option1 = 0,
+		int $option2 = self::ALSO_OPTIONAL,
+	) {
+		return DataResponse();
+	}
+
 }
