@@ -545,6 +545,8 @@ class ControllerMethod {
 					$type->defaultValue = Helpers::exprToValue($context, $methodParameter->default);
 					$type->hasDefaultValue = true;
 				} catch (UnsupportedExprException $e) {
+					$type->hasDefaultValue = true;
+					$type->hasUnknownDefaultValue = true;
 					Logger::debug($context, $e);
 				}
 			}
