@@ -64,17 +64,14 @@ class OpenApiType {
 	}
 
 	public function toArray(bool $isParameter = false): array|stdClass {
-		if ($isParameter) {
-			if ($this->type === 'object' || $this->ref !== null || $this->anyOf !== null || $this->allOf !== null) {
-				Logger::warning($this->context, 'Complex types can not be part of query or URL parameters. Falling back to string due to undefined serialization!');
-
-				return (new OpenApiType(
-					context: $this->context,
-					type: 'string',
-					nullable: $this->nullable,
-					description: $this->description,
-				))->toArray($isParameter);
-			}
+		if ($isParameter && ($this->type === 'object' || $this->ref !== null || $this->anyOf !== null || $this->allOf !== null)) {
+			Logger::warning($this->context, 'Complex types can not be part of query or URL parameters. Falling back to string due to undefined serialization!');
+			return (new OpenApiType(
+				context: $this->context,
+				type: 'string',
+				nullable: $this->nullable,
+				description: $this->description,
+			))->toArray($isParameter);
 		}
 
 		$values = [];
@@ -173,7 +170,7 @@ class OpenApiType {
 				items: self::resolve($context . ': items', $definitions, $node->type),
 			);
 		}
-		if ($node instanceof GenericTypeNode && ($node->type->name === 'array' || $node->type->name === 'list' || $node->type->name === 'non-empty-list') && count($node->genericTypes) === 1) {
+		if ($node instanceof GenericTypeNode && (in_array($node->type->name, ['array', 'list', 'non-empty-list'], true)) && count($node->genericTypes) === 1) {
 			if ($node->type->name === 'array') {
 				Logger::error($context, "The 'array<TYPE>' syntax for arrays is forbidden due to ambiguities. Use 'list<TYPE>' for JSON arrays or 'array<string, TYPE>' for JSON objects instead.");
 			}
@@ -235,7 +232,7 @@ class OpenApiType {
 			Logger::panic($context, "JSON objects can only be indexed by '" . implode("', '", $allowedTypes) . "' but got '" . $node->genericTypes[0]->name . "'");
 		}
 
-		if ($node instanceof GenericTypeNode && $node->type->name === 'int' && count($node->genericTypes) == 2) {
+		if ($node instanceof GenericTypeNode && $node->type->name === 'int' && count($node->genericTypes) === 2) {
 			$min = null;
 			$max = null;
 			if ($node->genericTypes[0] instanceof ConstTypeNode) {
@@ -331,7 +328,7 @@ class OpenApiType {
 			$items = array_unique($items, SORT_REGULAR);
 			$items = self::mergeEnums($context, $items);
 
-			if (count($items) == 1) {
+			if (count($items) === 1) {
 				$type = $items[0];
 				if ($type->ref !== null) {
 					// https://github.com/OAI/OpenAPI-Specification/issues/1368#issuecomment-354037150

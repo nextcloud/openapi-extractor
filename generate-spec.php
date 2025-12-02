@@ -292,7 +292,7 @@ foreach ($controllers as $controllerName => $stmts) {
 		/** @var AttributeGroup $attrGroup */
 		foreach ($classMethod->attrGroups as $attrGroup) {
 			foreach ($attrGroup->attrs as $attr) {
-				if ($attr->name->getLast() !== 'Route' && $attr->name->getLast() !== 'ApiRoute' && $attr->name->getLast() !== 'FrontpageRoute') {
+				if (!in_array($attr->name->getLast(), ['Route', 'ApiRoute', 'FrontpageRoute'], true)) {
 					continue;
 				}
 
@@ -397,7 +397,7 @@ foreach ($parsedRoutes as $key => $value) {
 		// This is very ugly, but since we do not parse the entire source code we can not say with certainty which controller type is used.
 		// To still allow apps to use custom controllers that extend OCSController, we only check the suffix and have the warning if the controller type can not be detected.
 		$isOCS = str_ends_with($parentControllerClass, 'OCSController');
-		if ($parentControllerClass !== 'Controller' && $parentControllerClass !== 'ApiController' && $parentControllerClass !== 'OCSController' && !$isOCS) {
+		if (!in_array($parentControllerClass, ['Controller', 'ApiController', 'OCSController'], true) && !$isOCS) {
 			Logger::warning($routeName, 'You are extending a custom controller class. Make sure that it ends with "OCSController" if it extends "OCSController" itself.');
 		} elseif ($isOCS !== ($pathPrefix === '/ocs/v2.php')) {
 			Logger::warning($routeName, 'Do not mix OCS/non-OCS routes and non-OCS/OCS controllers!');
@@ -422,9 +422,9 @@ foreach ($parsedRoutes as $key => $value) {
 			Logger::panic($routeName, "Controller '" . $controllerName . "' is marked as ignore but also has other scopes");
 		}
 
-		$tagName = implode('_', array_map(fn (string $s) => strtolower($s), Helpers::splitOnUppercaseFollowedByNonUppercase(str_replace('\\', '', $controllerName))));
+		$tagName = implode('_', array_map(strtolower(...), Helpers::splitOnUppercaseFollowedByNonUppercase(str_replace('\\', '', $controllerName))));
 		$doc = $controllerClass->getDocComment()?->getText();
-		if ($doc != null && count(array_filter($tags, fn (array $tag): bool => $tag['name'] === $tagName)) == 0) {
+		if ($doc != null && count(array_filter($tags, fn (array $tag): bool => $tag['name'] === $tagName)) === 0) {
 			$classDescription = [];
 
 			$docNodes = $phpDocParser->parse(new TokenIterator($lexer->tokenize($doc)))->children;
@@ -520,7 +520,7 @@ foreach ($parsedRoutes as $key => $value) {
 		}
 
 		$classMethodInfo = ControllerMethod::parse($routeName, $definitions, $methodFunction, $isPublic, $isAdmin, $isDeprecated, $isPasswordConfirmation, $isCORS, $isOCS);
-		if (count($classMethodInfo->responses) == 0) {
+		if (count($classMethodInfo->responses) === 0) {
 			Logger::error($routeName, 'Returns no responses');
 			continue;
 		}
@@ -612,7 +612,7 @@ foreach ($routes as $scope => $scopeRoutes) {
 		foreach ($urlParameters as $urlParameter) {
 			$matchingParameters = array_filter($route->controllerMethod->parameters, fn (ControllerMethodParameter $param): bool => $param->name == $urlParameter);
 			$requirement = $route->requirements[$urlParameter] ?? null;
-			if (count($matchingParameters) == 1) {
+			if (count($matchingParameters) === 1) {
 				$parameter = $matchingParameters[array_keys($matchingParameters)[0]];
 
 				$schema = $parameter->type->toArray(true);
@@ -640,7 +640,7 @@ foreach ($routes as $scope => $scopeRoutes) {
 						continue;
 					}
 					preg_match("/^\^\(([v0-9-.|]*)\)\\$$/m", (string)$requirement, $matches);
-					if (count($matches) == 2) {
+					if (count($matches) === 2) {
 						$enum = explode('|', $matches[1]);
 					} else {
 						Logger::error($route->name, 'Invalid requirement for apiVersion');
@@ -714,7 +714,7 @@ foreach ($routes as $scope => $scopeRoutes) {
 
 				$hasEmpty = array_filter($contentTypeResponses, fn (ControllerMethodResponse $response): bool => $response->type == null) !== [];
 				$uniqueResponses = array_values(array_intersect_key($contentTypeResponses, array_unique(array_map(fn (ControllerMethodResponse $response): array|\stdClass => $response->type->toArray(), array_filter($contentTypeResponses, fn (ControllerMethodResponse $response): bool => $response->type != null)), SORT_REGULAR)));
-				if (count($uniqueResponses) == 1) {
+				if (count($uniqueResponses) === 1) {
 					if ($hasEmpty) {
 						$mergedContentTypeResponses[$contentType] = [];
 					} else {
@@ -946,7 +946,7 @@ if ($appIsCore) {
 	];
 }
 
-if (count($schemas) == 0 && count($routes) == 0) {
+if (count($schemas) === 0 && count($routes) === 0) {
 	Logger::error('app', 'No spec generated');
 }
 
@@ -972,7 +972,7 @@ if (!$hasSingleScope) {
 
 $usedSchemas = ['Capabilities', 'PublicCapabilities'];
 
-foreach (glob(dirname($out) . '/openapi*.json') as $path) {
+foreach (glob(dirname((string)$out) . '/openapi*.json') as $path) {
 	unlink($path);
 }
 
@@ -1060,12 +1060,12 @@ foreach ($scopePaths as $scope => $paths) {
 		$openapiScope['paths'] = new stdClass();
 	}
 
-	$startExtension = strrpos($out, '.');
+	$startExtension = strrpos((string)$out, '.');
 	if ($startExtension !== false) {
 		// Path + filename (without extension)
-		$path = substr($out, 0, $startExtension);
+		$path = substr((string)$out, 0, $startExtension);
 		// Extension
-		$extension = substr($out, $startExtension);
+		$extension = substr((string)$out, $startExtension);
 		$scopeOut = $path . $scopeSuffix . $extension;
 	} else {
 		$scopeOut = $out . $scopeSuffix;

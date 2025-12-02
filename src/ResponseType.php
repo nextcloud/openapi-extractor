@@ -201,15 +201,15 @@ class ResponseType {
 		if ($className == 'void') {
 			$responses[] = null;
 		} else {
-			if (count(array_filter($responseTypes, fn ($responseType): bool => $responseType->className == $className)) == 0) {
+			if (count(array_filter($responseTypes, fn (\OpenAPIExtractor\ResponseType $responseType): bool => $responseType->className == $className)) === 0) {
 				Logger::error($context, "Invalid return type '" . $obj . "'");
 				return [];
 			}
 			foreach ($responseTypes as $responseType) {
 				if ($responseType->className == $className) {
 					// +2 for status code and headers which are always present
-					$expectedArgs = count(array_filter([$responseType->hasContentTypeTemplate, $responseType->hasTypeTemplate], fn ($value): bool => $value)) + 2;
-					if (count($args) != $expectedArgs) {
+					$expectedArgs = count(array_filter([$responseType->hasContentTypeTemplate, $responseType->hasTypeTemplate], fn (bool $value): bool => $value)) + 2;
+					if (count($args) !== $expectedArgs) {
 						Logger::error($context, "'" . $className . "' needs " . $expectedArgs . ' parameters');
 						continue;
 					}
@@ -223,7 +223,7 @@ class ResponseType {
 						} elseif ($args[$i] instanceof IdentifierTypeNode && $args[$i]->name === 'string') {
 							$contentTypes = ['*/*'];
 						} elseif ($args[$i] instanceof UnionTypeNode) {
-							$contentTypes = array_map(fn ($arg) => $arg->constExpr->value, $args[$i]->types);
+							$contentTypes = array_map(fn (\PHPStan\PhpDocParser\Ast\Type\TypeNode $arg) => $arg->constExpr->value, $args[$i]->types);
 						} else {
 							Logger::panic($context, 'Unable to parse content type from ' . $args[$i]::class);
 						}
