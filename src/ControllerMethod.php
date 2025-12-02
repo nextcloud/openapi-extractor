@@ -397,9 +397,9 @@ class ControllerMethod {
 							}
 
 							if (str_starts_with($type->name, 'OCS') && str_ends_with($type->name, 'Exception')) {
-								$responses[] = new ControllerMethodResponse($docNode->value->type, $statusCode, 'application/json', new OpenApiType(context: $context, type: 'array', maxItems: 0), null);
+								$responses[] = new ControllerMethodResponse($docNode->value->type, $statusCode, 'application/json', new OpenApiType(context: $context, type: 'array', maxItems: 0));
 							} else {
-								$responses[] = new ControllerMethodResponse($docNode->value->type, $statusCode, 'text/plain', new OpenApiType(context: $context, type: 'string'), null);
+								$responses[] = new ControllerMethodResponse($docNode->value->type, $statusCode, 'text/plain', new OpenApiType(context: $context, type: 'string'));
 							}
 						}
 					}
@@ -566,7 +566,7 @@ class ControllerMethod {
 			$parameters[] = $param;
 		}
 
-		if (!$allowMissingDocs && count($methodDescription) == 0) {
+		if (!$allowMissingDocs && count($methodDescription) === 0) {
 			Logger::error($context, 'Missing method description');
 		}
 
@@ -582,7 +582,7 @@ class ControllerMethod {
 			$methodDescription[] = 'This endpoint allows CORS requests';
 		}
 
-		if (count($methodDescription) == 1) {
+		if (count($methodDescription) === 1) {
 			$methodSummary = $methodDescription[0];
 			$methodDescription = [];
 		} elseif (count($methodDescription) > 1) {

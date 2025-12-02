@@ -26,7 +26,7 @@ class Helpers {
 	public const OPENAPI_ATTRIBUTE_CLASSNAME = 'OpenAPI';
 
 	public static function generateReadableAppID(string $appID): string {
-		return implode('', array_map(fn (string $s): string => ucfirst($s), explode('_', $appID)));
+		return implode('', array_map(ucfirst(...), explode('_', $appID)));
 	}
 
 	public static function securitySchemes(): array {
@@ -75,7 +75,7 @@ class Helpers {
 	}
 
 	public static function mergeSchemas(array $schemas): mixed {
-		if (!in_array(true, array_map(fn ($schema): bool => is_array($schema), $schemas))) {
+		if (!in_array(true, array_map(is_array(...), $schemas))) {
 			$results = array_values(array_unique($schemas));
 			if (count($results) > 1) {
 				throw new Exception('Incompatibles types: ' . implode(', ', $results));
@@ -271,7 +271,7 @@ class Helpers {
 					}
 
 					if ($foundTags !== []) {
-						$tags[$foundScopeName !== null && $foundScopeName !== '' && $foundScopeName !== '0' ? $foundScopeName : $defaultScope] = $foundTags;
+						$tags[in_array($foundScopeName, [null, '', '0'], true) ? $defaultScope : $foundScopeName] = $foundTags;
 					}
 				}
 			}
