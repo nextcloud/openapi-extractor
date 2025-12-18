@@ -136,6 +136,14 @@ class ResponseType {
 				null,
 			),
 			new ResponseType(
+				'StreamTraversableResponse',
+				false,
+				false,
+				null,
+				null,
+				null,
+			),
+			new ResponseType(
 				'TemplateResponse',
 				false,
 				false,
