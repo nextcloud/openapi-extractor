@@ -10,6 +10,7 @@ declare(strict_types=1);
 namespace OCA\Notifications\Controller;
 
 use OCP\AppFramework\Http;
+use OCP\AppFramework\Http\Attribute\ApiRoute;
 use OCP\AppFramework\OCSController;
 
 class OpenMetricsController extends OCSController {
@@ -20,6 +21,7 @@ class OpenMetricsController extends OCSController {
 	 *
 	 * 200: Export OK
 	 */
+	#[ApiRoute(verb: 'GET', url: '/openmetrics')]
 	public function export(): StreamTraversableResponse {
 		return new StreamTraversableResponse($this->generator());
 	}
