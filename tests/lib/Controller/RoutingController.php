@@ -23,7 +23,7 @@ class RoutingController extends OCSController {
 	#[Route(Route::TYPE_API, verb: 'GET', url: '/attribute-ocs/{param}', requirements: ['param' => '[a-z]+'], defaults: ['param' => 'abc'], root: '/tests', postfix: 'Route')]
 	#[ApiRoute(verb: 'POST', url: '/attribute-ocs/{param}', requirements: ['param' => '[a-z]+'], defaults: ['param' => 'abc'], root: '/tests', postfix: 'ApiRoute')]
 	public function attributeOCS() {
-		return DataResponse();
+		return new DataResponse();
 	}
 
 	/**
@@ -37,7 +37,7 @@ class RoutingController extends OCSController {
 	#[Route(Route::TYPE_FRONTPAGE, verb: 'GET', url: '/attribute-index/{param}', requirements: ['param' => '[a-z]+'], defaults: ['param' => 'abc'], root: '/tests', postfix: 'Route')]
 	#[FrontpageRoute(verb: 'POST', url: '/attribute-index/{param}', requirements: ['param' => '[a-z]+'], defaults: ['param' => 'abc'], root: '/tests', postfix: 'FrontpageRoute')]
 	public function attributeIndex() {
-		return DataResponse();
+		return new DataResponse();
 	}
 
 	/**
@@ -48,6 +48,6 @@ class RoutingController extends OCSController {
 	 */
 	#[FrontpageRoute(verb: 'PUT', url: '/attribute-index/{param}', requirements: ['param' => '[a-z]+'], defaults: ['param' => 'abc'], root: '/tests')]
 	public function csrfIndex() {
-		return DataResponse();
+		return new DataResponse();
 	}
 }
