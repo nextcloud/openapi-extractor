@@ -78,7 +78,7 @@ class AdminSettingsController extends OCSController {
 		int $option1 = 0,
 		int $option2 = self::ALSO_OPTIONAL,
 	) {
-		return DataResponse();
+		return new DataResponse();
 	}
 
 }
