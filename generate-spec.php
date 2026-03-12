@@ -519,8 +519,8 @@ foreach ($parsedRoutes as $key => $value) {
 			];
 		}
 
-		$classMethodInfo = ControllerMethod::parse($routeName, $definitions, $methodFunction, $isPublic, $isAdmin, $isDeprecated, $isPasswordConfirmation, $isCORS, $isOCS);
-		if (count($classMethodInfo->responses) === 0) {
+		$controllerMethod = ControllerMethod::parse($routeName, $definitions, $methodFunction, $isPublic, $isAdmin, $isDeprecated, $isPasswordConfirmation, $isCORS, $isOCS);
+		if (count($controllerMethod->responses) === 0) {
 			Logger::error($routeName, 'Returns no responses');
 			continue;
 		}
@@ -537,7 +537,7 @@ foreach ($parsedRoutes as $key => $value) {
 			}
 		}
 
-		$docStatusCodes = array_map(fn (ControllerMethodResponse $response): int => $response->statusCode, array_filter($classMethodInfo->responses, fn (?ControllerMethodResponse $response): bool => $response != null));
+		$docStatusCodes = array_map(fn (ControllerMethodResponse $response): int => $response->statusCode, array_filter($controllerMethod->responses, fn (?ControllerMethodResponse $response): bool => $response != null));
 		$missingDocStatusCodes = array_unique(array_filter(array_diff($codeStatusCodes, $docStatusCodes), fn (int $code): bool => $code < 500));
 
 		if ($missingDocStatusCodes !== []) {
@@ -569,7 +569,7 @@ foreach ($parsedRoutes as $key => $value) {
 				$url,
 				$requirements,
 				$defaults,
-				$classMethodInfo,
+				$controllerMethod,
 				$isOCS,
 				$isCORS,
 				$isNoCSRFRequired,
