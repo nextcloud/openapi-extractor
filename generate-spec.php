@@ -545,10 +545,13 @@ foreach ($parsedRoutes as $key => $value) {
 			continue;
 		}
 
+		$hasLimitParameter = false;
 		foreach ($controllerMethod->parameters as $parameter) {
 			if ($parameter->name !== 'limit') {
 				continue;
 			}
+
+			$hasLimitParameter = true;
 
 			if ($parameter->type->type !== 'integer') {
 				Logger::debug($routeName . ': @param: ' . $parameter->name, 'Type was not an integer: ' . $parameter->type->type);
@@ -557,6 +560,19 @@ foreach ($parsedRoutes as $key => $value) {
 
 			if ($parameter->type->minimum === null || $parameter->type->maximum === null) {
 				Logger::warning($routeName . ': @param: ' . $parameter->name, 'A parameter to limit the results should have a minimum and maximum.');
+			}
+		}
+
+		foreach ($controllerMethod->responses as $response) {
+			if ($response->type === null) {
+				continue;
+			}
+
+			// maxItems=0 is list<empty> which is just for the legacy [] empty response.
+			if ($response->type->type === 'array' && $response->type->maxItems !== 0 && !$hasLimitParameter) {
+				Logger::warning($routeName, 'The endpoint returns a list, but has no parameter to limit the number of items.');
+				// Only show the warning once, even if multiple responses contain lists.
+				break;
 			}
 		}
 
