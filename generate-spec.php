@@ -545,6 +545,21 @@ foreach ($parsedRoutes as $key => $value) {
 			continue;
 		}
 
+		foreach ($controllerMethod->parameters as $parameter) {
+			if ($parameter->name !== 'limit') {
+				continue;
+			}
+
+			if ($parameter->type->type !== 'integer') {
+				Logger::debug($routeName . ': @param: ' . $parameter->name, 'Type was not an integer: ' . $parameter->type->type);
+				continue;
+			}
+
+			if ($parameter->type->minimum === null || $parameter->type->maximum === null) {
+				Logger::warning($routeName . ': @param: ' . $parameter->name, 'A parameter to limit the results should have a minimum and maximum.');
+			}
+		}
+
 		$operationId = [
 			$tagName,
 			...Helpers::splitOnUppercaseFollowedByNonUppercase($methodName)
