@@ -77,7 +77,7 @@ class AdminSettingsController extends OCSController {
 	public function optionalParameters(
 		int $option1 = 0,
 		int $option2 = self::ALSO_OPTIONAL,
-	) {
+	): \OCP\AppFramework\Http\DataResponse {
 		return new DataResponse();
 	}
 
