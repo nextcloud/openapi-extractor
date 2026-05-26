@@ -553,7 +553,6 @@ class SettingsController extends OCSController {
 		return new DataResponse();
 	}
 
-
 	/**
 	 * Route with object defaults
 	 *

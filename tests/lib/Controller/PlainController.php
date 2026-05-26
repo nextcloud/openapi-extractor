@@ -23,7 +23,6 @@ class PlainController extends Controller {
 		return new Response();
 	}
 
-
 	/**
 	 * Route with manual scope to not get ignored
 	 *
