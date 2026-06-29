@@ -26,9 +26,6 @@ concurrency:
 jobs:
   openapi:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        php-versions: [ "8.1" ]
 
     name: openapi
 
@@ -38,10 +35,10 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Set up php ${{ matrix.php-versions }}
+      - name: Set up php8.3
         uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2.37.2
         with:
-          php-version: ${{ matrix.php-versions }}
+          php-version: 8.3
           coverage: none
           ini-file: development
         env:
