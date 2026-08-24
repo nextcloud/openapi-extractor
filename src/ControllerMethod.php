@@ -411,6 +411,9 @@ class ControllerMethod {
 			Logger::error($context, 'Missing @return annotation');
 		}
 
+		$isDefault401 = !isset($responseDescriptions[401]);
+		$isDefault403 = !isset($responseDescriptions[403]);
+
 		if (!$isPublic || $isAdmin) {
 			$statusCodes = [];
 			if (!$isPublic) {
@@ -424,12 +427,26 @@ class ControllerMethod {
 
 			foreach ($statusCodes as $statusCode) {
 				if ($isOCS) {
-					$responses[] = new ControllerMethodResponse(
-						'DataResponse',
-						$statusCode,
-						'application/json',
-						new OpenApiType($context),
-					);
+					if ($statusCode === 401 && $isDefault401) {
+						$responses[] = new ControllerMethodResponse(
+							'DataResponse',
+							$statusCode,
+							ref: '#/components/responses/401OCSNotLogged'
+						);
+					} elseif ($statusCode === 403 && $isDefault403) {
+						$responses[] = new ControllerMethodResponse(
+							'DataResponse',
+							$statusCode,
+							ref: '#/components/responses/403OCSForbidden'
+						);
+					} else {
+						$responses[] = new ControllerMethodResponse(
+							'DataResponse',
+							$statusCode,
+							'application/json',
+							new OpenApiType($context),
+						);
+					}
 				} else {
 					$responses[] = new ControllerMethodResponse(
 						'JsonResponse',

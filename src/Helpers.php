@@ -42,6 +42,67 @@ class Helpers {
 		];
 	}
 
+	public static function responses(): array {
+		return [
+			'401NotLogged' => [
+				'description' => 'Current user is not logged in',
+				'content' => [
+					'application/json' => [
+						'schema' => [
+							'type' => 'object',
+							'required' => [
+								'ocs'
+							],
+							'properties' => [
+								'ocs' => [
+									'type' => 'object',
+									'required' => [
+										'meta',
+										'data'
+									],
+									'properties' => [
+										'meta' => [
+											"$ref" => '#/components/schemas/OCSMeta'
+										],
+										'data' => []
+									]
+								]
+							]
+						]
+					]
+				]
+			],
+			'403Forbidden' => [
+				'description' => 'Logged in account must be an admin',
+				'content' => [
+					'application/json' => [
+						'schema' => [
+							'type' => 'object',
+							'required' => [
+								'ocs'
+							],
+							'properties' => [
+								'ocs' => [
+									'type' => 'object',
+									'required' => [
+										'meta',
+										'data'
+									],
+									'properties' => [
+										'meta' => [
+											"$ref" => '#/components/schemas/OCSMeta'
+										],
+										'data' => []
+									]
+								]
+							]
+						]
+					]
+				]
+			]
+		];
+	}
+
 	public static function license(string $openapiVersion, string $license): array {
 		$identifier = match ($license) {
 			'agpl' => 'AGPL-3.0-only',
