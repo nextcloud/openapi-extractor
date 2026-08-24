@@ -22,8 +22,6 @@ use PhpParser\Node\Expr\New_;
 use PhpParser\Node\Name;
 use PhpParser\Node\Stmt\Class_;
 use PhpParser\Node\Stmt\ClassMethod;
-use PhpParser\Node\Stmt\Enum_;
-use PhpParser\Node\Stmt\EnumCase;
 use PhpParser\Node\Stmt\Throw_;
 use PhpParser\NodeFinder;
 use PhpParser\NodeTraverser;
@@ -144,68 +142,15 @@ Logger::info('app', 'Extracting OpenAPI spec for ' . $appID . ' ' . $appVersion)
 $schemas = [];
 $tags = [];
 
-$enumsByFqcn = [];
-$enumSourceDirs = [$sourceDir];
+// Namespace prefixes used to lazily resolve classes referenced as native parameter types, PSR-4 style.
+$namespaceRoots = [
+	$appNamespace => $sourceDir,
+];
 if ($appIsCore) {
-	$enumSourceDirs[] = $sourceDir . '/../lib/private';
+	$namespaceRoots['OC'] = $sourceDir . '/../lib/private';
 }
-foreach ($enumSourceDirs as $enumSourceDir) {
-	if (!is_dir($enumSourceDir)) {
-		continue;
-	}
-	$iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($enumSourceDir));
-	foreach ($iterator as $file) {
-		$path = $file->getPathname();
-		if (!str_ends_with((string)$path, '.php')) {
-			continue;
-		}
-		$contents = file_get_contents($path);
-		if (!str_contains($contents, 'enum ')) {
-			// Cheap pre-filter to avoid parsing every file in the app just to look for enums.
-			continue;
-		}
-		foreach ($nodeFinder->findInstanceOf($nodeTraverser->traverse($astParser->parse($contents)), Enum_::class) as $node) {
-			$name = $node->name->name;
-			if ($node->scalarType === null) {
-				Logger::debug($path, "Enum '" . $name . "' is not backed and can therefore not be used as an OpenAPI type. Use 'enum " . $name . ": string' or 'enum " . $name . ": int' instead.");
-				continue;
-			}
-
-			$values = [];
-			foreach ($node->stmts as $stmt) {
-				if ($stmt instanceof EnumCase && $stmt->expr !== null) {
-					$values[] = Helpers::exprToValue($path . ': ' . $name . '::' . $stmt->name->name, $stmt->expr);
-				}
-			}
-
-			$description = null;
-			$doc = $node->getDocComment()?->getText();
-			if ($doc != null) {
-				$descriptionLines = [];
-				$docNodes = $phpDocParser->parse(new TokenIterator($lexer->tokenize($doc)))->children;
-				foreach ($docNodes as $docNode) {
-					if ($docNode instanceof PhpDocTextNode) {
-						$block = Helpers::cleanDocComment($docNode->text);
-						if ($block !== '') {
-							$descriptionLines[] = $block;
-						}
-					}
-				}
-				if ($descriptionLines !== []) {
-					$description = implode("\n", $descriptionLines);
-				}
-			}
-
-			$enumsByFqcn[$node->namespacedName->toString()] = new OpenApiType(
-				context: $path,
-				type: $node->scalarType->name === 'int' ? 'integer' : 'string',
-				format: $node->scalarType->name === 'int' ? 'int64' : null,
-				description: $description,
-				enum: $values,
-			);
-		}
-	}
-}
+$classResolver = new ClassResolver($astParser, $nodeTraverser, $nodeFinder, $namespaceRoots);
+$enumResolver = new EnumResolver($classResolver, $phpDocParser, $lexer);
 
 $definitions = [];
 $definitionsPath = $sourceDir . '/ResponseDefinitions.php';

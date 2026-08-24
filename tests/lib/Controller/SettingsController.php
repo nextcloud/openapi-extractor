@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace OCA\Notifications\Controller;
 
+use OCA\Notifications\Notification\NotificationPriority;
 use OCA\Notifications\NotificationLevel;
 use OCA\Notifications\ResponseDefinitions;
 use OCP\AppFramework\Http;
@@ -862,6 +863,18 @@ class SettingsController extends OCSController {
 	 * 200: OK
 	 */
 	public function stringBackedEnumParameter(NotificationLevel $level): DataResponse {
+		return new DataResponse();
+	}
+
+	/**
+	 * A route with a backed enum declared in a sub-namespace as a native parameter type
+	 *
+	 * @param NotificationPriority $priority Priority
+	 * @return DataResponse<Http::STATUS_OK, array{}, array{}>
+	 *
+	 * 200: OK
+	 */
+	public function intBackedEnumParameter(NotificationPriority $priority): DataResponse {
 		return new DataResponse();
 	}
 

@@ -94,6 +94,7 @@ return [
 		['name' => 'Settings#custom401', 'url' => '/api/{apiVersion}/custom/401', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
 		['name' => 'Settings#custom403', 'url' => '/api/{apiVersion}/custom/403', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
 		['name' => 'Settings#stringBackedEnumParameter', 'url' => '/api/{apiVersion}/enums/string-backed', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
+		['name' => 'Settings#intBackedEnumParameter', 'url' => '/api/{apiVersion}/enums/int-backed', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
 		['name' => 'Settings#sortDirectionParameter', 'url' => '/api/{apiVersion}/enums/sort-direction', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
 		['name' => 'Settings#injectedServiceParameter', 'url' => '/api/{apiVersion}/injected-service', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
 		['name' => 'V1\SubDir#subDirRoute', 'url' => '/sub-dir', 'verb' => 'GET'],
