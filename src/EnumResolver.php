@@ -76,8 +76,8 @@ class EnumResolver {
 
 		return new OpenApiType(
 			context: $path,
-			type: $node->scalarType->name === 'int' ? 'integer' : 'string',
-			format: $node->scalarType->name === 'int' ? 'int64' : null,
+			type: $node->scalarType->name === 'int' || $node->scalarType->name === 'integer' ? 'integer' : 'string',
+			format: $node->scalarType->name === 'int' || $node->scalarType->name === 'integer' ? 'int64' : null,
 			description: $description,
 			enum: $values,
 		);

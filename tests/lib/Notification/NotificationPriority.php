@@ -15,7 +15,7 @@ namespace OCA\Notifications\Notification;
  * Declared in a sub-namespace/sub-directory to confirm that enums are resolved
  * by mapping their namespace to a file path instead of relying on a directory scan.
  */
-enum NotificationPriority: int {
+enum NotificationPriority: integer {
 	case Low = 0;
 	case Normal = 1;
 	case High = 2;
