@@ -140,7 +140,7 @@ class ResponseType {
 				false,
 				false,
 				null,
-				null,
+				$binaryType,
 				null,
 			),
 			new ResponseType(

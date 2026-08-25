@@ -10334,7 +10334,15 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Export OK"
+                        "description": "Export OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "string",
+                                    "format": "binary"
+                                }
+                            }
+                        }
                     },
                     "401": {
                         "description": "Current user is not logged in",
