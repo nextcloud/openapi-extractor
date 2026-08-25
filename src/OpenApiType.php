@@ -422,13 +422,12 @@ class OpenApiType {
 			return null;
 		}
 
-		global $enumsByFqcn;
-		$fqcn = ltrim($node->toString(), '\\');
-		if (!array_key_exists($fqcn, $enumsByFqcn)) {
+		global $enumResolver;
+		$enum = $enumResolver->resolve($node->toString());
+		if ($enum === null) {
 			return null;
 		}
 
-		$enum = $enumsByFqcn[$fqcn];
 		return new OpenApiType(
 			context: $context,
 			type: $enum->type,
