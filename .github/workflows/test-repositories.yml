@@ -31,22 +31,28 @@ jobs:
       matrix:
         php-versions: [ "8.3" ]
         repositories:
+          - "nextcloud/app_api"
           - "nextcloud/app_template"
           - "nextcloud/approve_links"
           - "nextcloud/assistant"
           - "nextcloud/collectives"
           - "nextcloud/end_to_end_encryption"
+          - "nextcloud/files_gcs"
           - "nextcloud/files_retention"
           - "nextcloud/forms"
           - "nextcloud/groupfolders"
+          - "nextcloud/integration_windmill"
           - "nextcloud/mail"
           - "nextcloud/notifications"
+          - "nextcloud/office"
           - "nextcloud/password_policy"
+          - "nextcloud/polls"
           - "nextcloud/recommendations"
           - "nextcloud/server"
           - "nextcloud/spreed"
           - "nextcloud/tables"
           - "nextcloud/terms_of_service"
+          - "nextcloud/user_oidc"
 
     name: openapi-repositories
 
