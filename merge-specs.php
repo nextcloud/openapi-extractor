@@ -66,6 +66,7 @@ $data = [
 	'components' => [
 		'securitySchemes' => Helpers::securitySchemes(),
 		'schemas' => rewriteSchemaNames($coreSpec),
+		'responses' => Helpers::responses(),
 	],
 	'paths' => rewriteOperations($coreSpec),
 ];

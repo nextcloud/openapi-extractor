@@ -19,6 +19,7 @@ class ControllerMethodResponse {
 		public ?string $contentType = null,
 		public ?OpenApiType $type = null,
 		public ?array $headers = null,
+		public ?string $ref = null,
 	) {
 	}
 }

@@ -133,6 +133,7 @@ $openapi = [
 	'components' => [
 		'securitySchemes' => Helpers::securitySchemes(),
 		'schemas' => [],
+		'responses' => Helpers::responses(),
 	],
 	'paths' => [],
 ];
@@ -744,55 +745,59 @@ foreach ($routes as $scope => $scopeRoutes) {
 				}
 			}
 
-			$mergedContentTypeResponses = [];
-			foreach (array_unique(array_map(fn (ControllerMethodResponse $response): ?string => $response->contentType, array_filter($statusCodeResponses, fn (ControllerMethodResponse $response): bool => $response->contentType != null))) as $contentType) {
-				if ($firstContentType && $mergedContentTypeResponses !== []) {
-					break;
-				}
-
-				/** @var ControllerMethodResponse[] $contentTypeResponses */
-				$contentTypeResponses = array_values(array_filter($statusCodeResponses, fn (ControllerMethodResponse $response): bool => $response->contentType == $contentType));
-
-				$hasEmpty = array_filter($contentTypeResponses, fn (ControllerMethodResponse $response): bool => $response->type == null) !== [];
-				$uniqueResponses = array_values(array_intersect_key($contentTypeResponses, array_unique(array_map(fn (ControllerMethodResponse $response): array|\stdClass => $response->type->toArray(), array_filter($contentTypeResponses, fn (ControllerMethodResponse $response): bool => $response->type != null)), SORT_REGULAR)));
-				if (count($uniqueResponses) === 1) {
-					if ($hasEmpty) {
-						$mergedContentTypeResponses[$contentType] = [];
-					} else {
-						$schema = Helpers::cleanEmptyResponseArray($contentTypeResponses[0]->type->toArray());
-						$mergedContentTypeResponses[$contentType] = ['schema' => Helpers::wrapOCSResponse($route, $contentTypeResponses[0], $schema)];
+			if (array_all($statusCodeResponses, fn (ControllerMethodResponse $response): bool => $response->ref !== null)) {
+				$mergedResponses[$statusCode] = ['$ref' => $response->ref];
+			} else {
+				$mergedContentTypeResponses = [];
+				foreach (array_unique(array_map(fn (ControllerMethodResponse $response): ?string => $response->contentType, array_filter($statusCodeResponses, fn (ControllerMethodResponse $response): bool => $response->contentType != null))) as $contentType) {
+					if ($firstContentType && $mergedContentTypeResponses !== []) {
+						break;
 					}
-				} else {
-					$mergedContentTypeResponses[$contentType] = [
-						'schema' => [
-							// At least one should match, but it's possible that multiple match, so oneOf can't be used.
-							'anyOf' => array_map(function (ControllerMethodResponse $response) use ($route): stdClass|array {
-								$schema = Helpers::cleanEmptyResponseArray($response->type->toArray());
-								return Helpers::wrapOCSResponse($route, $response, $schema);
-							}, $uniqueResponses),
-						],
-					];
-				}
-			}
 
-			$response = [
-				'description' => array_key_exists($statusCode, $route->controllerMethod->responseDescription) ? $route->controllerMethod->responseDescription[$statusCode] : '',
-			];
-			if ($headers !== []) {
-				$response['headers'] = array_combine(
-					array_keys($headers),
-					array_map(
-						fn (OpenApiType $type): array => [
-							'schema' => $type->toArray(),
-						],
-						array_values($headers),
-					),
-				);
+					/** @var ControllerMethodResponse[] $contentTypeResponses */
+					$contentTypeResponses = array_values(array_filter($statusCodeResponses, fn (ControllerMethodResponse $response): bool => $response->contentType == $contentType));
+
+					$hasEmpty = array_filter($contentTypeResponses, fn (ControllerMethodResponse $response): bool => $response->type == null) !== [];
+					$uniqueResponses = array_values(array_intersect_key($contentTypeResponses, array_unique(array_map(fn (ControllerMethodResponse $response): array|\stdClass => $response->type->toArray(), array_filter($contentTypeResponses, fn (ControllerMethodResponse $response): bool => $response->type != null)), SORT_REGULAR)));
+					if (count($uniqueResponses) === 1) {
+						if ($hasEmpty) {
+							$mergedContentTypeResponses[$contentType] = [];
+						} else {
+							$schema = Helpers::cleanEmptyResponseArray($contentTypeResponses[0]->type->toArray());
+							$mergedContentTypeResponses[$contentType] = ['schema' => Helpers::wrapOCSResponse($route, $contentTypeResponses[0], $schema)];
+						}
+					} else {
+						$mergedContentTypeResponses[$contentType] = [
+							'schema' => [
+								// At least one should match, but it's possible that multiple match, so oneOf can't be used.
+								'anyOf' => array_map(function (ControllerMethodResponse $response) use ($route): stdClass|array {
+									$schema = Helpers::cleanEmptyResponseArray($response->type->toArray());
+									return Helpers::wrapOCSResponse($route, $response, $schema);
+								}, $uniqueResponses),
+							],
+						];
+					}
+				}
+
+				$response = [
+					'description' => array_key_exists($statusCode, $route->controllerMethod->responseDescription) ? $route->controllerMethod->responseDescription[$statusCode] : '',
+				];
+				if ($headers !== []) {
+					$response['headers'] = array_combine(
+						array_keys($headers),
+						array_map(
+							fn (OpenApiType $type): array => [
+								'schema' => $type->toArray(),
+							],
+							array_values($headers),
+						),
+					);
+				}
+				if ($mergedContentTypeResponses !== []) {
+					$response['content'] = $mergedContentTypeResponses;
+				}
+				$mergedResponses[$statusCode] = $response;
 			}
-			if ($mergedContentTypeResponses !== []) {
-				$response['content'] = $mergedContentTypeResponses;
-			}
-			$mergedResponses[$statusCode] = $response;
 		}
 
 		$security = [];
