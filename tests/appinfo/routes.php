@@ -98,7 +98,9 @@ return [
 		['name' => 'Settings#sortDirectionParameter', 'url' => '/api/{apiVersion}/enums/sort-direction', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
 		['name' => 'Settings#injectedServiceParameter', 'url' => '/api/{apiVersion}/injected-service', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
 		['name' => 'Settings#intersectionTypeEnumParameter', 'url' => '/api/{apiVersion}/intersection-type-enum', 'verb' => 'GET', 'requirements' => ['apiVersion' => '(v2)']],
+		['name' => 'Settings#nullableIntersectionTypeEnumParameter', 'url' => '/api/{apiVersion}/nullable-intersection-type-enum', 'verb' => 'GET', 'requirements' => ['apiVersion' => '(v2)']],
 		['name' => 'Settings#intersectionTypeAliasEnumParameter', 'url' => '/api/{apiVersion}/intersection-type-alias-enum', 'verb' => 'GET', 'requirements' => ['apiVersion' => '(v2)']],
+		['name' => 'Settings#nullableIntersectionTypeAliasEnumParameter', 'url' => '/api/{apiVersion}/nullable-intersection-type-alias-enum', 'verb' => 'GET', 'requirements' => ['apiVersion' => '(v2)']],
 		['name' => 'V1\SubDir#subDirRoute', 'url' => '/sub-dir', 'verb' => 'GET'],
 	],
 ];

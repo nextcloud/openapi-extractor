@@ -67,24 +67,25 @@ class OpenApiType {
 	/**
 	 * @param array<string, array<string, mixed>> $schemas
 	 */
-	private function isParameterSerializable(array $schemas, ?string $type, ?string $ref, ?array $anyOf, ?array $allOf): bool {
+	private function isParameterSerializable(array $schemas, ?string $type, ?bool $nullable, ?string $ref, ?array $anyOf, ?array $allOf): bool {
 		if ($ref !== null) {
 			$prefix = '#/components/schemas/';
 			if (str_starts_with($ref, $prefix) && ($schema = $schemas[substr($ref, strlen($prefix))] ?? null) !== null) {
-				return $this->isParameterSerializable($schemas, $schema['type'] ?? null, $schema['ref'] ?? null, $schema['anyOf'] ?? null, $schema['allOf'] ?? null);
+				return $this->isParameterSerializable($schemas, $schema['type'] ?? null, $schema['nullable'] ?? null, $schema['ref'] ?? null, $schema['anyOf'] ?? null, $schema['allOf'] ?? null);
 			}
 
 			return false;
 		}
 
-		return $type !== 'object' && $anyOf === null && $allOf === null;
+		// https://github.com/OAI/OpenAPI-Specification/issues/1368#issuecomment-354037150
+		return $type !== 'object' && $anyOf === null && ($allOf === null || (($nullable ?? false) && count($allOf) === 1));
 	}
 
 	/**
 	 * @param array<string, array<string, mixed>> $schemas
 	 */
 	public function toArray(array $schemas, bool $isParameter = false): array|stdClass {
-		if ($isParameter && !$this->isParameterSerializable($schemas, $this->type, $this->ref, $this->anyOf, $this->allOf)) {
+		if ($isParameter && !$this->isParameterSerializable($schemas, $this->type, $this->nullable, $this->ref, $this->anyOf, $this->allOf)) {
 			Logger::warning($this->context, 'Complex types can not be part of query or URL parameters. Falling back to string due to undefined serialization!');
 			return (new OpenApiType(
 				context: $this->context,
