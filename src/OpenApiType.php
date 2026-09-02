@@ -64,15 +64,34 @@ class OpenApiType {
 	) {
 	}
 
-	public function toArray(bool $isParameter = false): array|stdClass {
-		if ($isParameter && ($this->type === 'object' || $this->ref !== null || $this->anyOf !== null || $this->allOf !== null)) {
+	/**
+	 * @param array<string, array<string, mixed>> $schemas
+	 */
+	private function isParameterSerializable(array $schemas, ?string $type, ?string $ref, ?array $anyOf, ?array $allOf): bool {
+		if ($ref !== null) {
+			$prefix = '#/components/schemas/';
+			if (str_starts_with($ref, $prefix) && ($schema = $schemas[substr($ref, strlen($prefix))] ?? null) !== null) {
+				return $this->isParameterSerializable($schemas, $schema['type'] ?? null, $schema['ref'] ?? null, $schema['anyOf'] ?? null, $schema['allOf'] ?? null);
+			}
+
+			return false;
+		}
+
+		return $type !== 'object' && $anyOf === null && $allOf === null;
+	}
+
+	/**
+	 * @param array<string, array<string, mixed>> $schemas
+	 */
+	public function toArray(array $schemas, bool $isParameter = false): array|stdClass {
+		if ($isParameter && !$this->isParameterSerializable($schemas, $this->type, $this->ref, $this->anyOf, $this->allOf)) {
 			Logger::warning($this->context, 'Complex types can not be part of query or URL parameters. Falling back to string due to undefined serialization!');
 			return (new OpenApiType(
 				context: $this->context,
 				type: 'string',
 				nullable: $this->nullable,
 				description: $this->description,
-			))->toArray($isParameter);
+			))->toArray($schemas, $isParameter);
 		}
 
 		$values = [];
@@ -101,7 +120,7 @@ class OpenApiType {
 			$values['description'] = Helpers::cleanDocComment($this->description);
 		}
 		if ($this->items instanceof \OpenAPIExtractor\OpenApiType) {
-			$values['items'] = $this->items->toArray();
+			$values['items'] = $this->items->toArray($schemas);
 		}
 		if ($this->minLength !== null) {
 			$values['minLength'] = $this->minLength;
@@ -126,24 +145,24 @@ class OpenApiType {
 		}
 		if ($this->properties !== null && $this->properties !== []) {
 			$values['properties'] = array_combine(array_keys($this->properties),
-				array_map(static fn (OpenApiType $property): array|\stdClass => $property->toArray(), array_values($this->properties)),
+				array_map(static fn (OpenApiType $property): array|\stdClass => $property->toArray($schemas), array_values($this->properties)),
 			);
 		}
 		if ($this->additionalProperties !== null) {
 			if ($this->additionalProperties instanceof OpenApiType) {
-				$values['additionalProperties'] = $this->additionalProperties->toArray();
+				$values['additionalProperties'] = $this->additionalProperties->toArray($schemas);
 			} else {
 				$values['additionalProperties'] = $this->additionalProperties;
 			}
 		}
 		if ($this->oneOf !== null) {
-			$values['oneOf'] = array_map(fn (OpenApiType $type): array|\stdClass => $type->toArray(), $this->oneOf);
+			$values['oneOf'] = array_map(fn (OpenApiType $type): array|\stdClass => $type->toArray($schemas), $this->oneOf);
 		}
 		if ($this->anyOf !== null) {
-			$values['anyOf'] = array_map(fn (OpenApiType $type): array|\stdClass => $type->toArray(), $this->anyOf);
+			$values['anyOf'] = array_map(fn (OpenApiType $type): array|\stdClass => $type->toArray($schemas), $this->anyOf);
 		}
 		if ($this->allOf !== null) {
-			$values['allOf'] = array_map(fn (OpenApiType $type): array|\stdClass => $type->toArray(), $this->allOf);
+			$values['allOf'] = array_map(fn (OpenApiType $type): array|\stdClass => $type->toArray($schemas), $this->allOf);
 		}
 
 		return $values !== [] ? $values : new stdClass();

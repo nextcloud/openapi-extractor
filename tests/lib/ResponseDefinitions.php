@@ -75,6 +75,8 @@ use OCA\Notifications\Controller\AdminSettingsController;
  * @psalm-type NotificationsSchemaOnlyInCapabilities = array{
  *     key: string,
  * }
+ *
+ * @psalm-type NotificationsEnum = 'A'|'B'
  */
 class ResponseDefinitions {
 }

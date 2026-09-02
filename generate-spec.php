@@ -170,7 +170,7 @@ if (file_exists($definitionsPath)) {
 		}
 	}
 	foreach (array_keys($definitions) as $name) {
-		$schemas[Helpers::cleanSchemaName($name)] = OpenApiType::resolve('Response definitions: ' . $name, $definitions, $definitions[$name])->toArray();
+		$schemas[Helpers::cleanSchemaName($name)] = OpenApiType::resolve('Response definitions: ' . $name, $definitions, $definitions[$name])->toArray($schemas);
 	}
 } else {
 	Logger::debug('Response definitions', 'No response definitions were loaded');
@@ -236,7 +236,7 @@ foreach ($capabilitiesFiles as $path) {
 			continue;
 		}
 
-		$schema = $type->toArray();
+		$schema = $type->toArray($schemas);
 
 		if ($implementsPublicCapability) {
 			$publicCapabilities = $publicCapabilities == null ? $schema : Helpers::mergeSchemas([$publicCapabilities, $schema]);
@@ -656,7 +656,7 @@ foreach ($routes as $scope => $scopeRoutes) {
 			if (count($matchingParameters) === 1) {
 				$parameter = $matchingParameters[array_keys($matchingParameters)[0]];
 
-				$schema = $parameter->type->toArray(true);
+				$schema = $parameter->type->toArray($schemas, true);
 				$description = $parameter->type->description;
 			} else {
 				$schema = [
@@ -754,20 +754,20 @@ foreach ($routes as $scope => $scopeRoutes) {
 				$contentTypeResponses = array_values(array_filter($statusCodeResponses, fn (ControllerMethodResponse $response): bool => $response->contentType == $contentType));
 
 				$hasEmpty = array_filter($contentTypeResponses, fn (ControllerMethodResponse $response): bool => $response->type == null) !== [];
-				$uniqueResponses = array_values(array_intersect_key($contentTypeResponses, array_unique(array_map(fn (ControllerMethodResponse $response): array|\stdClass => $response->type->toArray(), array_filter($contentTypeResponses, fn (ControllerMethodResponse $response): bool => $response->type != null)), SORT_REGULAR)));
+				$uniqueResponses = array_values(array_intersect_key($contentTypeResponses, array_unique(array_map(fn (ControllerMethodResponse $response): array|\stdClass => $response->type->toArray($schemas), array_filter($contentTypeResponses, fn (ControllerMethodResponse $response): bool => $response->type != null)), SORT_REGULAR)));
 				if (count($uniqueResponses) === 1) {
 					if ($hasEmpty) {
 						$mergedContentTypeResponses[$contentType] = [];
 					} else {
-						$schema = Helpers::cleanEmptyResponseArray($contentTypeResponses[0]->type->toArray());
+						$schema = Helpers::cleanEmptyResponseArray($contentTypeResponses[0]->type->toArray($schemas));
 						$mergedContentTypeResponses[$contentType] = ['schema' => Helpers::wrapOCSResponse($route, $contentTypeResponses[0], $schema)];
 					}
 				} else {
 					$mergedContentTypeResponses[$contentType] = [
 						'schema' => [
 							// At least one should match, but it's possible that multiple match, so oneOf can't be used.
-							'anyOf' => array_map(function (ControllerMethodResponse $response) use ($route): stdClass|array {
-								$schema = Helpers::cleanEmptyResponseArray($response->type->toArray());
+							'anyOf' => array_map(function (ControllerMethodResponse $response) use ($route, $schemas): stdClass|array {
+								$schema = Helpers::cleanEmptyResponseArray($response->type->toArray($schemas));
 								return Helpers::wrapOCSResponse($route, $response, $schema);
 							}, $uniqueResponses),
 						],
@@ -783,7 +783,7 @@ foreach ($routes as $scope => $scopeRoutes) {
 					array_keys($headers),
 					array_map(
 						fn (OpenApiType $type): array => [
-							'schema' => $type->toArray(),
+							'schema' => $type->toArray($schemas),
 						],
 						array_values($headers),
 					),
@@ -844,7 +844,7 @@ foreach ($routes as $scope => $scopeRoutes) {
 			}
 			$schema['properties'] = [];
 			foreach ($bodyParameters as $bodyParameter) {
-				$schema['properties'][$bodyParameter->name] = $bodyParameter->type->toArray();
+				$schema['properties'][$bodyParameter->name] = $bodyParameter->type->toArray($schemas);
 			}
 
 			$operation['requestBody'] = [
@@ -872,7 +872,7 @@ foreach ($routes as $scope => $scopeRoutes) {
 			if ($queryParameter->type->deprecated) {
 				$parameter['deprecated'] = true;
 			}
-			$parameter['schema'] = $queryParameter->type->toArray(true);
+			$parameter['schema'] = $queryParameter->type->toArray($schemas, true);
 
 			$parameters[] = $parameter;
 		}
@@ -1047,6 +1047,11 @@ foreach ($scopePaths as $scope => $paths) {
 				foreach ($routeData['responses'] as $responseData) {
 					if (isset($responseData['content']) && $responseData['content'] !== []) {
 						$usedRefs[] = Helpers::collectUsedRefs($responseData['content']);
+					}
+				}
+				foreach (($routeData['parameters'] ?? []) as $parameterData) {
+					if (isset($parameterData['schema'])) {
+						$usedRefs[] = Helpers::collectUsedRefs($parameterData['schema']);
 					}
 				}
 				if (isset($routeData['requestBody']['content']) && $routeData['requestBody']['content'] !== []) {
