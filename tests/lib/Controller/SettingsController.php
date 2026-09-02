@@ -30,6 +30,7 @@ use OCP\IUser;
  * @psalm-import-type NotificationsPushDevice from ResponseDefinitions
  * @psalm-import-type NotificationsNotification from ResponseDefinitions
  * @psalm-import-type NotificationsCollection from ResponseDefinitions
+ * @psalm-import-type NotificationsEnum from ResponseDefinitions
  */
 class SettingsController extends OCSController {
 	/**
@@ -899,6 +900,54 @@ class SettingsController extends OCSController {
 	 * 200: OK
 	 */
 	public function injectedServiceParameter(IUser $user, string $path): DataResponse {
+		return new DataResponse();
+	}
+
+	/**
+	 * A route with a intersection type as enum parameter
+	 *
+	 * @param 'A'|'B' $enum The enum
+	 * @return DataResponse<Http::STATUS_OK, array{}, array{}>
+	 *
+	 * 200: OK
+	 */
+	public function intersectionTypeEnumParameter(string $enum): DataResponse {
+		return new DataResponse();
+	}
+
+	/**
+	 * A route with a nullable intersection type as enum parameter
+	 *
+	 * @param null|'A'|'B' $enum The enum
+	 * @return DataResponse<Http::STATUS_OK, array{}, array{}>
+	 *
+	 * 200: OK
+	 */
+	public function nullableIntersectionTypeEnumParameter(?string $enum): DataResponse {
+		return new DataResponse();
+	}
+
+	/**
+	 * A route with a intersection type alias as enum parameter
+	 *
+	 * @param NotificationsEnum $enum The enum
+	 * @return DataResponse<Http::STATUS_OK, array{}, array{}>
+	 *
+	 * 200: OK
+	 */
+	public function intersectionTypeAliasEnumParameter(string $enum): DataResponse {
+		return new DataResponse();
+	}
+
+	/**
+	 * A route with a nullable intersection type alias as enum parameter
+	 *
+	 * @param ?NotificationsEnum $enum The enum
+	 * @return DataResponse<Http::STATUS_OK, array{}, array{}>
+	 *
+	 * 200: OK
+	 */
+	public function nullableIntersectionTypeAliasEnumParameter(?string $enum): DataResponse {
 		return new DataResponse();
 	}
 }
