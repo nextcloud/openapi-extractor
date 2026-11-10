@@ -824,7 +824,14 @@ foreach ($routes as $scope => $scopeRoutes) {
 		}
 		$operation['security'] = $security;
 
-		if ($bodyParameters !== []) {
+		$uploadedFiles = [];
+		if (strtolower($route->verb) === 'post') {
+			$uploadedFiles = $route->controllerMethod->uploadedFiles;
+		} elseif ($route->controllerMethod->uploadedFiles !== []) {
+			Logger::warning($route->name, 'Uploaded files are only available in POST requests');
+		}
+
+		if ($bodyParameters !== [] || $uploadedFiles !== []) {
 			$requiredBodyParameters = [];
 
 			foreach ($bodyParameters as $bodyParameter) {
@@ -847,13 +854,28 @@ foreach ($routes as $scope => $scopeRoutes) {
 				$schema['properties'][$bodyParameter->name] = $bodyParameter->type->toArray($schemas);
 			}
 
+			$content = [];
+			if ($bodyParameters !== []) {
+				$content['application/json'] = [
+					'schema' => $schema,
+				];
+			}
+			if ($uploadedFiles !== []) {
+				$multipartSchema = $schema;
+				foreach ($uploadedFiles as $uploadedFile) {
+					$multipartSchema['properties'][$uploadedFile] = [
+						'type' => 'string',
+						'format' => 'binary',
+					];
+				}
+				$content['multipart/form-data'] = [
+					'schema' => $multipartSchema,
+				];
+			}
+
 			$operation['requestBody'] = [
 				'required' => $required,
-				'content' => [
-					'application/json' => [
-						'schema' => $schema,
-					],
-				],
+				'content' => $content,
 			];
 		}
 
