@@ -798,6 +798,35 @@ class SettingsController extends OCSController {
 	}
 
 	/**
+	 * A method with uploaded files and a parameter
+	 *
+	 * @param string $name Name of the upload
+	 * @return DataResponse<Http::STATUS_OK, list<empty>, array{}>
+	 *
+	 * 200: Files uploaded
+	 */
+	public function uploadedFiles(string $name): DataResponse {
+		$this->request->getUploadedFile('file');
+		$this->request->getUploadedFile('attachment');
+		$this->request->getUploadedFile('file');
+
+		return new DataResponse();
+	}
+
+	/**
+	 * A method with only an uploaded file
+	 *
+	 * @return DataResponse<Http::STATUS_OK, list<empty>, array{}>
+	 *
+	 * 200: File uploaded
+	 */
+	public function uploadedFileOnly(): DataResponse {
+		$this->request->getUploadedFile('file');
+
+		return new DataResponse();
+	}
+
+	/**
 	 * A public page with annotation.
 	 *
 	 * @PublicPage
