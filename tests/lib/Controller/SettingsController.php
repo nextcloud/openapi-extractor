@@ -828,6 +828,23 @@ class SettingsController extends OCSController {
 	}
 
 	/**
+	 * A method that takes file references as JSON or the files themselves as multipart
+	 *
+	 * @param array{id?: int} $file Reference to a file
+	 * @param list<array{id?: int}> $files References to files
+	 * @param string $name Name of the upload
+	 * @return DataResponse<Http::STATUS_OK, list<empty>, array{}>
+	 *
+	 * 200: Files uploaded
+	 */
+	#[RequestFile('files', multiple: true)]
+	public function uploadedFilesOrReferences(array $file = [], array $files = [], string $name = ''): DataResponse {
+		$this->request->getUploadedFile('files') ?: $this->request->getUploadedFile('file');
+
+		return new DataResponse();
+	}
+
+	/**
 	 * A method with a required file
 	 *
 	 * @return DataResponse<Http::STATUS_OK, list<empty>, array{}>

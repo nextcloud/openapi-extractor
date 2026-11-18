@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Support the built-in `SortDirection` enum from PHP 8.6 (unbacked, so its cases are mapped to the `'ASC'`/`'DESC'` strings)
 - Ignore controller method parameters typed as an injected service (e.g. `\OCP\IUser`) instead of requiring docs for them and listing them in the generated OpenAPI file
 - Support the `RequestFile` attribute (`requestKey`, `fieldName`, `multiple`, `required`, `indirect`) to describe uploaded files that can not be detected from `getUploadedFile()` calls, e.g. required files, several files (`files[]`) or files read outside of the controller method
+- Optional body parameters with the same name as an uploaded file are only documented in the JSON body, so a route can accept file references as JSON and the files themselves as multipart
 
 ### Fixed
 - Clean whitespace in description fields

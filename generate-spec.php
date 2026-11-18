@@ -841,11 +841,20 @@ foreach ($routes as $scope => $scopeRoutes) {
 				}
 			}
 
-			$bodyParameterNames = array_map(static fn (ControllerMethodParameter $parameter): string => $parameter->name, $bodyParameters);
 			$requiredUploadedFiles = [];
+			// Optional body parameters named like an uploaded file are only part of the JSON body.
+			$jsonOnlyParameterNames = [];
 			foreach ($uploadedFiles as $uploadedFile) {
-				if (in_array($uploadedFile->fieldName, $bodyParameterNames, true)) {
-					Logger::error($route->name, 'Uploaded file field "' . $uploadedFile->fieldName . '" has the same name as a body parameter.');
+				foreach ($bodyParameters as $bodyParameter) {
+					if ($bodyParameter->name !== $uploadedFile->fieldName && $bodyParameter->name !== $uploadedFile->getBaseFieldName()) {
+						continue;
+					}
+
+					if ($bodyParameter->type->nullable || $bodyParameter->type->hasDefaultValue) {
+						$jsonOnlyParameterNames[] = $bodyParameter->name;
+					} elseif ($bodyParameter->name === $uploadedFile->fieldName) {
+						Logger::error($route->name, 'Uploaded file field "' . $uploadedFile->fieldName . '" has the same name as a required body parameter.');
+					}
 				}
 				if ($uploadedFile->required) {
 					$requiredUploadedFiles[] = $uploadedFile->fieldName;
@@ -877,7 +886,7 @@ foreach ($routes as $scope => $scopeRoutes) {
 				if ($requiredBodyParameters !== [] || $requiredUploadedFiles !== []) {
 					$multipartSchema['required'] = array_values(array_unique(array_merge($requiredBodyParameters, $requiredUploadedFiles)));
 				}
-				$multipartSchema['properties'] = $schema['properties'];
+				$multipartSchema['properties'] = array_diff_key($schema['properties'], array_flip($jsonOnlyParameterNames));
 				foreach ($uploadedFiles as $uploadedFile) {
 					$multipartSchema['properties'][$uploadedFile->fieldName] = $uploadedFile->toSchema();
 				}

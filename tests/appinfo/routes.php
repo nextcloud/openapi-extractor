@@ -90,6 +90,7 @@ return [
 		['name' => 'Settings#requestParams', 'url' => '/api/{apiVersion}/request-params', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
 		['name' => 'Settings#uploadedFiles', 'url' => '/api/{apiVersion}/uploaded-files', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
 		['name' => 'Settings#uploadedFileOnly', 'url' => '/api/{apiVersion}/uploaded-file-only', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
+		['name' => 'Settings#uploadedFilesOrReferences', 'url' => '/api/{apiVersion}/uploaded-files-or-references', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
 		['name' => 'Settings#uploadedFileRequired', 'url' => '/api/{apiVersion}/uploaded-file-required', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
 		['name' => 'Settings#uploadedFilesMultiple', 'url' => '/api/{apiVersion}/uploaded-files-multiple', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],
 		['name' => 'Settings#uploadedFileIndirect', 'url' => '/api/{apiVersion}/uploaded-file-indirect', 'verb' => 'POST', 'requirements' => ['apiVersion' => '(v2)']],

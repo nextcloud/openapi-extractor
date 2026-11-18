@@ -27,6 +27,11 @@ class UploadedFile {
 	) {
 	}
 
+	/** The name PHP uses for the field, without the `[]` of the array form. */
+	public function getBaseFieldName(): string {
+		return str_ends_with($this->fieldName, '[]') ? substr($this->fieldName, 0, -2) : $this->fieldName;
+	}
+
 	/**
 	 * @return array{type: 'string', format: 'binary'}|array{type: 'array', items: array{type: 'string', format: 'binary'}, minItems?: 1}
 	 */
