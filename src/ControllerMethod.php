@@ -9,6 +9,7 @@ namespace OpenAPIExtractor;
 
 use PhpParser\Node\Arg;
 use PhpParser\Node\AttributeGroup;
+use PhpParser\Node\Expr\ConstFetch;
 use PhpParser\Node\Expr\MethodCall;
 use PhpParser\Node\Expr\PropertyFetch;
 use PhpParser\Node\Expr\Variable;
@@ -291,7 +292,7 @@ class ControllerMethod {
 	 * @param OpenApiType[] $returns
 	 * @param array<int, string> $responseDescription
 	 * @param string[] $description
-	 * @param list<string> $uploadedFiles
+	 * @param list<UploadedFile> $uploadedFiles
 	 */
 	public function __construct(
 		public array $parameters,
@@ -614,7 +615,8 @@ class ControllerMethod {
 		}
 
 		$codeRequestHeaders = [];
-		$uploadedFiles = [];
+		/** @var array<string, true> $codeUploadedFiles Request keys read with getUploadedFile() */
+		$codeUploadedFiles = [];
 		foreach ($nodeFinder->findInstanceOf($method->getStmts(), MethodCall::class) as $methodCall) {
 			if ($methodCall->var instanceof PropertyFetch
 				&& $methodCall->var->var instanceof Variable
@@ -666,7 +668,7 @@ class ControllerMethod {
 						continue;
 					}
 
-					$uploadedFiles[] = $arg->value->value;
+					$codeUploadedFiles[$arg->value->value] = true;
 				}
 			}
 		}
@@ -727,7 +729,92 @@ class ControllerMethod {
 			Logger::error($context, 'Unused request header descriptions: ' . implode(', ', $unusedRequestHeaders));
 		}
 
-		return new ControllerMethod($parameters, $attributeRequestHeaders, $responses, $responseDescriptions, $methodDescription, $methodSummary, $isDeprecated, array_values(array_unique($uploadedFiles)));
+		$uploadedFiles = self::parseUploadedFiles($context, $method, array_map('strval', array_keys($codeUploadedFiles)));
+
+		return new ControllerMethod($parameters, $attributeRequestHeaders, $responses, $responseDescriptions, $methodDescription, $methodSummary, $isDeprecated, $uploadedFiles);
+	}
+
+	/**
+	 * Combine the files detected with getUploadedFile() and the ones described with the RequestFile attribute.
+	 *
+	 * The attribute takes precedence over the detected file with the same request key.
+	 * Use `indirect: true` for files that are read outside of the controller method.
+	 *
+	 * @param list<string> $codeRequestKeys
+	 * @return list<UploadedFile>
+	 */
+	private static function parseUploadedFiles(string $context, ClassMethod $method, array $codeRequestKeys): array {
+		$uploadedFiles = [];
+		foreach ($codeRequestKeys as $requestKey) {
+			$uploadedFiles[$requestKey] = new UploadedFile($requestKey, $requestKey);
+		}
+
+		$attributeRequestKeys = [];
+		/** @var AttributeGroup $attrGroup */
+		foreach ($method->attrGroups as $attrGroup) {
+			foreach ($attrGroup->attrs as $attr) {
+				if ($attr->name->getLast() !== 'RequestFile') {
+					continue;
+				}
+
+				$args = [];
+				foreach ($attr->args as $key => $arg) {
+					$attrName = $arg->name?->name ?? match ($key) {
+						0 => 'requestKey',
+						1 => 'fieldName',
+						2 => 'multiple',
+						3 => 'required',
+						4 => 'indirect',
+						default => Logger::panic($context, 'RequestFile has too many arguments.'),
+					};
+
+					if (array_key_exists($attrName, $args)) {
+						Logger::panic($context, 'The ' . $attrName . ' of RequestFile is set twice.');
+					}
+
+					$args[$attrName] = match ($attrName) {
+						'requestKey', 'fieldName' => $arg->value instanceof String_ ? $arg->value->value : Logger::panic($context, 'The ' . $attrName . ' of RequestFile has to be a string literal.'),
+						'multiple', 'required', 'indirect' => $arg->value instanceof ConstFetch && in_array(strtolower($arg->value->name->toString()), ['true', 'false'], true)
+							? strtolower($arg->value->name->toString()) === 'true'
+							: Logger::panic($context, 'The ' . $attrName . ' of RequestFile has to be true or false.'),
+						default => Logger::panic($context, 'Unknown argument "' . $attrName . '" for RequestFile.'),
+					};
+				}
+
+				if (!isset($args['requestKey'])) {
+					Logger::panic($context, 'RequestFile needs a requestKey.');
+				}
+
+				$requestKey = $args['requestKey'];
+				$multiple = $args['multiple'] ?? false;
+				// PHP only fills the array form of an upload for fields that end with [].
+				$fieldName = $args['fieldName'] ?? ($multiple ? $requestKey . '[]' : $requestKey);
+				if (str_ends_with($fieldName, '[]') !== $multiple) {
+					Logger::warning($context, 'RequestFile "' . $requestKey . '": multiple has to match the [] suffix of the field name "' . $fieldName . '".');
+				}
+
+				if (array_key_exists($requestKey, $attributeRequestKeys)) {
+					Logger::error($context, 'Uploaded file "' . $requestKey . '" already documented.');
+				}
+				$attributeRequestKeys[$requestKey] = true;
+
+				if (!($args['indirect'] ?? false) && !in_array($requestKey, $codeRequestKeys, true)) {
+					Logger::error($context, 'Unused RequestFile for "' . $requestKey . '". Use indirect: true if the file is read outside of the controller method.');
+				}
+
+				$uploadedFiles[$requestKey] = new UploadedFile($requestKey, $fieldName, $multiple, $args['required'] ?? false);
+			}
+		}
+
+		$fieldNames = [];
+		foreach ($uploadedFiles as $uploadedFile) {
+			if (array_key_exists($uploadedFile->fieldName, $fieldNames)) {
+				Logger::error($context, 'Uploaded files "' . $fieldNames[$uploadedFile->fieldName] . '" and "' . $uploadedFile->requestKey . '" use the same field name "' . $uploadedFile->fieldName . '".');
+			}
+			$fieldNames[$uploadedFile->fieldName] = $uploadedFile->requestKey;
+		}
+
+		return array_values($uploadedFiles);
 	}
 
 	private static function cleanHeaderName(string $header): string {

@@ -841,12 +841,21 @@ foreach ($routes as $scope => $scopeRoutes) {
 				}
 			}
 
-			$required = $requiredBodyParameters !== [];
+			$bodyParameterNames = array_map(static fn (ControllerMethodParameter $parameter): string => $parameter->name, $bodyParameters);
+			$requiredUploadedFiles = [];
+			foreach ($uploadedFiles as $uploadedFile) {
+				if (in_array($uploadedFile->fieldName, $bodyParameterNames, true)) {
+					Logger::error($route->name, 'Uploaded file field "' . $uploadedFile->fieldName . '" has the same name as a body parameter.');
+				}
+				if ($uploadedFile->required) {
+					$requiredUploadedFiles[] = $uploadedFile->fieldName;
+				}
+			}
 
 			$schema = [
 				'type' => 'object',
 			];
-			if ($required) {
+			if ($requiredBodyParameters !== []) {
 				$schema['required'] = $requiredBodyParameters;
 			}
 			$schema['properties'] = [];
@@ -855,18 +864,22 @@ foreach ($routes as $scope => $scopeRoutes) {
 			}
 
 			$content = [];
-			if ($bodyParameters !== []) {
+			// A JSON body can not carry a file, so it is not an alternative when a file is required.
+			if ($bodyParameters !== [] && $requiredUploadedFiles === []) {
 				$content['application/json'] = [
 					'schema' => $schema,
 				];
 			}
 			if ($uploadedFiles !== []) {
-				$multipartSchema = $schema;
+				$multipartSchema = [
+					'type' => 'object',
+				];
+				if ($requiredBodyParameters !== [] || $requiredUploadedFiles !== []) {
+					$multipartSchema['required'] = array_values(array_unique(array_merge($requiredBodyParameters, $requiredUploadedFiles)));
+				}
+				$multipartSchema['properties'] = $schema['properties'];
 				foreach ($uploadedFiles as $uploadedFile) {
-					$multipartSchema['properties'][$uploadedFile] = [
-						'type' => 'string',
-						'format' => 'binary',
-					];
+					$multipartSchema['properties'][$uploadedFile->fieldName] = $uploadedFile->toSchema();
 				}
 				$content['multipart/form-data'] = [
 					'schema' => $multipartSchema,
@@ -874,7 +887,7 @@ foreach ($routes as $scope => $scopeRoutes) {
 			}
 
 			$operation['requestBody'] = [
-				'required' => $required,
+				'required' => $requiredBodyParameters !== [] || $requiredUploadedFiles !== [],
 				'content' => $content,
 			];
 		}

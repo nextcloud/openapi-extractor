@@ -19,6 +19,7 @@ use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\Attribute\OpenAPI;
 use OCP\AppFramework\Http\Attribute\PasswordConfirmationRequired;
 use OCP\AppFramework\Http\Attribute\PublicPage;
+use OCP\AppFramework\Http\Attribute\RequestFile;
 use OCP\AppFramework\Http\Attribute\RequestHeader;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\AppFramework\Http\JSONResponse;
@@ -822,6 +823,55 @@ class SettingsController extends OCSController {
 	 */
 	public function uploadedFileOnly(): DataResponse {
 		$this->request->getUploadedFile('file');
+
+		return new DataResponse();
+	}
+
+	/**
+	 * A method with a required file
+	 *
+	 * @return DataResponse<Http::STATUS_OK, list<empty>, array{}>
+	 *
+	 * 200: File uploaded
+	 */
+	#[RequestFile('file', required: true)]
+	public function uploadedFileRequired(): DataResponse {
+		$this->request->getUploadedFile('file');
+
+		return new DataResponse();
+	}
+
+	/**
+	 * A method with several files in PHP's array form
+	 *
+	 * @param string $name Name of the upload
+	 * @return DataResponse<Http::STATUS_OK, list<empty>, array{}>
+	 *
+	 * 200: Files uploaded
+	 */
+	#[RequestFile(requestKey: 'files', fieldName: 'files[]', multiple: true, required: true)]
+	public function uploadedFilesMultiple(string $name): DataResponse {
+		$files = $this->request->getUploadedFile('files');
+
+		return new DataResponse();
+	}
+
+	/**
+	 * A method that reads the upload outside of the route method
+	 *
+	 * @return DataResponse<Http::STATUS_OK, list<empty>, array{}>
+	 *
+	 * 200: File uploaded
+	 */
+	#[RequestFile(requestKey: 'avatar', multiple: false, required: true, indirect: true)]
+	#[RequestFile('attachments', multiple: true, indirect: true)]
+	public function uploadedFileIndirect(): DataResponse {
+		return $this->handleUpload();
+	}
+
+	private function handleUpload(): DataResponse {
+		$this->request->getUploadedFile('avatar');
+		$this->request->getUploadedFile('attachments');
 
 		return new DataResponse();
 	}
