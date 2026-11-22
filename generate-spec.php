@@ -824,7 +824,14 @@ foreach ($routes as $scope => $scopeRoutes) {
 		}
 		$operation['security'] = $security;
 
-		if ($bodyParameters !== []) {
+		$uploadedFiles = [];
+		if (strtolower($route->verb) === 'post') {
+			$uploadedFiles = $route->controllerMethod->uploadedFiles;
+		} elseif ($route->controllerMethod->uploadedFiles !== []) {
+			Logger::warning($route->name, 'Uploaded files are only available in POST requests');
+		}
+
+		if ($bodyParameters !== [] || $uploadedFiles !== []) {
 			$requiredBodyParameters = [];
 
 			foreach ($bodyParameters as $bodyParameter) {
@@ -834,12 +841,30 @@ foreach ($routes as $scope => $scopeRoutes) {
 				}
 			}
 
-			$required = $requiredBodyParameters !== [];
+			$requiredUploadedFiles = [];
+			// Optional body parameters named like an uploaded file are only part of the JSON body.
+			$jsonOnlyParameterNames = [];
+			foreach ($uploadedFiles as $uploadedFile) {
+				foreach ($bodyParameters as $bodyParameter) {
+					if ($bodyParameter->name !== $uploadedFile->fieldName && $bodyParameter->name !== $uploadedFile->getBaseFieldName()) {
+						continue;
+					}
+
+					if ($bodyParameter->type->nullable || $bodyParameter->type->hasDefaultValue) {
+						$jsonOnlyParameterNames[] = $bodyParameter->name;
+					} elseif ($bodyParameter->name === $uploadedFile->fieldName) {
+						Logger::error($route->name, 'Uploaded file field "' . $uploadedFile->fieldName . '" has the same name as a required body parameter.');
+					}
+				}
+				if ($uploadedFile->required) {
+					$requiredUploadedFiles[] = $uploadedFile->fieldName;
+				}
+			}
 
 			$schema = [
 				'type' => 'object',
 			];
-			if ($required) {
+			if ($requiredBodyParameters !== []) {
 				$schema['required'] = $requiredBodyParameters;
 			}
 			$schema['properties'] = [];
@@ -847,13 +872,32 @@ foreach ($routes as $scope => $scopeRoutes) {
 				$schema['properties'][$bodyParameter->name] = $bodyParameter->type->toArray($schemas);
 			}
 
+			$content = [];
+			// A JSON body can not carry a file, so it is not an alternative when a file is required.
+			if ($bodyParameters !== [] && $requiredUploadedFiles === []) {
+				$content['application/json'] = [
+					'schema' => $schema,
+				];
+			}
+			if ($uploadedFiles !== []) {
+				$multipartSchema = [
+					'type' => 'object',
+				];
+				if ($requiredBodyParameters !== [] || $requiredUploadedFiles !== []) {
+					$multipartSchema['required'] = array_values(array_unique(array_merge($requiredBodyParameters, $requiredUploadedFiles)));
+				}
+				$multipartSchema['properties'] = array_diff_key($schema['properties'], array_flip($jsonOnlyParameterNames));
+				foreach ($uploadedFiles as $uploadedFile) {
+					$multipartSchema['properties'][$uploadedFile->fieldName] = $uploadedFile->toSchema();
+				}
+				$content['multipart/form-data'] = [
+					'schema' => $multipartSchema,
+				];
+			}
+
 			$operation['requestBody'] = [
-				'required' => $required,
-				'content' => [
-					'application/json' => [
-						'schema' => $schema,
-					],
-				],
+				'required' => $requiredBodyParameters !== [] || $requiredUploadedFiles !== [],
+				'content' => $content,
 			];
 		}
 
