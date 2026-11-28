@@ -7,10 +7,12 @@
 
 namespace OpenAPIExtractor;
 
+use PhpParser\Node\Arg;
 use PhpParser\Node\AttributeGroup;
 use PhpParser\Node\Expr\MethodCall;
 use PhpParser\Node\Expr\PropertyFetch;
 use PhpParser\Node\Expr\Variable;
+use PhpParser\Node\Scalar\String_;
 use PhpParser\Node\Stmt\ClassMethod;
 use PhpParser\Node\Stmt\Return_;
 use PHPStan\PhpDocParser\Ast\PhpDoc\DeprecatedTagValueNode;
@@ -289,6 +291,7 @@ class ControllerMethod {
 	 * @param OpenApiType[] $returns
 	 * @param array<int, string> $responseDescription
 	 * @param string[] $description
+	 * @param list<string> $uploadedFiles
 	 */
 	public function __construct(
 		public array $parameters,
@@ -298,6 +301,7 @@ class ControllerMethod {
 		public array $description,
 		public ?string $summary,
 		public bool $isDeprecated,
+		public array $uploadedFiles,
 	) {
 	}
 
@@ -610,6 +614,7 @@ class ControllerMethod {
 		}
 
 		$codeRequestHeaders = [];
+		$uploadedFiles = [];
 		foreach ($nodeFinder->findInstanceOf($method->getStmts(), MethodCall::class) as $methodCall) {
 			if ($methodCall->var instanceof PropertyFetch
 				&& $methodCall->var->var instanceof Variable
@@ -653,6 +658,15 @@ class ControllerMethod {
 					);
 
 					$parameters[] = new ControllerMethodParameter($context, $definitions, $name, $type);
+				}
+				if ($methodCall->name->name === 'getUploadedFile') {
+					$arg = $methodCall->args[0] ?? null;
+					if (!$arg instanceof Arg || !$arg->value instanceof String_) {
+						Logger::warning($context, 'getUploadedFile() is not called with a string literal, so the uploaded file can not be documented.');
+						continue;
+					}
+
+					$uploadedFiles[] = $arg->value->value;
 				}
 			}
 		}
@@ -713,7 +727,7 @@ class ControllerMethod {
 			Logger::error($context, 'Unused request header descriptions: ' . implode(', ', $unusedRequestHeaders));
 		}
 
-		return new ControllerMethod($parameters, $attributeRequestHeaders, $responses, $responseDescriptions, $methodDescription, $methodSummary, $isDeprecated);
+		return new ControllerMethod($parameters, $attributeRequestHeaders, $responses, $responseDescriptions, $methodDescription, $methodSummary, $isDeprecated, array_values(array_unique($uploadedFiles)));
 	}
 
 	private static function cleanHeaderName(string $header): string {
